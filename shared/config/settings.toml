@@ -1,0 +1,6 @@
+[redis]
+host = "redis"
+port = 6379
+
+[exchange]
+ws_url = "wss://api.exchange.com/ws"
