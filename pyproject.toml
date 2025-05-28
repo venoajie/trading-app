@@ -8,9 +8,6 @@ requires-python = ">=3.13"
 requires = ["uv"]
 build-backend = "uv"
 
-[tool.uv]
-pip-compile = true
-
 [project.dependencies]
 uvloop = "0.19.0"
 websockets = "12.0"

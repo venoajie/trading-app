@@ -20,6 +20,10 @@ COPY pyproject.toml .
 COPY shared/ ./shared/
 COPY apps/receiver/ ./apps/receiver/
 
+# Create and activate virtual environment
+RUN uv venv .venv
+ENV PATH="/app/.venv/bin:$PATH"
+
 # Install dependencies
 RUN uv pip install --no-cache-dir -e .
 
