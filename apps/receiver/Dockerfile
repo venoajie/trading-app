@@ -1,29 +1,40 @@
-# Builder stage
-FROM python:3.12-slim as builder
+# Use official Python 3.13 slim image
+FROM python:3.13-slim
 
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    DATA_DIR=/data
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc libc-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create app directory
 WORKDIR /app
-RUN pip install uv
 
-COPY pyproject.toml .
-RUN uv venv .venv && \
-    . .venv/bin/activate && \
-    uv pip install -r pyproject.toml
+# Copy requirements first to leverage Docker cache
+COPY apps/receiver/requirements.txt .
 
-# Runtime stage
-FROM python:3.12-slim
-
-WORKDIR /app
-ENV PATH="/app/.venv/bin:$PATH"
-
-# Copy virtual environment
-COPY --from=builder /app/.venv /app/.venv
+# Install Python dependencies using uv
+RUN pip install --no-cache-dir uv && \
+    uv pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY apps/receiver /app
 COPY shared /app/shared
-COPY streaming_helper /app/streaming_helper
+COPY apps/receiver /app/apps/receiver
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y libssl3 && rm -rf /var/lib/apt/lists/*
+# Copy configuration files
+COPY .env /app/.env
+COPY config_strategies.toml /app/config_strategies.toml
+COPY pyproject.toml /app/pyproject.toml
 
-CMD ["python", "-m", "uvloop", "main.py"]
+# Create data volume
+RUN mkdir -p ${DATA_DIR} && chmod 777 ${DATA_DIR}
+VOLUME ${DATA_DIR}
+
+# Set entrypoint
+COPY apps/receiver/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
