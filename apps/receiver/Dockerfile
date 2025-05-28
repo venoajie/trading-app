@@ -12,14 +12,12 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     DATA_DIR=/data
 
-# Copy only necessary files
-COPY pyproject.toml .
-COPY shared/ ./shared/
-COPY apps/receiver/ ./apps/receiver/
+# Copy entire project
+COPY . .
 
 # Install dependencies using standard pip
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -e .
+    pip install --no-cache-dir .
 
 # Create data volume
 RUN mkdir -p ${DATA_DIR} && chmod 777 ${DATA_DIR}
