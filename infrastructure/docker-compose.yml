@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: trading
+      POSTGRES_PASSWORD: strongpassword
+      POSTGRES_DB: trading
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  receiver:
+    build:
+      context: ..
+      dockerfile: apps/receiver/Dockerfile
+    env_file:
+      - ../.env
+    volumes:
+      - ../shared/config/exchanges:/app/shared/config/exchanges:ro
+    depends_on:
+      - redis
+      - postgres
+
+  distributor:
+    build:
+      context: ..
+      dockerfile: apps/distributor/Dockerfile
+    env_file:
+      - ../.env
+    depends_on:
+      - redis
+
+volumes:
+  redis_data:
+  pg_data:
