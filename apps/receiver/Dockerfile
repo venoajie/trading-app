@@ -18,7 +18,8 @@ COPY shared/ ./shared/
 COPY apps/receiver/ ./apps/receiver/
 
 # Install dependencies using standard pip
-RUN pip install --no-cache-dir -e .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -e .
 
 # Create data volume
 RUN mkdir -p ${DATA_DIR} && chmod 777 ${DATA_DIR}
