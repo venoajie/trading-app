@@ -1,73 +1,38 @@
-#!/usr/bin/env python3
 """
-Main entry point for Deribit receiver service
-Handles WebSocket connection, data reception, and queue distribution
+Deribit WebSocket receiver - Main entry point
+Handles connection, authentication, and data distribution
 """
 
 import asyncio
-import os
 import uvloop
-import aioredis
 from loguru import logger as log
-from dotenv import load_dotenv
+from shared.config.settings import get_config
+from shared.streaming.deribit import DeribitReceiver
 
-from shared.configuration.settings import get_config
-from shared.streaming_helper.data_receiver.deribit import StreamingAccountData
-
-# Apply uvloop for better async performance
+# Apply optimized async policy
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-async def main():
-    """Main application coroutine"""
-    # Load configuration
+async def run_receiver():
+    """Main application runner"""
     config = get_config()
-    
     log.info("Starting Deribit receiver service")
-    log.debug(f"Configuration: {config}")
     
-    # Create Redis connection pool
-    redis_pool = aioredis.ConnectionPool.from_url(
-        f"redis://{config.redis_host}",
-        port=6379,
-        db=0,
-        max_connections=20,
-        decode_responses=True
+    receiver = DeribitReceiver(
+        client_id=config.deribit_client_id,
+        client_secret=config.deribit_client_secret,
+        sub_account_id=config.deribit_sub_account_id,
+        redis_host=config.redis_host
     )
     
-    # Create async Redis client
-    async with aioredis.Redis(connection_pool=redis_pool) as client_redis:
-        try:
-            # Create data queue
-            data_queue = asyncio.Queue(maxsize=1000)
-            
-            # Initialize and start WebSocket manager
-            stream = StreamingAccountData(
-                sub_account_id=config.deribit_sub_account_id,
-                client_id=config.deribit_client_id,
-                client_secret=config.deribit_client_secret
-            )
-            
-            await stream.ws_manager(
-                client_redis=client_redis,
-                exchange="deribit",
-                queue_general=data_queue,
-                futures_instruments=config.futures_instruments,
-                resolutions=config.resolutions
-            )
-        except asyncio.CancelledError:
-            log.info("Application shutdown requested")
-        except Exception as e:
-            log.critical(f"Critical failure: {e}")
-            raise
-        finally:
-            await redis_pool.disconnect()
-            log.info("Redis connection pool closed")
+    try:
+        await receiver.connect()
+    except asyncio.CancelledError:
+        log.info("Application shutdown requested")
+    finally:
+        await receiver.disconnect()
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        asyncio.run(run_receiver())
     except KeyboardInterrupt:
         log.info("Application terminated by user")
-    except Exception as e:
-        log.critical(f"Unhandled exception: {e}")
-        raise
