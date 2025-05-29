@@ -10,8 +10,8 @@ import websockets
 from dataclassy import dataclass, fields
 
 # user defined formula
-from restful_api.deribit import end_point_params_template
-from shared import error_handling, string_modification as str_mod
+from trading_app.restful_api.deribit import end_point_params_template
+from trading_app.shared import error_handling, string_modification as str_mod
 
 
 @dataclass(unsafe_hash=True, slots=True)

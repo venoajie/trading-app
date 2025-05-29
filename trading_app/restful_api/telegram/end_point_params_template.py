@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 
-from streaming_helper.restful_api import connector
+from trading_app..restful_api import connector
 
 
 def get_basic_https() -> str:

@@ -2,9 +2,9 @@
 
 import asyncio
 
-from restful_api.deribit import end_point_params_template as end_point
-from shared.pickling import read_data
-from shared.system_tools import (
+from trading_app.restful_api.deribit import end_point_params_template as end_point
+from trading_app.shared.pickling import read_data
+from trading_app.shared.system_tools import (
     provide_path_for_file,
 )
 

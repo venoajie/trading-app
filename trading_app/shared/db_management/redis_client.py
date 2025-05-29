@@ -4,15 +4,12 @@
 import asyncio
 
 # installed
-import uvloop
 from dataclassy import dataclass
 import orjson
 
 import redis.asyncio as aioredis
 
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-
-from shared import error_handling
+from trading_app.shared import error_handling
 
 
 class RedisPubSubManager:

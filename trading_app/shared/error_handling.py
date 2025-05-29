@@ -6,7 +6,7 @@ import traceback
 
 from loguru import logger as log
 
-from streaming_helper.utilities import template
+from trading_app.shared import template
 
 
 def parse_error_message(

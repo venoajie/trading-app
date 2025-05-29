@@ -28,11 +28,11 @@ import uvloop
 import redis.asyncio as aioredis
 
 # Application imports
-from configuration import config, config_oci
-from restful_api.deribit import end_point_params_template
-from receiver import deribit_ws as receiver_deribit
-from receiver import distributing_ws_data as distr_deribit
-from shared import (
+from trading_app.configuration import config, config_oci
+from trading_app.restful_api.deribit import end_point_params_template
+from trading_app.receiver import deribit_ws as receiver_deribit
+from trading_app.receiver import distributing_ws_data as distr_deribit
+from trading_app.shared import (
     error_handling,
     string_modification as str_mod,
     system_tools,

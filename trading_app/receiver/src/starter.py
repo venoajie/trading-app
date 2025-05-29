@@ -7,9 +7,9 @@ import asyncio
 from loguru import logger as log
 
 # user defined formulas
-from shared.db_management import sqlite_management as db_mgt
-from restful_api.deribit import end_point_params_template as end_point
-from shared import (
+from trading_app.shared.db_management import sqlite_management as db_mgt
+from trading_app.restful_api.deribit import end_point_params_template as end_point
+from trading_app.shared import (
     error_handling,
     pickling,
     string_modification as str_mod,
