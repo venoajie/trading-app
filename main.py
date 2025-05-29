@@ -38,7 +38,7 @@ from trading_app.shared import (
     system_tools,
     template
 )
-
+from loguru import logger as log
 # Configure uvloop for better async performance
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
@@ -97,6 +97,9 @@ async def trading_main() -> None:
         
         # Initialize exchange API client
         api_request = end_point_params_template.SendApiRequest(client_id, client_secret)
+        log.info(f"Connected to exchange {exchange} with client ID: {parsed}")
+        log.info(f"client_id {client_id} client_secret {client_secret}")
+        log.info(f"api_request {api_request}")
         
         # Configure Redis connection pool
         redis_pool = aioredis.ConnectionPool.from_url(
