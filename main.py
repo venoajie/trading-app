@@ -90,6 +90,7 @@ async def trading_main() -> None:
         # Load environment configuration
         config_path = system_tools.provide_path_for_file(".env")
         parsed = config.main_dotenv(sub_account_id, config_path)
+        log.debug(f"Loaded configuration for sub-account: {sub_account_id} {parsed} {config_path}")
         
         # Retrieve secrets securely from OCI vault
         client_id = parsed["client_id"]
