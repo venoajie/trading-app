@@ -26,7 +26,7 @@ from aiohttp import web
 # Third-party imports
 import uvloop
 import redis.asyncio as aioredis
-
+from loguru import logger as log
 # Application imports
 from trading_app.configuration import config, config_oci
 from trading_app.restful_api.deribit import end_point_params_template
