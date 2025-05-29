@@ -10,11 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install dependencies
-COPY pyproject.toml .
-COPY receiver/pyproject.toml ./receiver/
-RUN pip install --no-cache-dir uv && \
-    uv pip install -r receiver/pyproject.toml
+# Copy and install dependencies
+COPY receiver/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Runtime stage
 FROM python:3.13-slim
@@ -31,4 +29,4 @@ COPY shared ./shared
 COPY receiver ./receiver
 
 # Run application
-CMD ["python", "receiver/main.py"]  
+CMD ["python", "receiver/main.py"]
