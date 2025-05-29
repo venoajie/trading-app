@@ -4,11 +4,17 @@
 import asyncio
 import logging
 import signal
+import sys
+import os
 from contextlib import AsyncExitStack
+
+# Fix module path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 from shared.config import load_config, get_env
 from shared.logging import setup_logging
-from .deribit_client import DeribitClient
-from .redis_publisher import RedisPublisher
+from receiver.deribit_client import DeribitClient
+from receiver.redis_publisher import RedisPublisher
 
 # Configuration
 CONFIG_PATH = "receiver/config.toml"

@@ -14,12 +14,12 @@ services:
       dockerfile: receiver/Dockerfile
     environment:
       - ENV=production
+      - PYTHONPATH=/app  # Add this line
     depends_on:
       - redis
     restart: unless-stopped
     volumes:
-      - ./shared:/app/shared
-      - ./receiver:/app/receiver
+      - .:/app  # Mount entire project
 
 volumes:
   redis-data:

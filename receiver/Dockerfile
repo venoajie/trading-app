@@ -1,32 +1,17 @@
-# Builder stage
-FROM python:3.13-slim as builder
-
-WORKDIR /app
-
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends gcc
-
-# Create virtual environment
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Copy and install dependencies
-COPY receiver/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Runtime stage
 FROM python:3.13-slim
 
 WORKDIR /app
-ENV PATH="/opt/venv/bin:$PATH" \
+ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1
 
-# Copy virtual environment
-COPY --from=builder /opt/venv /opt/venv
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends gcc
 
-# Copy application code
-COPY shared ./shared
-COPY receiver ./receiver
+# Install Python dependencies
+COPY receiver/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Run application
+# Copy entire project
+COPY . .
+
 CMD ["python", "receiver/main.py"]
