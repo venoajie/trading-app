@@ -76,7 +76,7 @@ async def db_ops(db_name: str = "databases/trading.sqlite3"):
 
 async def insert_tables(
     table_name: str,
-    params: list | dict | str,
+    params#: list | dict | str,
 ):
     """
     alternative insert format (safer):

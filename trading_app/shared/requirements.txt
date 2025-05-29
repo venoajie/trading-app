@@ -8,4 +8,5 @@ oci>=2.125
 redis>=5.0
 websockets>=12.0
 loguru
+aiosqlite
 
