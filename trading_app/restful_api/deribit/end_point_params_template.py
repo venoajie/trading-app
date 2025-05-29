@@ -9,7 +9,7 @@ from trading_app.shared import (
     time_modification as time_mod,
     string_modification as str_mod,
 )
-from trading_app..restful_api import connector
+from trading_app.restful_api import connector
 
 
 def get_basic_https() -> str:
