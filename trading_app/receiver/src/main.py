@@ -30,8 +30,8 @@ import redis.asyncio as aioredis
 # Application imports
 from trading_app.configuration import config, config_oci
 from trading_app.restful_api.deribit import end_point_params_template
-from trading_app.receiver import deribit_ws as receiver_deribit
-from trading_app.receiver import distributing_ws_data as distr_deribit
+from trading_app.receiver.src import deribit_ws as receiver_deribit
+from trading_app.receiver.src import distributing_ws_data as distr_deribit
 from trading_app.shared import (
     error_handling,
     string_modification as str_mod,
