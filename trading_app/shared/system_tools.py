@@ -306,12 +306,10 @@ def handle_ctrl_c() -> None:
     signal.signal(signal.SIGINT, sys.exit(0))
 
 
-def get_config_tomli(file_name: str) -> list:
+def get_config_tomli(config_path) -> list:
     """ """
 
     import tomli
-
-    config_path = provide_path_for_file(file_name)
 
     if os.path.exists(config_path):
 
