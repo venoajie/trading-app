@@ -354,7 +354,7 @@ async def update_status_data(
     filter: str,
     filter_value: any,
     new_value: any,
-    operator=None | str,
+    operator,#=None | str,
 ) -> None:
     """
     https://www.beekeeperstudio.io/blog/sqlite-json-with-text
