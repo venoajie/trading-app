@@ -1,115 +1,67 @@
-"""
-Deribit WebSocket receiver implementation
-"""
+#!/usr/bin/env python3
+"""receiver/main.py: Deribit WebSocket data receiver"""
 
 import asyncio
-import json
-import orjson
-import websockets
-from datetime import datetime, timedelta, timezone
-from loguru import logger as log
-from aioredis import Redis
+import logging
+import signal
+from contextlib import AsyncExitStack
+from shared.config import load_config, get_env
+from shared.logging import setup_logging
+from .deribit_client import DeribitClient
+from .redis_publisher import RedisPublisher
 
-class DeribitReceiver:
-    """Manages WebSocket connection and data streaming from Deribit"""
-    
-    def __init__(self, config):
-        self.config = config
-        self.ws_url = "wss://www.deribit.com/ws/api/v2"
-        self.websocket = None
-        self.redis = None
-    
-    async def connect(self):
-        """Establish connections and start processing"""
-        self.redis = await Redis(self.config.redis_host)
-        while True:
-            try:
-                async with websockets.connect(self.ws_url) as ws:
-                    self.websocket = ws
-                    await self.authenticate()
-                    await self.subscribe_to_channels()
-                    await self.process_messages()
-            except Exception as e:
-                log.error(f"Connection error: {e}, retrying in 5s")
-                await asyncio.sleep(5)
-    
-    async def disconnect(self):
-        """Clean up resources"""
-        if self.redis:
-            await self.redis.close()
-    
-    async def authenticate(self):
-        """Authenticate with Deribit API"""
-        auth_msg = {
-            "jsonrpc": "2.0",
-            "id": 9929,
-            "method": "public/auth",
-            "params": {
-                "grant_type": "client_credentials",
-                "client_id": self.config.deribit_client_id,
-                "client_secret": self.config.deribit_client_secret
-            }
-        }
-        await self.websocket.send(json.dumps(auth_msg))
-        response = await self.websocket.recv()
-        result = orjson.loads(response)
-        self.refresh_token = result["result"]["refresh_token"]
-        self.set_token_expiry(result["result"]["expires_in"])
-    
-    async def subscribe_to_channels(self):
-        """Subscribe to necessary data channels"""
-        channels = [
-            "user.orders.any.any.raw",
-            "user.trades.any.any.raw",
-            "user.portfolio.btc",
-            "user.portfolio.eth"
-        ]
-        subscribe_msg = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "private/subscribe",
-            "params": {"channels": channels}
-        }
-        await self.websocket.send(json.dumps(subscribe_msg))
-    
-    async def process_messages(self):
-        """Process incoming WebSocket messages"""
-        while True:
-            message = await self.websocket.recv()
-            data = orjson.loads(message)
+# Configuration
+CONFIG_PATH = "receiver/config.toml"
+config = load_config(CONFIG_PATH)
+deribit_cfg = config["deribit"]
+redis_cfg = config["redis"]
+log_cfg = config["logging"]
+
+# Initialize logging
+logger = setup_logging("receiver", log_cfg)
+
+class Receiver:
+    def __init__(self):
+        self.exit_stack = AsyncExitStack()
+        self.is_running = True
+        signal.signal(signal.SIGTERM, self.handle_shutdown)
+        signal.signal(signal.SIGINT, self.handle_shutdown)
+
+    def handle_shutdown(self, signum, frame):
+        logger.info("Shutdown signal received")
+        self.is_running = False
+
+    async def run(self):
+        """Main application loop"""
+        async with self.exit_stack:
+            # Initialize clients
+            deribit = DeribitClient(
+                deribit_cfg["ws_url"],
+                deribit_cfg["channels"]
+            )
+            redis_pub = RedisPublisher(
+                redis_cfg["stream_name"],
+                redis_cfg["max_queue_size"]
+            )
             
-            if "params" in data:
-                await self.redis.publish("market-data", orjson.dumps(data["params"]))
-            elif "method" in data and data["method"] == "heartbeat":
-                await self.handle_heartbeat()
-    
-    async def handle_heartbeat(self):
-        """Respond to heartbeat requests"""
-        response = {
-            "jsonrpc": "2.0",
-            "id": 8212,
-            "method": "public/test",
-            "params": {}
-        }
-        await self.websocket.send(json.dumps(response))
-    
-    def set_token_expiry(self, expires_in: int):
-        """Calculate token expiration time"""
-        buffer = 240  # 4 minute buffer
-        self.token_expiry = datetime.now(timezone.utc) + timedelta(
-            seconds=expires_in - buffer
-        )
-    
-    async def refresh_auth(self):
-        """Refresh authentication token"""
-        if datetime.now(timezone.utc) > self.token_expiry:
-            refresh_msg = {
-                "jsonrpc": "2.0",
-                "id": 9929,
-                "method": "public/auth",
-                "params": {
-                    "grant_type": "refresh_token",
-                    "refresh_token": self.refresh_token
-                }
-            }
-            await self.websocket.send(json.dumps(refresh_msg))
+            # Connect to services
+            await deribit.connect()
+            await redis_pub.connect()
+            
+            logger.info("Receiver started successfully")
+            
+            # Main processing loop
+            async for message in deribit.receive_messages():
+                if not self.is_running:
+                    break
+                
+                # Process and publish message
+                if "params" in message:  # Filter actual data messages
+                    await redis_pub.publish(message)
+                    logger.debug(f"Published message: {message['params']['channel']}")
+
+if __name__ == "__main__":
+    app = Receiver()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(app.run())
+    logger.info("Receiver shutdown complete")

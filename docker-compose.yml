@@ -1,24 +1,18 @@
+version: '3.8'
+
 services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+
   receiver:
     build:
       context: .
-      dockerfile: apps/receiver/Dockerfile
-    image: trading-receiver:latest
-    restart: unless-stopped
+      dockerfile: receiver/Dockerfile
     environment:
-      - PYTHONUNBUFFERED=1
-      - REDIS_HOST=redis
-    volumes:
-      - trading-data:/data
+      - ENV=production
     depends_on:
       - redis
-
-  redis:
-    image: redis:7-alpine
-    restart: always
-    volumes:
-      - redis-data:/data
-
-volumes:
-  trading-data:
-  redis-data:
+    restart: unless-stopped
