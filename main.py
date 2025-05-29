@@ -26,12 +26,12 @@ from aiohttp import web
 # Third-party imports
 import uvloop
 import redis.asyncio as aioredis
-from loguru import logger as log
+
 # Application imports
 from trading_app.configuration import config, config_oci
 from trading_app.restful_api.deribit import end_point_params_template
 from trading_app.receiver.src import deribit_ws as receiver_deribit
-from trading_app.receiver.src import distributing_ws_data as distr_deribit
+from trading_app.receiver.src import distributing_ws_data as distr_deribit, get_instrument_summary,starter
 from trading_app.shared import (
     error_handling,
     string_modification as str_mod,
@@ -110,7 +110,6 @@ async def trading_main() -> None:
         
         # Load trading configuration
         config_app = system_tools.get_config_tomli(config_file)
-        log.debug(f"config_app {config_app} {config_file}")
         tradable_config = config_app["tradable"]
         currencies = [o["spot"] for o in tradable_config][0]
         strategy_config = config_app["strategies"]
