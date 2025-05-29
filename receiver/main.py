@@ -9,7 +9,7 @@ import os
 from contextlib import AsyncExitStack
 
 # Fix module path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared.config import load_config, get_env
 from shared.logging import setup_logging
