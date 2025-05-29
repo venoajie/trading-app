@@ -1,73 +1,161 @@
-#!/usr/bin/env python3
-"""receiver/main.py: Deribit WebSocket data receiver"""
+#!/usr/bin/python3
 
+# built ins
 import asyncio
-import logging
-import signal
-import sys
-import os
-from contextlib import AsyncExitStack
+from asyncio import Queue
 
-# Fix module path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# installed
+import uvloop
+import redis.asyncio as aioredis
 
-from shared.config_utils import load_config, get_env  # Updated import
-from shared.logging import setup_logging
-from receiver.deribit_client import DeribitClient
-from receiver.redis_publisher import RedisPublisher
+from configuration import config, config_oci
+from restful_api.deribit import end_point_params_template
+from receiver import deribit_ws as receiver_deribit
+from shared import  error_handling,string_modification as str_mod,system_tools,template
 
-# Configuration
-CONFIG_PATH = "receiver/config.toml"
-config = load_config(CONFIG_PATH)
-deribit_cfg = config["deribit"]
-redis_cfg = config["redis"]
-log_cfg = config["logging"]
+async def main():
+    """
+    """
 
-# Initialize logging
-logger = setup_logging("receiver", log_cfg)
+    exchange = "deribit"
+    
+    sub_account_id = "deribit-148510"
 
-class Receiver:
-    def __init__(self):
-        self.exit_stack = AsyncExitStack()
-        self.is_running = True
-        signal.signal(signal.SIGTERM, self.handle_shutdown)
-        signal.signal(signal.SIGINT, self.handle_shutdown)
-
-    def handle_shutdown(self, signum, frame):
-        logger.info("Shutdown signal received")
-        self.is_running = False
-
-    async def run(self):
-        """Main application loop"""
-        async with self.exit_stack:
-            # Initialize clients
-            deribit = DeribitClient(
-                deribit_cfg["ws_url"],
-                deribit_cfg["channels"]
-            )
-            redis_pub = RedisPublisher(
-                redis_cfg["stream_name"],
-                redis_cfg["max_queue_size"]
-            )
-            
-            # Connect to services
-            await deribit.connect()
-            await redis_pub.connect()
-            
-            logger.info("Receiver started successfully")
-            
-            # Main processing loop
-            async for message in deribit.receive_messages():
-                if not self.is_running:
-                    break
+    # registering strategy config file    
+    file_toml = "config_strategies.toml"
+        
+    try:
+        
+        config_path = system_tools.provide_path_for_file(".env")
+        
+        parsed= config.main_dotenv(
+            sub_account_id,
+            config_path,
+        )
                 
-                # Process and publish message
-                if "params" in message:  # Filter actual data messages
-                    await redis_pub.publish(message)
-                    logger.debug(f"Published message: {message['params']['channel']}")
+        client_id: str = parsed["client_id"]
+        client_secret: str = config_oci.get_oci_key(parsed["key_ocid"])
+
+        #instantiate private connection
+        api_request: object = end_point_params_template.SendApiRequest(client_id,client_secret)
+
+        pool = aioredis.ConnectionPool.from_url(
+            "redis://localhost", 
+            port=6379, 
+            db=0, 
+            protocol=3, 
+            encoding="utf-8",
+            decode_responses=True
+            )
+        
+        client_redis: object = aioredis.Redis.from_pool(pool)
+        
+        # parsing config file
+        config_app = system_tools.get_config_tomli(file_toml)
+
+        # get tradable strategies
+        tradable_config_app = config_app["tradable"]
+
+        # get TRADABLE currencies
+        currencies: list = [o["spot"] for o in tradable_config_app][0]
+
+        strategy_attributes = config_app["strategies"]
+
+        # get redis channels
+        redis_channels: dict = config_app["redis_channels"][0]
+
+        settlement_periods = str_mod.remove_redundant_elements(
+        str_mod.remove_double_brackets_in_list(
+            [o["settlement_period"] for o in strategy_attributes]
+        )
+    )
+        
+        futures_instruments = await get_instrument_summary.get_futures_instruments(
+            currencies,
+            settlement_periods,
+        )
+                
+        redis_keys: dict = config_app["redis_keys"][0]
+        
+        resolutions: list = [o["resolutions"] for o in tradable_config_app][0]
+
+        strategy_attributes = config_app["strategies"]
+
+        queue = Queue(maxsize=1)
+        
+        stream = receiver_deribit.StreamingAccountData(sub_account_id,
+                                                       client_id,
+                                                       client_secret)
+
+        result_template = template.redis_message_template()
+        
+        sub_account_cached_channel: str = redis_channels["sub_account_cache_updating"]
+        
+        # sub_account_combining        
+        sub_accounts = [await api_request.get_subaccounts_details(o) for o in currencies]
+        
+        initial_data_subaccount = starter.sub_account_combining(
+            sub_accounts,
+            sub_account_cached_channel,
+            result_template,
+        )
+        
+        producer_task = asyncio.create_task(
+            stream.ws_manager(
+                client_redis,
+                exchange,
+                queue,
+                futures_instruments,
+                resolutions,
+)
+            ) 
+                
+                 
+        saving_task_deribit = asyncio.create_task(
+            distr_deribit.caching_distributing_data(
+                client_redis,
+                currencies,
+                initial_data_subaccount,
+                redis_channels,
+                redis_keys,
+                strategy_attributes,
+                queue,
+                )
+            ) 
+                
+                        
+        await asyncio.sleep(0.0005)
+        
+        await asyncio.gather(
+            
+            producer_task, 
+            
+            saving_task_deribit,
+
+                        )  
+
+        await queue.join()
+
+    except Exception as error:
+        await error_handling.parse_error_message_with_redis(
+            client_redis,
+            error,
+            )
 
 if __name__ == "__main__":
-    app = Receiver()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(app.run())
-    logger.info("Receiver shutdown complete")
+    
+    try:
+        
+        uvloop.run(main())
+        
+    except(
+        KeyboardInterrupt, 
+        SystemExit
+        ):
+        
+        asyncio.get_event_loop().run_until_complete(main())
+        
+    except Exception as error:
+        
+        error_handling.parse_error_message(error)
+        
