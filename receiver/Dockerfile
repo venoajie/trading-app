@@ -1,17 +1,27 @@
+# apps/receiver/Dockerfile
 FROM python:3.13-slim
 
-WORKDIR /app
-ENV PYTHONPATH=/app \
-    PYTHONUNBUFFERED=1
-
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends gcc
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc libssl-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install UV
+RUN pip install --no-cache-dir uv
+
+# Set working directory
+WORKDIR /app
+
+# Copy only necessary files
+COPY apps/receiver /app/receiver
 
 # Install Python dependencies
-COPY receiver/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN uv pip install -r /app/receiver/pyproject.toml
 
-# Copy entire project
-COPY . .
+# Set environment variables
+ENV PYTHONPATH=/app \
+    UVICORN_WORKERS=1 \
+    UVICORN_LOG_LEVEL=warning
 
-CMD ["python", "receiver/main.py"]
+# Run the application
+CMD ["python", "-m", "uvloop", "/app/receiver/main.py"]

@@ -1,27 +1,20 @@
+# docker-compose.yml
 
 services:
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     command: redis-server --save 60 1 --loglevel warning
-    sysctls:
-      - vm.overcommit_memory=1  # Fix memory warning
     volumes:
-      - redis-data:/data
+      - redis_data:/data
 
   receiver:
     build:
       context: .
-      dockerfile: receiver/Dockerfile
-    environment:
-      - ENV=production
-      - PYTHONPATH=/app
+      dockerfile: apps/receiver/Dockerfile
+    env_file: .env
+    restart: unless-stopped
     depends_on:
       - redis
-    restart: unless-stopped
-    volumes:
-      - .:/app
 
 volumes:
-  redis-data:
+  redis_data:
