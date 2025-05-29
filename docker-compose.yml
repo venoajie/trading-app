@@ -5,6 +5,8 @@ services:
     ports:
       - "6379:6379"
     command: redis-server --save 60 1 --loglevel warning
+    sysctls:
+      - vm.overcommit_memory=1  # Fix memory warning
     volumes:
       - redis-data:/data
 
@@ -14,12 +16,12 @@ services:
       dockerfile: receiver/Dockerfile
     environment:
       - ENV=production
-      - PYTHONPATH=/app  # Add this line
+      - PYTHONPATH=/app
     depends_on:
       - redis
     restart: unless-stopped
     volumes:
-      - .:/app  # Mount entire project
+      - .:/app
 
 volumes:
   redis-data:
