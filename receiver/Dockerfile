@@ -1,4 +1,6 @@
 # receiver/Dockerfile
+# Multi-stage build for receiver service
+
 # Stage 1: Base image with Python 3.13 and UV
 FROM python:3.13-slim AS base
 RUN pip install --no-cache-dir uv==0.1.0 && \

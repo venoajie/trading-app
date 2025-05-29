@@ -1,27 +1,108 @@
+# ./docker-compose.yml
 
 services:
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     command: redis-server --save 60 1 --loglevel warning
-    sysctls:
-      - vm.overcommit_memory=1  # Fix memory warning
     volumes:
       - redis-data:/data
+    networks:
+      - trading-network
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: trading
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./scripts/init_db.sh:/docker-entrypoint-initdb.d/init_db.sh
+    networks:
+      - trading-network
 
   receiver:
     build:
       context: .
       dockerfile: receiver/Dockerfile
-    environment:
-      - ENV=production
-      - PYTHONPATH=/app
-    depends_on:
-      - redis
     restart: unless-stopped
     volumes:
-      - .:/app
+      - ./config:/app/config:ro
+      - ./shared:/app/shared:ro
+    environment:
+      REDIS_URL: redis://redis:6379
+      POSTGRES_URL: postgresql://trader:${DB_PASSWORD}@postgres:5432/trading
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - trading-network
+
+  distributor:
+    build:
+      context: .
+      dockerfile: distributor/Dockerfile
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config:ro
+      - ./shared:/app/shared:ro
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - trading-network
+
+  processor:
+    build:
+      context: .
+      dockerfile: processor/Dockerfile
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config:ro
+      - ./shared:/app/shared:ro
+      - processor-data:/data
+    environment:
+      REDIS_URL: redis://redis:6379
+      POSTGRES_URL: postgresql://trader:${DB_PASSWORD}@postgres:5432/trading
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - trading-network
+
+  communicator:
+    build:
+      context: .
+      dockerfile: communicator/Dockerfile
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config:ro
+      - ./shared:/app/shared:ro
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    networks:
+      - trading-network
+
+  maintenance:
+    build:
+      context: .
+      dockerfile: maintenance/Dockerfile
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config:ro
+      - ./shared:/app/shared:ro
+      - processor-data:/data:ro
+    environment:
+      BACKBLAZE_CONFIG: ${BACKBLAZE_CONFIG}
+    networks:
+      - trading-network
 
 volumes:
   redis-data:
+  pg-data:
+  processor-data:
+
+networks:
+  trading-network:
+    driver: bridge

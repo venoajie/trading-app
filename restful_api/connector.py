@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 """
 why aiohttp over httpx?
@@ -23,10 +22,10 @@ import aiohttp
 from aiohttp.helpers import BasicAuth
 
 # user defined formula
-from streaming_helper.restful_api.deribit import (
+from restful_api.deribit import (
     end_point_params_template as end_point_deribit,
 )
-from streaming_helper.restful_api.telegram import (
+from restful_api.telegram import (
     end_point_params_template as telegram_end_point,
 )
 
