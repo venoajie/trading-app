@@ -23,6 +23,7 @@ services:
     volumes:
       - ./configuration:/app/configuration:ro
       - ./restful_api:/app/restful_api:ro
+      - ./shared:/app/shared:ro
     environment:
       REDIS_URL: redis://redis:6379
     depends_on:

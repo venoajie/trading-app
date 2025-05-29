@@ -13,6 +13,17 @@ from restful_api.deribit import end_point_params_template
 from receiver import deribit_ws as receiver_deribit
 from shared import  error_handling,string_modification as str_mod,system_tools,template
 
+async def health_check(request):
+    return web.json_response({
+        "status": "ok",
+        "service": "receiver",
+        "redis": os.getenv("REDIS_URL", "not_configured")
+    })
+
+app = web.Application()
+app.router.add_get("/health", health_check)
+
+
 async def main():
     """
     """
@@ -141,12 +152,14 @@ async def main():
             client_redis,
             error,
             )
+    pass
 
 if __name__ == "__main__":
     
     try:
         
         uvloop.run(main())
+        web.run_app(app, port=8000)
         
     except(
         KeyboardInterrupt, 

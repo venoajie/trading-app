@@ -1,5 +1,5 @@
 # receiver/Dockerfile
-# Multi-stage build for receiver service
+# Optimized for your directory structure
 
 # Stage 1: Base image with Python 3.13 and UV
 FROM python:3.13-slim AS base
@@ -7,29 +7,21 @@ RUN pip install --no-cache-dir uv==0.1.0 && \
     uv venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Stage 2: Shared library builder
-FROM base AS shared-builder
-WORKDIR /wheels
-COPY shared/pyproject.toml /shared/
-COPY shared/src/ /shared/src/
-# Corrected UV command:
-RUN uv pip wheel /shared --no-deps --wheel-dir /wheels
-
-# Stage 3: Receiver dependencies installation
-FROM base AS receiver-installer
-COPY --from=shared-builder /wheels /wheels
-RUN uv pip install --no-cache-dir /wheels/trading_shared-*.whl
-COPY receiver/pyproject.toml /app/
+# Stage 2: Install dependencies directly (no shared wheel)
+FROM base AS dependencies
 WORKDIR /app
-RUN uv pip install -e .
+COPY shared/ /shared/
+COPY receiver/pyproject.toml .
+RUN uv pip install -e . -r /shared/requirements.txt
 
-# Stage 4: Final production image
+# Stage 3: Final production image
 FROM base AS production
-COPY --from=receiver-installer /opt/venv /opt/venv
-COPY --from=receiver-installer /app /app
+COPY --from=dependencies /opt/venv /opt/venv
+COPY --from=dependencies /app /app
 COPY receiver/src/ /app/src/
 COPY configuration/ /app/configuration/
 COPY restful_api/ /app/restful_api/
+COPY shared/ /app/shared/
 WORKDIR /app
 
 # Environment configuration
