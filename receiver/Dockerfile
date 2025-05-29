@@ -1,5 +1,5 @@
 # receiver/Dockerfile
-# Optimized for trading system receiver service
+# Multi-stage build for receiver service
 
 # Stage 1: Base image with Python 3.13 and UV
 FROM python:3.13-slim AS base
@@ -10,8 +10,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Stage 2: Shared library builder
 FROM base AS shared-builder
 WORKDIR /wheels
-COPY shared/ /shared/
-RUN uv pip build /shared -o /wheels
+COPY shared/pyproject.toml /shared/
+COPY shared/src/ /shared/src/
+# Corrected UV command:
+RUN uv pip wheel /shared --no-deps --wheel-dir /wheels
 
 # Stage 3: Receiver dependencies installation
 FROM base AS receiver-installer
