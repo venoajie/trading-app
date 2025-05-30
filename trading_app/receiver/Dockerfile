@@ -7,6 +7,8 @@ FROM python:3.13-slim AS base
 # Install UV and create virtual environment
 RUN pip install --no-cache-dir uv==0.1.0 && \
     uv venv /opt/venv
+
+# Set PATH in base to include virtual environment
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Stage 2: Install dependencies
@@ -16,6 +18,7 @@ WORKDIR /app
 # Copy dependency specifications
 COPY trading_app/shared/requirements.txt /shared/requirements.txt
 COPY trading_app/receiver/pyproject.toml .
+COPY trading_app/receiver/src/ ./src/
 
 # Install dependencies using UV within the virtual environment
 RUN . /opt/venv/bin/activate && \
@@ -24,9 +27,9 @@ RUN . /opt/venv/bin/activate && \
 
 # Stage 3: Final production image
 FROM base AS production
-COPY --from=dependencies /opt/venv /opt/venv
 
-# Copy application code
+# Copy virtual environment and application code
+COPY --from=dependencies /opt/venv /opt/venv
 WORKDIR /app
 COPY trading_app/receiver/src/ ./src/
 COPY trading_app/configuration/ ./configuration/
@@ -43,5 +46,5 @@ ENV PYTHONUNBUFFERED=1 \
 HEALTHCHECK --interval=30s --timeout=3s \
     CMD curl -f http://localhost:$UVICORN_PORT/health || exit 1
 
-# Corrected entrypoint configuration
-ENTRYPOINT ["uvicorn", "src.main:main", "--host", "0.0.0.0", "--port", "8000"]
+# Use absolute path to uvicorn executable
+ENTRYPOINT ["/opt/venv/bin/uvicorn", "src.main:main", "--host", "0.0.0.0", "--port", "8000"]
