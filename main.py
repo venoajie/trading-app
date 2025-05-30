@@ -101,6 +101,13 @@ async def trading_main() -> None:
         log.info(f"client_id {client_id} client_secret {client_secret}")
         log.info(f"api_request {api_request}")
         
+        # Load trading configuration
+        config_app = system_tools.get_config_tomli(config_file)
+        tradable_config = config_app["tradable"]
+        currencies = [o["spot"] for o in tradable_config][0]
+        strategy_config = config_app["strategies"]
+        redis_channels = config_app["redis_channels"][0]
+        
         # Fetch account data
         sub_accounts = [await api_request.get_subaccounts_details(c) for c in currencies]
         initial_data = starter.sub_account_combining(
@@ -118,13 +125,6 @@ async def trading_main() -> None:
             decode_responses=True
         )
         client_redis = aioredis.Redis.from_pool(redis_pool)
-        
-        # Load trading configuration
-        config_app = system_tools.get_config_tomli(config_file)
-        tradable_config = config_app["tradable"]
-        currencies = [o["spot"] for o in tradable_config][0]
-        strategy_config = config_app["strategies"]
-        redis_channels = config_app["redis_channels"][0]
         
         # Prepare market instruments
         settlement_periods = str_mod.remove_redundant_elements(
