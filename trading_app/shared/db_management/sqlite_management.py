@@ -1,4 +1,4 @@
-# # -*- coding: utf-8 -*-
+# trading_app/shared/db_management/sqlite_management.py
 
 # built ins
 import asyncio
@@ -17,6 +17,17 @@ from trading_app.shared import (
     string_modification as str_mod,
 )
 
+
+def get_db_path():
+    """Get SQLite database path with Docker compatibility"""
+    base_path = os.environ.get('DB_BASE_PATH', '/app/data')
+    return os.path.join(base_path, 'trading.sqlite3')
+
+def create_connection():
+    db_path = get_db_path()
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    return sqlite3.connect(db_path)
 
 async def telegram_bot_sendtext(bot_message, purpose: str = "general_error") -> None:
 

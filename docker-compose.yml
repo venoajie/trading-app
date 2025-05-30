@@ -23,8 +23,11 @@ services:
       - ./trading_app/configuration:/app/configuration:ro
       - ./trading_app/restful_api:/app/restful_api:ro
       - ./trading_app/shared:/app/shared:ro
+      - ./data:/app/data 
     environment:
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://redis:6379 
+      DB_TYPE: ${DB_TYPE:-sqlite}  # or postgres
+      DB_BASE_PATH: /app/data
     depends_on:
       redis:
         condition: service_healthy
@@ -34,7 +37,8 @@ services:
       - trading-network
 
 volumes:
-  redis-data:
+  redis-data: # This volume is for Redis data persistence
+  trading-data: # This volume is for trading data, if needed
 
 networks:
   trading-network:
