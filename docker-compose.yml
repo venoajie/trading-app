@@ -18,7 +18,7 @@ services:
   receiver:
     build:
       context: .
-      dockerfile: receiver/Dockerfile
+      dockerfile: trading_app/receiver/Dockerfile
     restart: unless-stopped
     volumes:
       - ./configuration:trading_app/app/configuration:ro
