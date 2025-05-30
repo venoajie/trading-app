@@ -13,7 +13,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 FROM base AS dependencies
 WORKDIR /app
 
-# Copy dependency specifications ONLY
+# Copy dependency specifications
 COPY trading_app/shared/requirements.txt /shared/requirements.txt
 COPY trading_app/receiver/pyproject.toml .
 
@@ -26,16 +26,23 @@ RUN . /opt/venv/bin/activate && \
 FROM base AS production
 COPY --from=dependencies /opt/venv /opt/venv
 
-# Copy application code in optimized order
-WORKDIR /app
-COPY trading_app/receiver/src/ ./src/
+# Create proper Python package structure
+WORKDIR /app/trading_app
+COPY trading_app/receiver/src/ ./receiver/src/
 COPY trading_app/configuration/ ./configuration/
 COPY trading_app/restful_api/ ./restful_api/
 COPY trading_app/shared/ ./shared/
 
+# Add __init__.py files to create packages
+RUN touch ./__init__.py && \
+    touch ./configuration/__init__.py && \
+    touch ./restful_api/__init__.py && \
+    touch ./shared/__init__.py && \
+    touch ./receiver/__init__.py
+
 # Environment configuration
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app \
+    PYTHONPATH="/app:/app/trading_app" \
     UVICORN_HOST=0.0.0.0 \
     UVICORN_PORT=8000
 
@@ -44,4 +51,5 @@ HEALTHCHECK --interval=30s --timeout=3s \
     CMD curl -f http://localhost:$UVICORN_PORT/health || exit 1
 
 # Execute using Python module loader
-ENTRYPOINT ["python", "-m", "src.main"]
+WORKDIR /app
+ENTRYPOINT ["python", "-m", "trading_app.receiver.src.main"]
