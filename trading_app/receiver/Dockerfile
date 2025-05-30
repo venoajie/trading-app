@@ -18,9 +18,9 @@ COPY trading_app/shared/requirements.txt /shared/requirements.txt
 COPY trading_app/receiver/pyproject.toml .
 
 # Install dependencies using UV
-RUN uv pip install --no-cache-dir -r /shared/requirements.txt && \
-    uv pip install --no-cache-dir -e .
-
+RUN uv pip install --no-cache -r /shared/requirements.txt && \
+    uv pip install --no-cache -e .
+    
 # Stage 3: Final production image
 FROM base AS production
 COPY --from=dependencies /opt/venv /opt/venv
