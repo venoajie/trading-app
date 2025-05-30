@@ -33,6 +33,9 @@ COPY trading_app/configuration/ ./configuration/
 COPY trading_app/restful_api/ ./restful_api/
 COPY trading_app/shared/ ./shared/
 
+# Copy root-level configuration files
+COPY config_strategies.toml /app/
+
 # Add __init__.py files to create packages
 RUN touch ./__init__.py && \
     touch ./configuration/__init__.py && \
