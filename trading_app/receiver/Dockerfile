@@ -17,7 +17,7 @@ WORKDIR /app
 COPY trading_app/shared/requirements.txt /shared/requirements.txt
 COPY trading_app/receiver/pyproject.toml .
 
-# Single RUN command for dependency installation
+# Install dependencies using UV within the virtual environment
 RUN . /opt/venv/bin/activate && \
     uv pip install --no-cache -r /shared/requirements.txt && \
     uv pip install --no-cache -e .
@@ -25,15 +25,13 @@ RUN . /opt/venv/bin/activate && \
 # Stage 3: Final production image
 FROM base AS production
 COPY --from=dependencies /opt/venv /opt/venv
-COPY --from=dependencies /app /app
 
 # Copy application code
-COPY trading_app/receiver/src/ /app/src/
-COPY trading_app/configuration/ /app/configuration/
-COPY trading_app/restful_api/ /app/restful_api/
-COPY trading_app/shared/ /app/shared/
-
 WORKDIR /app
+COPY trading_app/receiver/src/ ./src/
+COPY trading_app/configuration/ ./configuration/
+COPY trading_app/restful_api/ ./restful_api/
+COPY trading_app/shared/ ./shared/
 
 # Environment configuration
 ENV PYTHONUNBUFFERED=1 \
@@ -45,5 +43,5 @@ ENV PYTHONUNBUFFERED=1 \
 HEALTHCHECK --interval=30s --timeout=3s \
     CMD curl -f http://localhost:$UVICORN_PORT/health || exit 1
 
-# Entrypoint configuration
-ENTRYPOINT ["uv", "run", "src.main:main"]
+# Corrected entrypoint configuration
+ENTRYPOINT ["uvicorn", "src.main:main", "--host", "0.0.0.0", "--port", "8000"]
