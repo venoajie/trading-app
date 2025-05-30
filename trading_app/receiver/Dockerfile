@@ -17,14 +17,9 @@ WORKDIR /app
 COPY trading_app/shared/requirements.txt /shared/requirements.txt
 COPY trading_app/receiver/pyproject.toml .
 
-
-# Activate virtual environment and install dependencies
+# Single RUN command for dependency installation
 RUN . /opt/venv/bin/activate && \
     uv pip install --no-cache -r /shared/requirements.txt && \
-    uv pip install --no-cache -e .
-
-# Install dependencies using UV
-RUN uv pip install --no-cache -r /shared/requirements.txt && \
     uv pip install --no-cache -e .
 
 # Stage 3: Final production image
