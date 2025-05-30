@@ -14,4 +14,4 @@ FROM base AS dependencies
 WORKDIR /app
 
 # Copy dependency specifications
-COPY shared/requirements.txt /
+COPY trading_app/shared/requirements.txt /
