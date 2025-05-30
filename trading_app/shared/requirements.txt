@@ -11,4 +11,4 @@ loguru
 aiosqlite
 dotenv
 tomli
-
+dataclassy
