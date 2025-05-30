@@ -101,6 +101,14 @@ async def trading_main() -> None:
         log.info(f"client_id {client_id} client_secret {client_secret}")
         log.info(f"api_request {api_request}")
         
+        # Fetch account data
+        sub_accounts = [await api_request.get_subaccounts_details(c) for c in currencies]
+        initial_data = starter.sub_account_combining(
+            sub_accounts,
+            redis_channels["sub_account_cache_updating"],
+            template.redis_message_template()
+        )
+        log.info(f"sub_accounts {sub_accounts}")
         # Configure Redis connection pool
         redis_pool = aioredis.ConnectionPool.from_url(
             os.getenv("REDIS_URL", "redis://localhost:6379"),
@@ -135,13 +143,6 @@ async def trading_main() -> None:
             sub_account_id, client_id, client_secret
         )
         
-        # Fetch account data
-        sub_accounts = [await api_request.get_subaccounts_details(c) for c in currencies]
-        initial_data = starter.sub_account_combining(
-            sub_accounts,
-            redis_channels["sub_account_cache_updating"],
-            template.redis_message_template()
-        )
         
         # Create processing tasks
         producer_task = asyncio.create_task(
