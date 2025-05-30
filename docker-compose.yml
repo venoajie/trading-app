@@ -1,5 +1,4 @@
 # ./docker-compose.yml
-version: '3.9'
 
 services:
   redis:
@@ -21,14 +20,16 @@ services:
       dockerfile: trading_app/receiver/Dockerfile
     restart: unless-stopped
     volumes:
-      - ./configuration:trading_app/app/configuration:ro
-      - ./restful_api:trading_app/app/restful_api:ro
-      - ./shared:trading_app/app/shared:ro
+      - ./trading_app/configuration:/app/configuration:ro
+      - ./trading_app/restful_api:/app/restful_api:ro
+      - ./trading_app/shared:/app/shared:ro
     environment:
       REDIS_URL: redis://redis:6379
     depends_on:
       redis:
         condition: service_healthy
+    ports:
+      - "8000:8000"  # Expose health check port
     networks:
       - trading-network
 

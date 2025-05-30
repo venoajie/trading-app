@@ -1,4 +1,4 @@
-# receiver/Dockerfile
+# trading_app/receiver/Dockerfile
 # Optimized solution with virtual environment handling
 
 # Stage 1: Base image with Python 3.13
@@ -14,4 +14,35 @@ FROM base AS dependencies
 WORKDIR /app
 
 # Copy dependency specifications
-COPY trading_app/shared/requirements.txt /
+COPY trading_app/shared/requirements.txt /shared/requirements.txt
+COPY trading_app/receiver/pyproject.toml .
+
+# Install dependencies using UV
+RUN uv pip install --no-cache-dir -r /shared/requirements.txt && \
+    uv pip install --no-cache-dir -e .
+
+# Stage 3: Final production image
+FROM base AS production
+COPY --from=dependencies /opt/venv /opt/venv
+COPY --from=dependencies /app /app
+
+# Copy application code
+COPY trading_app/receiver/src/ /app/src/
+COPY trading_app/configuration/ /app/configuration/
+COPY trading_app/restful_api/ /app/restful_api/
+COPY trading_app/shared/ /app/shared/
+
+WORKDIR /app
+
+# Environment configuration
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    UVICORN_HOST=0.0.0.0 \
+    UVICORN_PORT=8000
+
+# Health check for automatic restart
+HEALTHCHECK --interval=30s --timeout=3s \
+    CMD curl -f http://localhost:$UVICORN_PORT/health || exit 1
+
+# Entrypoint configuration
+ENTRYPOINT ["uv", "run", "src.main:main"]
