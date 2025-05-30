@@ -84,7 +84,7 @@ async def trading_main() -> None:
     """
     exchange = "deribit"
     sub_account_id = "deribit-148510"
-    config_file = "config_strategies.toml"
+    config_file = "trading_app/configuration/config_strategies.toml"
 
     try:
         # Load environment configuration
