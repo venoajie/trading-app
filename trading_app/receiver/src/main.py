@@ -93,7 +93,7 @@ async def trading_main() -> None:
         
         # Retrieve secrets securely from OCI vault
         client_id = parsed["client_id"]
-        client_secret = config_oci.get_oci_key(parsed["key_ocid"])
+        client_secret = parsed["client_secret"]
         
         # Initialize exchange API client
         api_request = end_point_params_template.SendApiRequest(client_id, client_secret)
