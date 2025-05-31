@@ -185,7 +185,6 @@ async def trading_main() -> None:
             redis_keys = {}
             strategy_config = []
             ws_config = {}
-                print("config_app", config_app)
         
         distributor_task = asyncio.create_task(
             distributing_ws_data.caching_distributing_data(
