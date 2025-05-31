@@ -6,7 +6,7 @@ Async Redis client utilities with enhanced connection management
 import logging
 from typing import Any, Dict, Optional, Union
 
-import aioredis
+import redis.asyncio as aioredis
 import orjson
 from shared import error_handling
 from shared.config import get_config_value
