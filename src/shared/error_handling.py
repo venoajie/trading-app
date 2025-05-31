@@ -13,7 +13,7 @@ from typing import Optional, Any
 from loguru import logger as log
 
 # Application imports
-from trading_app.shared import template
+from shared import template
 
 def parse_error_message(
     error: Exception,
