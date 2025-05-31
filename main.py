@@ -111,7 +111,7 @@ async def trading_main() -> None:
         
         
         config_app = system_tools.get_config_tomli(config_file)
-        log(config_app)
+        print(config_app)
         tradable_config = config_app["tradable"]
         currencies = [o["spot"] for o in tradable_config][0]
         strategy_config = config_app["strategies"]
