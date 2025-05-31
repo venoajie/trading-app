@@ -11,6 +11,8 @@ services:
       - redis-data:/data
     networks:
       - trading-network
+    env_file:
+      - .env 
 
   receiver:
     build:
