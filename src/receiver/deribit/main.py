@@ -112,6 +112,8 @@ async def trading_main() -> None:
     
     # Configuration setup
     exchange = "deribit"
+    #"XRP",
+    file_toml = "/app/config/config_strategies.toml"
     
     try:
         # Load credentials from environment
@@ -160,6 +162,11 @@ async def trading_main() -> None:
                 resolutions
             )
         )
+        
+        # parsing config file
+        config_app = system_tools.get_config_tomli(file_toml)
+        
+        print("config_app", config_app)
         
         distributor_task = asyncio.create_task(
             distributing_ws_data.caching_distributing_data(

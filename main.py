@@ -8,33 +8,20 @@ import asyncio
 import logging
 import time
 from asyncio import Queue
-from typing import Any, Dict
 
 # Third-party imports
 import uvloop
 from aiohttp import web
 
 # Application imports
+
 from shared.config.settings import (
-    DERIBIT_SUBACCOUNT, DERIBIT_CURRENCIES
+    DERIBIT_SUBACCOUNT, DERIBIT_CURRENCIES,
+    SECURITY_BLOCKED_SCANNERS, SECURITY_RATE_LIMIT, SECURITY_HEADERS
 )
 from shared.db.redis import redis_client as global_redis_client
 from shared.security import security_middleware_factory
 from receiver.deribit import deribit_ws, distributing_ws_data, get_instrument_summary
-
-# Configure uvloop for better async performance
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-log = logging.getLogger(__name__)
-
-# Define default security settings
-SECURITY_BLOCKED_SCANNERS = []  # Default: no scanners blocked
-SECURITY_RATE_LIMIT = 100  # Default: 100 requests per minute
-SECURITY_HEADERS = {
-    "X-Frame-Options": "DENY",
-    "X-Content-Type-Options": "nosniff",
-    "Content-Security-Policy": "default-src 'self'",
-    "Referrer-Policy": "no-referrer"
-}
 
 # Create security middleware with application settings
 security_middleware = security_middleware_factory({
@@ -50,6 +37,10 @@ app = web.Application(middlewares=[security_middleware])
 app.connection_active = False
 app.maintenance_mode = False
 app.start_time = time.time()
+
+# Configure uvloop for better async performance
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+log = logging.getLogger(__name__)
 
 async def health_check(request: web.Request) -> web.Response:
     """Secure health endpoint"""
@@ -78,7 +69,7 @@ async def detailed_status(request: web.Request) -> web.Response:
     if not status_api_key:
         return web.Response(
             status=500,
-            text="STATUS_API_KEY not configured"
+            text="STATUS_API_KEY not configured in environment"
         )
     
     # Validate API key for sensitive information
@@ -96,21 +87,33 @@ app.router.add_get("/status", detailed_status)
 
 async def setup_redis():
     """Get Redis connection from global client"""
-    pool = await global_redis_client.get_pool()
-    if await pool.ping():
-        log.info("Redis connection validated")
-        return pool
+    try:
+        pool = await global_redis_client.get_pool()
+        if await pool.ping():
+            log.info("Redis connection validated")
+            return pool
+    except Exception as e:
+        log.error(f"Redis connection failed: {str(e)}")
     raise ConnectionError("Redis connection failed")
 
 async def trading_main() -> None:
     """Core trading workflow with enhanced error handling"""
     log.info("Initializing trading system")
     
-    # Initialize Redis
-    client_redis = await setup_redis()
+    try:
+        # Initialize Redis
+        client_redis = await setup_redis()
+    except ConnectionError:
+        log.critical("Failed to connect to Redis. Entering maintenance mode.")
+        app.maintenance_mode = True
+        while True:
+            await asyncio.sleep(60)
+        return
     
     # Configuration setup
     exchange = "deribit"
+    #"XRP",
+    file_toml = "/app/config/config_strategies.toml"
     
     try:
         # Load credentials from environment
@@ -118,7 +121,7 @@ async def trading_main() -> None:
         client_secret = os.getenv("DERIBIT_CLIENT_SECRET")
         
         if not client_id or not client_secret:
-            log.critical("Deribit credentials not configured")
+            log.critical("Deribit credentials not configured in environment")
             app.maintenance_mode = True  # Enter maintenance mode
             while True:
                 # Keep application running but in maintenance state
@@ -160,6 +163,11 @@ async def trading_main() -> None:
             )
         )
         
+        # parsing config file
+        config_app = system_tools.get_config_tomli(file_toml)
+        
+        print("config_app", config_app)
+        
         distributor_task = asyncio.create_task(
             distributing_ws_data.caching_distributing_data(
                 client_redis,
@@ -188,7 +196,6 @@ async def trading_main() -> None:
 
     except Exception as error:
         log.exception("Critical error in trading system")
-        # Implement actual error handling here
         app.maintenance_mode = True  # Enter maintenance mode on critical error
         while True:
             await asyncio.sleep(60)  # Keep process alive
