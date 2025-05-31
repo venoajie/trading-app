@@ -96,7 +96,7 @@ async def trading_main() -> None:
         resolutions = tradable_config["resolutions"]
         redis_channels = CONFIG["redis_channels"][0]
         strategy_config = CONFIG["strategies"]
-        ws_config = CONFIG.get("ws", {})
+        ws_config: Dict[str, Any] = CONFIG.get("ws", {})
         
         # Prepare instruments
         settlement_periods = str_mod.remove_redundant_elements(

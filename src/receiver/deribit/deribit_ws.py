@@ -30,7 +30,7 @@ class StreamingAccountData:
     sub_account_id: str
     client_id: str
     client_secret: str
-    int = 5
+    reconnect_base_delay: int = 5
     max_reconnect_delay: int = 300
     maintenance_threshold: int = 900
     websocket_timeout: int = 900
@@ -166,7 +166,7 @@ class StreamingAccountData:
             time_since_last = current_time - self.last_message_time
             
             # Exit maintenance mode if we receive data after long silence
-            if time_since_last > MAINTENANCE_THRESHOLD and self.maintenance_mode:
+            if time_since_last >  self.maintenance_threshold  and self.maintenance_mode:
                 log.info("Exiting maintenance mode. Exchange is back online")
                 self.maintenance_mode = False
                 await client_redis.publish("system_status", "operational")
