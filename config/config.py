@@ -2,7 +2,7 @@
 
 from configparser import ConfigParser
 
-from trading_app.shared import system_tools
+from shared import system_tools
 
 
 def catch_error(error, idle: int = None) -> list:
