@@ -1,7 +1,6 @@
 [tool.uv]
 dependencies = [
     "websockets",
-    "aioredis",
     "dataclassy",
     "aiohttp"
 ]

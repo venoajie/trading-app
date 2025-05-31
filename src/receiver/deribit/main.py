@@ -12,7 +12,7 @@ from asyncio import Queue
 # Third-party imports
 import uvloop
 from aiohttp import web
-import aioredis
+import redis.asyncio as aioredis
 
 # Application imports
 from config import config
