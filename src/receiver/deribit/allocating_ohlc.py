@@ -9,7 +9,7 @@ from loguru import logger as log
 
 # user defined formula
 from shared.db.redis import publishing_result
-from shared.db_management.sqlite_management import (
+from shared.db.sqlite import (
     executing_query_with_return,
     insert_tables,
     querying_arithmetic_operator,
