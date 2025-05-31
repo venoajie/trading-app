@@ -108,7 +108,10 @@ async def trading_main() -> None:
         client_id = parsed["client_id"]
         client_secret = parsed["client_secret"]
         
+        
+        
         config_app = system_tools.get_config_tomli(config_file)
+        log(config_app)
         tradable_config = config_app["tradable"]
         currencies = [o["spot"] for o in tradable_config][0]
         strategy_config = config_app["strategies"]
