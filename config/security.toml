@@ -1,0 +1,17 @@
+# config/security.toml
+[blocked_scanners]
+list = [
+    "censysinspect",
+    "nmap",
+    "nessus",
+    "acunetix",
+    "sqlmap"
+]
+
+[rate_limiting]
+global = 10
+per_ip = 5
+
+[headers]
+X-Content-Type-Options = "nosniff"
+X-Frame-Options = "DENY"
