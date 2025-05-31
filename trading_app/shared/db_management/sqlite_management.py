@@ -101,7 +101,7 @@ async def db_ops(db_name: str == None):
 
 async def insert_tables(
     table_name: str,
-    params: list | dict | str,
+    params,#: list | dict | str,
     db_name: str = None,
     )-> None:
     """
