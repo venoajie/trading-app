@@ -7,13 +7,6 @@ import logging
 from typing import Callable, Awaitable
 from aiohttp import web
 
-# Import from consolidated config system
-from shared.config.settings import (
-    SECURITY_BLOCKED_SCANNERS,
-    SECURITY_RATE_LIMIT,
-    SECURITY_HEADERS
-)
-
 # Configure logger
 log = logging.getLogger(__name__)
 
