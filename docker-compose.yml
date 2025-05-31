@@ -11,27 +11,24 @@ services:
       - redis-data:/data
     networks:
       - trading-network
-    env_file:
-      - .env 
 
   receiver:
     build:
       context: .
       dockerfile: src/receiver/deribit/Dockerfile
+    env_file:
+      - config/.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DB_BASE_PATH=/app/data
     volumes:
       - ./config:/app/config:ro
       - ./data:/app/data
-    environment:
-      CONFIG_DIR: /app/config
-      DB_BASE_PATH: /app/data
-      DERIBIT_CLIENT_ID: ${DERIBIT_CLIENT_ID}
-      DERIBIT_CLIENT_SECRET: ${DERIBIT_CLIENT_SECRET}
-      STATUS_API_KEY: ${STATUS_API_KEY}
     depends_on:
       redis:
         condition: service_healthy
     ports:
-      - "127.0.0.1:8000:8000" 
+      - "127.0.0.1:8000:8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -43,7 +40,6 @@ services:
 
 volumes:
   redis-data:
-  trading-data:
 
 networks:
   trading-network:
