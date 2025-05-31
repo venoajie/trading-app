@@ -247,15 +247,6 @@ async def combining_ticker_data(instruments_name: List) -> List:
         result.append(result_instrument)
     return result
 
-def reading_from_pkl_data(
-    end_point: str,
-    currency: str,
-    status: Optional[str] = None,
-) -> Any:
-    """Read pickled data from file system"""
-    path: str = system_tools.provide_path_for_file(end_point, currency, status)
-    return system_tools.read_data(path)
-
 async def trades_in_message_channel(
     pipe: aioredis.Redis,
     data: List,
