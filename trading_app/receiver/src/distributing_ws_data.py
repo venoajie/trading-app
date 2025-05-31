@@ -1,73 +1,54 @@
-# -*- coding: utf-8 -*-
+# trading_app/receiver/src/distributing_ws_data.py
+"""Data distribution service with maintenance awareness"""
 
-# built ins
 import asyncio
+import logging
+from typing import Dict, List, Any, Optional
 
-# installed
-from loguru import logger as log
+# Third-party imports
+import redis.asyncio as aioredis
 
-from trading_app.shared.db_management import redis_client, sqlite_management as db_mgt
+# Application imports
+from trading_app.shared.db_management import redis_client as redis_client_module
+from trading_app.shared.db_management import sqlite_management as db_mgt
 from trading_app.restful_api.deribit import end_point_params_template as end_point
-from trading_app.receiver.src import (
-    get_instrument_summary,
-    allocating_ohlc,
-)
-from trading_app.shared import (
-    caching,
-    error_handling,
-    pickling,
-    string_modification as str_mod,
-    system_tools,
-    template,
-)
+from trading_app.receiver.src import get_instrument_summary, allocating_ohlc
+from trading_app.shared import caching, error_handling, string_modification as str_mod, system_tools, template
 
+# Configure logger
+log = logging.getLogger(__name__)
 
 async def caching_distributing_data(
-    client_redis: object,
-    currencies: list,
-    initial_data_subaccount: dict,
-    redis_channels: list,
-    redis_keys: list,
-    strategy_attributes,
-    queue_general: object,
+    client_redis: aioredis.Redis,
+    currencies: List[str],
+    initial_data_subaccount: Dict,
+    redis_channels: Dict,
+    redis_keys: Dict,
+    strategy_attributes: List,
+    queue_general: asyncio.Queue,
 ) -> None:
-    """
-    my_trades_channel:
-    + send messages that "high probabilities" trade DB has changed
-        sender: redis publisher + sqlite insert, update & delete
-    + updating trading cache at end user
-        consumer: fut spread, hedging, cancelling
-    + checking data integrity
-        consumer: app data cleaning/size reconciliation
-
-    sub_account_channel:
-    update method: REST
-    + send messages that sub_account has changed
-        sender: deribit API module
-    + updating sub account cache at end user
-        consumer: fut spread, hedging, cancelling
-    + checking data integrity
-        consumer: app data cleaning/size reconciliation
-
-    sending_order_channel:
-    + send messages that an order has allowed to submit
-        sender: fut spread, hedging
-    + send order to deribit
-        consumer: processing order
-
-    is_order_allowed_channel:
-    + send messages that data has reconciled each other and order could be processed
-        sender: app data cleaning/size reconciliation, check double ids
-    + processing order
-        consumer: fut spread, hedging
-
-    """
-
+    """Distributes WebSocket data with maintenance handling"""
     try:
-
-        # preparing redis connection
+        # Subscribe to system status channel
         pubsub = client_redis.pubsub()
-
+        await pubsub.subscribe("system_status")
+        
+        async def maintenance_handler():
+            """Handles maintenance mode events"""
+            async for message in pubsub.listen():
+                if message["type"] == "message":
+                    status = message["data"]
+                    if status == "maintenance":
+                        log.warning("Entering maintenance handling mode")
+                        # Clear queue to prevent backpressure
+                        while not queue_general.empty():
+                            queue_general.get_nowait()
+                            queue_general.task_done()
+        
+        # Start maintenance handler
+        asyncio.create_task(maintenance_handler())
+        
+        # Prepare Redis channels
         chart_low_high_tick_channel: str = redis_channels["chart_low_high_tick"]
         portfolio_channel: str = redis_channels["portfolio"]
         sub_account_cached_channel: str = redis_channels["sub_account_cache_updating"]
@@ -75,59 +56,43 @@ async def caching_distributing_data(
         order_update_channel: str = redis_channels["order_cache_updating"]
         my_trade_receiving_channel: str = redis_channels["my_trade_receiving"]
         my_trades_channel: str = redis_channels["my_trades_cache_updating"]
-        abnormal_trading_notices: str = redis_channels["abnormal_trading_notices"]
-
         ticker_cached_channel: str = redis_channels["ticker_cache_updating"]
 
-        # prepare channels placeholders
-        channels = [
-            order_update_channel,
-            sqlite_updating_channel,
-        ]
-
-        # subscribe to channels
-        [await pubsub.subscribe(o) for o in channels]
+        # Subscribe to additional channels
+        pubsub = client_redis.pubsub()
+        channels = [order_update_channel, sqlite_updating_channel]
+        for channel in channels:
+            await pubsub.subscribe(channel)
 
         server_time = 0
-
         portfolio = []
 
+        # Get settlement periods from strategy config
         settlement_periods = get_settlement_period(strategy_attributes)
 
+        # Prepare futures instruments
         futures_instruments = await get_instrument_summary.get_futures_instruments(
             currencies, settlement_periods
         )
-
         instruments_name = futures_instruments["instruments_name"]
-
         ticker_all_cached = await combining_ticker_data(instruments_name)
 
+        # Initialize account data
         sub_account_cached_params = initial_data_subaccount["params"]
-
         sub_account_cached = sub_account_cached_params["data"]
-
         orders_cached = sub_account_cached["orders_cached"]
-
         positions_cached = sub_account_cached["positions_cached"]
 
-        query_trades = f"SELECT * FROM  v_trading_all_active"
-
+        query_trades = "SELECT * FROM v_trading_all_active"
         result = template.redis_message_template()
 
         while True:
-
-            message_params: str = await queue_general.get()
-
+            message_params: Dict = await queue_general.get()
             async with client_redis.pipeline() as pipe:
-
                 try:
-
-                    data: dict = message_params["data"]
-
+                    data: Dict = message_params["data"]
                     message_channel: str = message_params["channel"]
-
                     currency: str = str_mod.extract_currency_from_text(message_channel)
-
                     currency_upper = currency.upper()
 
                     pub_message = dict(
@@ -138,12 +103,9 @@ async def caching_distributing_data(
                     )
 
                     if "user." in message_channel:
-
                         if "portfolio" in message_channel:
-
                             result["params"].update({"channel": portfolio_channel})
                             result["params"].update({"data": pub_message})
-
                             await updating_portfolio(
                                 pipe,
                                 portfolio,
@@ -152,10 +114,7 @@ async def caching_distributing_data(
                             )
 
                         elif "changes" in message_channel:
-
-                            log.critical(message_channel)
-                            log.warning(data)
-
+                            log.info(f"Account changes: {message_channel}")
                             await updating_sub_account(
                                 client_redis,
                                 orders_cached,
@@ -163,17 +122,11 @@ async def caching_distributing_data(
                                 query_trades,
                                 data,
                                 sub_account_cached_channel,
+                                result,
                             )
 
                         else:
-
-                            log.critical(message_channel)
-                            log.warning(data)
-
-                            result["params"].update({"data": data})
-
                             if "trades" in message_channel:
-
                                 await trades_in_message_channel(
                                     pipe,
                                     data,
@@ -183,7 +136,6 @@ async def caching_distributing_data(
                                 )
 
                             if "order" in message_channel:
-
                                 await order_in_message_channel(
                                     pipe,
                                     data,
@@ -192,24 +144,15 @@ async def caching_distributing_data(
                                     result,
                                 )
 
-                            my_trades_active_all = (
-                                await db_mgt.executing_query_with_return(query_trades)
-                            )
-
+                            # Update trades cache
+                            my_trades_active_all = await db_mgt.executing_query_with_return(query_trades)
                             result["params"].update({"channel": my_trades_channel})
                             result["params"].update({"data": my_trades_active_all})
+                            await redis_client_module.publishing_result(pipe, result)
 
-                            await redis_client.publishing_result(
-                                pipe,
-                                result,
-                            )
-
-                    instrument_name_future = (message_channel)[19:]
-                    if (
-                        message_channel
-                        == f"incremental_ticker.{instrument_name_future}"
-                    ):
-
+                    # Handle ticker data
+                    if message_channel.startswith("incremental_ticker."):
+                        instrument_name_future = message_channel[len("incremental_ticker."):]
                         await incremental_ticker_in_message_channel(
                             pipe,
                             currency,
@@ -222,8 +165,8 @@ async def caching_distributing_data(
                             ticker_cached_channel,
                         )
 
+                    # Handle chart data
                     if "chart.trades" in message_channel:
-
                         await chart_trades_in_message_channel(
                             pipe,
                             chart_low_high_tick_channel,
@@ -232,203 +175,104 @@ async def caching_distributing_data(
                             result,
                         )
 
-                except:
-
-                    pass
+                except Exception as e:
+                    log.error(f"Error in distributing_ws_data: {e}")
 
                 await pipe.execute()
 
     except Exception as error:
+        await error_handling.parse_error_message_with_redis(client_redis, error)
 
-        await error_handling.parse_error_message_with_redis(
-            client_redis,
-            error,
-        )
-
-
-def compute_notional_value(
-    index_price: float,
-    equity: float,
-) -> float:
-    """ """
+def compute_notional_value(index_price: float, equity: float) -> float:
+    """Compute notional value of equity"""
     return index_price * equity
 
-
-def get_index(ticker: dict) -> float:
-
+def get_index(ticker: Dict) -> float:
+    """Extract index price from ticker data"""
     try:
-
-        index_price = ticker["index_price"]
-
-    except:
-
-        index_price = []
-
-    if index_price == []:
-        index_price = ticker["estimated_delivery_price"]
-
-    return index_price
-
+        return ticker["index_price"]
+    except KeyError:
+        return ticker.get("estimated_delivery_price", 0.0)
 
 async def updating_portfolio(
-    pipe: object,
-    portfolio: list,
+    pipe: aioredis.Redis,
+    portfolio: List,
     portfolio_channel: str,
-    result: dict,
+    result: Dict,
 ) -> None:
-
+    """Update portfolio data in Redis"""
     params = result["params"]
-
     data = params["data"]
 
-    if portfolio == []:
+    if not portfolio:
         portfolio.append(data["data"])
-
     else:
         data_currency = data["data"]["currency"]
-        portfolio_currency = [o for o in portfolio if data_currency in o["currency"]]
-
+        # Find existing portfolio for currency
+        portfolio_currency = [p for p in portfolio if p["currency"] == data_currency]
         if portfolio_currency:
             portfolio.remove(portfolio_currency[0])
-
         portfolio.append(data["data"])
 
     result["params"]["data"].update({"cached_portfolio": portfolio})
+    await redis_client_module.publishing_result(pipe, result)
 
-    await redis_client.publishing_result(
-        pipe,
-        result,
-    )
-
-
-def get_settlement_period(strategy_attributes: list) -> list:
-
+def get_settlement_period(strategy_attributes: List) -> List:
+    """Extract settlement periods from strategy config"""
     return str_mod.remove_redundant_elements(
         str_mod.remove_double_brackets_in_list(
             [o["settlement_period"] for o in strategy_attributes]
         )
     )
 
-
-async def combining_ticker_data(instruments_name: str) -> list:
-    """_summary_
-    https://blog.apify.com/python-cache-complete-guide/]
-    https://medium.com/@jodielovesmaths/memoization-in-python-using-cache-36b676cb21ef
-    data caching
-    https://medium.com/@ryan_forrester_/python-return-statement-complete-guide-138c80bcfdc7
-
-    Args:
-        instrument_ticker (_type_): _description_
-
-    Returns:
-        _type_: _description_
-    """
-
+async def combining_ticker_data(instruments_name: List) -> List:
+    """Combine ticker data from cache or API"""
     result = []
     for instrument_name in instruments_name:
-
         result_instrument = reading_from_pkl_data("ticker", instrument_name)
-
         if result_instrument:
             result_instrument = result_instrument[0]
-
         else:
-
             result_instrument = await end_point.get_ticker(instrument_name)
-
         result.append(result_instrument)
-
     return result
-
 
 def reading_from_pkl_data(
     end_point: str,
     currency: str,
-    status: str = None,
-) -> dict:
-    """ """
-
+    status: Optional[str] = None,
+) -> Any:
+    """Read pickled data from file system"""
     path: str = system_tools.provide_path_for_file(end_point, currency, status)
-    return pickling.read_data(path)
-
+    return system_tools.read_data(path)
 
 async def trades_in_message_channel(
-    pipe: object,
-    data: list,
+    pipe: aioredis.Redis,
+    data: List,
     my_trade_receiving_channel: str,
-    orders_cached: list,
-    result: dict,
+    orders_cached: List,
+    result: Dict,
 ) -> None:
-    """
-
-    #! result example
-
-    [
-        {
-            'label': 'customShort-open-1743595398537',
-            'timestamp': 1743595416236,
-            'state': 'filled',
-            'price': 1870.05,
-            'direction': 'sell',
-            'index_price': 1869.77,
-            'profit_loss': 0.0,
-            'instrument_name': 'ETH-PERPETUAL',
-            'trade_seq': 175723279,
-            'api': True,
-            'mark_price': 1869.94,
-            'amount': 1.0,
-            'order_id': 'ETH-64159311162',
-            'matching_id': None,
-            'tick_direction': 0,
-            'fee': 0.0,
-            'mmp': False,
-            'post_only': True,
-            'reduce_only': False,
-            'self_trade': False,
-            'contracts': 1.0,
-            'trade_id': 'ETH-242752309',
-            'fee_currency': 'ETH',
-            'order_type': 'limit',
-            'risk_reducing': False,
-            'liquidity': 'M'
-        }
-    ]
-
-    """
-
+    """Process trade messages and update cache"""
     result["params"].update({"channel": my_trade_receiving_channel})
-
-    await redis_client.publishing_result(
-        pipe,
-        result,
-    )
+    await redis_client_module.publishing_result(pipe, result)
 
     for trade in data:
-
-        log.info(trade)
-
-        caching.update_cached_orders(
-            orders_cached,
-            trade,
-        )
-
+        log.info(f"Trade update: {trade}")
+        caching.update_cached_orders(orders_cached, trade)
 
 async def order_in_message_channel(
-    pipe: object,
-    data: list,
+    pipe: aioredis.Redis,
+    data: Dict,
     order_update_channel: str,
-    orders_cached: list,
-    result: dict,
+    orders_cached: List,
+    result: Dict,
 ) -> None:
-
+    """Process order messages and update cache"""
     currency: str = str_mod.extract_currency_from_text(data["instrument_name"])
+    caching.update_cached_orders(orders_cached, data)
 
-    caching.update_cached_orders(
-        orders_cached,
-        data,
-    )
-
-    data = dict(
+    order_data = dict(
         current_order=data,
         open_orders=orders_cached,
         currency=currency,
@@ -436,60 +280,42 @@ async def order_in_message_channel(
     )
 
     result["params"].update({"channel": order_update_channel})
-    result["params"].update({"data": data})
-
-    await redis_client.publishing_result(
-        pipe,
-        result,
-    )
-
+    result["params"].update({"data": order_data})
+    await redis_client_module.publishing_result(pipe, result)
 
 async def incremental_ticker_in_message_channel(
-    pipe: object,
+    pipe: aioredis.Redis,
     currency: str,
-    data: list,
+    data: Dict,
     instrument_name_future: str,
-    result: dict,
-    pub_message: dict,
+    result: Dict,
+    pub_message: Dict,
     server_time: int,
-    ticker_all_cached: list,
+    ticker_all_cached: List,
     ticker_cached_channel: str,
 ) -> None:
-
-    # extract server time from data
-    current_server_time = (
-        data["timestamp"] + server_time if server_time == 0 else data["timestamp"]
-    )
-
+    """Process ticker updates and publish to Redis"""
+    current_server_time = data["timestamp"] + server_time if server_time == 0 else data["timestamp"]
     currency_upper = currency.upper()
+    server_time = current_server_time if server_time < current_server_time else server_time
 
-    # updating current server time
-    server_time = (
-        current_server_time if server_time < current_server_time else server_time
-    )
+    pub_message.update({
+        "instrument_name": instrument_name_future,
+        "currency_upper": currency_upper
+    })
 
-    pub_message.update({"instrument_name": instrument_name_future})
-    pub_message.update({"currency_upper": currency_upper})
-
-    for item in data:
-
-        if "stats" not in item and "instrument_name" not in item and "type" not in item:
-            [
-                o
-                for o in ticker_all_cached
-                if instrument_name_future in o["instrument_name"]
-            ][0][item] = data[item]
-
-        if "stats" in item:
-
-            data_orders_stat = data[item]
-
-            for item in data_orders_stat:
-                [
-                    o
-                    for o in ticker_all_cached
-                    if instrument_name_future in o["instrument_name"]
-                ][0]["stats"][item] = data_orders_stat[item]
+    # Update ticker cache
+    for ticker in ticker_all_cached:
+        if instrument_name_future == ticker["instrument_name"]:
+            # Update regular fields
+            for key in data:
+                if key not in ["stats", "instrument_name", "type"]:
+                    ticker[key] = data[key]
+            
+            # Update stats fields
+            if "stats" in data:
+                for stat_key in data["stats"]:
+                    ticker["stats"][stat_key] = data["stats"][stat_key]
 
     pub_message = dict(
         data=ticker_all_cached,
@@ -501,94 +327,71 @@ async def incremental_ticker_in_message_channel(
 
     result["params"].update({"channel": ticker_cached_channel})
     result["params"].update({"data": pub_message})
+    await redis_client_module.publishing_result(pipe, result)
 
-    await redis_client.publishing_result(
-        pipe,
-        result,
-    )
+    # Handle perpetual instruments
     if "PERPETUAL" in instrument_name_future:
-
-        WHERE_FILTER_TICK: str = "tick"
-
-        resolution = 1
-
-        TABLE_OHLC1: str = f"ohlc{resolution}_{currency}_perp_json"
-
         await allocating_ohlc.inserting_open_interest(
             currency,
-            WHERE_FILTER_TICK,
-            TABLE_OHLC1,
+            "tick",  # WHERE filter
+            f"ohlc1_{currency}_perp_json",  # Table name
             data,
         )
 
-
 async def chart_trades_in_message_channel(
-    pipe: object,
+    pipe: aioredis.Redis,
     chart_low_high_tick_channel: str,
     message_channel: str,
-    pub_message: list,
-    result: dict,
+    pub_message: Dict,
+    result: Dict,
 ) -> None:
-
+    """Process chart data and publish to Redis"""
     try:
-        resolution = int(message_channel.split(".")[3])
+        parts = message_channel.split(".")
+        resolution = int(parts[3]) if len(parts) > 3 else 1
+        instrument_name = parts[2]
+    except (IndexError, ValueError):
+        resolution = 1
+        instrument_name = message_channel.split(".")[2]
 
-    except:
-        resolution = message_channel.split(".")[3]
-
-    pub_message.update({"instrument_name": message_channel.split(".")[2]})
-    pub_message.update({"resolution": resolution})
+    pub_message.update({
+        "instrument_name": instrument_name,
+        "resolution": resolution
+    })
 
     result["params"].update({"channel": chart_low_high_tick_channel})
     result["params"].update({"data": pub_message})
-
-    await redis_client.publishing_result(
-        pipe,
-        result,
-    )
-
+    await redis_client_module.publishing_result(pipe, result)
 
 async def updating_sub_account(
-    client_redis: object,
-    orders_cached: list,
-    positions_cached: list,
+    client_redis: aioredis.Redis,
+    orders_cached: List,
+    positions_cached: List,
     query_trades: str,
-    subaccounts_details_result: list,
+    subaccounts_details_result: List,
     sub_account_cached_channel: str,
-    message_byte_data: dict,
+    message_byte_data: Dict,
 ) -> None:
-
+    """Update sub-account data in cache"""
     if subaccounts_details_result:
-
-        open_orders = [o["open_orders"] for o in subaccounts_details_result]
-
+        # Update orders cache
+        open_orders = [o["open_orders"] for o in subaccounts_details_result if "open_orders" in o]
         if open_orders:
-            caching.update_cached_orders(
-                orders_cached,
-                open_orders[0],
-                "rest",
-            )
-        positions = [o["positions"] for o in subaccounts_details_result]
+            caching.update_cached_orders(orders_cached, open_orders[0], "rest")
 
+        # Update positions cache
+        positions = [o["positions"] for o in subaccounts_details_result if "positions" in o]
         if positions:
-            caching.positions_updating_cached(
-                positions_cached,
-                positions[0],
-                "rest",
-            )
+            caching.positions_updating_cached(positions_cached, positions[0], "rest")
 
+    # Update trades
     my_trades_active_all = await db_mgt.executing_query_with_return(query_trades)
-
     data = dict(
         positions=positions_cached,
         open_orders=orders_cached,
         my_trades=my_trades_active_all,
     )
-
+    
     message_byte_data["params"].update({"channel": sub_account_cached_channel})
     message_byte_data["params"].update({"data": data})
-
-    await redis_client.publishing_result(
-        client_redis,
-        message_byte_data,
-    )
+    await redis_client_module.publishing_result(client_redis, message_byte_data)

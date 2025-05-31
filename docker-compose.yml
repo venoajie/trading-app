@@ -1,4 +1,4 @@
-# ./docker-compose.yml
+# docker-compose.yml
 
 services:
   redis:
@@ -26,19 +26,25 @@ services:
       - ./data:/app/data 
     environment:
       REDIS_URL: redis://redis:6379 
-      DB_TYPE: ${DB_TYPE:-sqlite}  # or postgres
+      DB_TYPE: ${DB_TYPE:-sqlite}
       DB_BASE_PATH: /app/data
     depends_on:
       redis:
         condition: service_healthy
     ports:
-      - "8000:8000"  # Expose health check port
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 10  # Allow more retries during maintenance
+      start_period: 30s  # Extra time for initialization
     networks:
       - trading-network
 
 volumes:
-  redis-data: # This volume is for Redis data persistence
-  trading-data: # This volume is for trading data, if needed
+  redis-data:
+  trading-data:
 
 networks:
   trading-network:

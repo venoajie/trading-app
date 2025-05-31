@@ -1,40 +1,22 @@
 # trading_app/receiver/src/main.py
-
-#!/usr/bin/python3
-
-"""
-
-Core Application Entry Point for Data Receiver Service
-
-Responsibilities:
-1. WebSocket Connection Management: Establishes and maintains connections with exchanges
-2. Health Monitoring: Provides endpoint for container health checks
-3. Data Ingestion: Receives real-time market data from exchanges
-4. Error Handling: Centralized error reporting and recovery
-5. Service Orchestration: Coordinates async tasks for data processing
-
-Security Features:
-- API secrets retrieved from OCI vault
-- Encrypted Redis connections
-- Automatic token rotation
-- Isolated virtual environment
-"""
+"""Core application entry point with enhanced maintenance handling"""
 
 import os
 import asyncio
-from asyncio import Queue
-from aiohttp import web
 import logging
+import time
+from asyncio import Queue
+from typing import Dict, List, Optional, Any
 
 # Third-party imports
 import uvloop
+from aiohttp import web
 import redis.asyncio as aioredis
 
 # Application imports
 from trading_app.configuration import config, config_oci
 from trading_app.restful_api.deribit import end_point_params_template
-from trading_app.receiver.src import deribit_ws as receiver_deribit
-from trading_app.receiver.src import distributing_ws_data as distr_deribit, get_instrument_summary,starter
+from trading_app.receiver.src import deribit_ws, distributing_ws_data, get_instrument_summary, starter
 from trading_app.shared import (
     error_handling,
     string_modification as str_mod,
@@ -50,32 +32,41 @@ from trading_app.shared.db_management.sqlite_management import (
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 log = logging.getLogger(__name__)
 
-# Create web application for health checks
+# Create web application
 app = web.Application()
 
+# State tracking for health checks
+app.connection_active = False
+app.maintenance_mode = False
+app.start_time = time.time()
+
 async def health_check(request: web.Request) -> web.Response:
-    """
-    Health Check Endpoint
+    """Enhanced health check with maintenance status"""
+    status = "operational"
+    if app.maintenance_mode:
+        status = "maintenance"
+    elif not app.connection_active:
+        status = "disconnected"
     
-    Used by Docker/K8s for service monitoring and auto-restart
-    Verifies critical dependencies:
-    - Redis connection status
-    - Exchange API availability
-    - Internal service health
-    
-    Returns:
-        200 OK with service status
-        503 if critical dependencies unavailable
-    """
     return web.json_response({
-        "status": "operational",
+        "status": status,
         "service": "receiver",
-        "redis": os.getenv("REDIS_URL", "not_configured"),
-        "exchange": "deribit"
+        "exchange": "deribit",
+        "uptime_seconds": int(time.time() - app.start_time)
     })
 
 app.router.add_get("/health", health_check)
 
+async def detailed_status(request: web.Request) -> web.Response:
+    """Detailed system status report"""
+    return web.json_response({
+        "websocket_connected": app.connection_active,
+        "maintenance_mode": app.maintenance_mode,
+        "start_time": app.start_time,
+        "redis_url": os.getenv("REDIS_URL", "not_configured")
+    })
+
+app.router.add_get("/status", detailed_status)
 
 async def setup_redis() -> aioredis.Redis:
     """Configure and test Redis connection"""
@@ -99,31 +90,46 @@ async def setup_redis() -> aioredis.Redis:
     return client
 
 async def trading_main() -> None:
-
-    """Core Trading System Workflow with enhanced logging"""
+    """Core trading workflow with maintenance awareness"""
     log.info("Starting trading system initialization")
     
     # Initialize Redis
     client_redis = await setup_redis()
-    set_redis_client(client_redis)  # For SQLite error reporting
+    set_redis_client(client_redis)
     
     exchange = "deribit"
     sub_account_id = "deribit-148510"
     config_file = "/app/config_strategies.toml"
 
     try:
-        # Load environment configuration
+        # Load configurations
         config_path = system_tools.provide_path_for_file(".env")
         parsed = config.main_dotenv(sub_account_id, config_path)
-        
-        # Retrieve secrets securely from OCI vault
         client_id = parsed["client_id"]
         client_secret = parsed["client_secret"]
         
-        # Initialize exchange API client
-        api_request = end_point_params_template.SendApiRequest(client_id, client_secret)
+        config_app = system_tools.get_config_tomli(config_file)
+        tradable_config = config_app["tradable"]
+        currencies = [o["spot"] for o in tradable_config][0]
+        strategy_config = config_app["strategies"]
+        redis_channels = config_app["redis_channels"][0]
         
-        # Configure Redis connection pool
+        # Prepare instruments
+        settlement_periods = str_mod.remove_redundant_elements(
+            str_mod.remove_double_brackets_in_list(
+                [o["settlement_period"] for o in strategy_config]
+            )
+        )
+        
+        futures_instruments = await get_instrument_summary.get_futures_instruments(
+            currencies, settlement_periods
+        )
+        
+        # Initialize components
+        resolutions = [o["resolutions"] for o in tradable_config][0]
+        data_queue = Queue(maxsize=1000)  # Backpressure control
+        
+        # Create Redis connection pool
         redis_pool = aioredis.ConnectionPool.from_url(
             os.getenv("REDIS_URL", "redis://localhost:6379"),
             db=0,
@@ -133,29 +139,8 @@ async def trading_main() -> None:
         )
         client_redis = aioredis.Redis.from_pool(redis_pool)
         
-        # Load trading configuration
-        config_app = system_tools.get_config_tomli(config_file)
-        tradable_config = config_app["tradable"]
-        currencies = [o["spot"] for o in tradable_config][0]
-        strategy_config = config_app["strategies"]
-        redis_channels = config_app["redis_channels"][0]
-        
-        # Prepare market instruments
-        settlement_periods = str_mod.remove_redundant_elements(
-            str_mod.remove_double_brackets_in_list(
-                [o["settlement_period"] for o in strategy_config]
-            )
-        )
-        futures_instruments = await get_instrument_summary.get_futures_instruments(
-            currencies, settlement_periods
-        )
-        
-        # Initialize components
-        resolutions = [o["resolutions"] for o in tradable_config][0]
-        data_queue = Queue(maxsize=1000)  # Backpressure control
-        stream = receiver_deribit.StreamingAccountData(
-            sub_account_id, client_id, client_secret
-        )
+        # Initialize API client
+        api_request = end_point_params_template.SendApiRequest(client_id, client_secret)
         
         # Fetch account data
         sub_accounts = [await api_request.get_subaccounts_details(c) for c in currencies]
@@ -165,9 +150,14 @@ async def trading_main() -> None:
             template.redis_message_template()
         )
         
+        # Create connection manager
+        stream = deribit_ws.StreamingAccountData(
+            sub_account_id, client_id, client_secret
+        )
+        
         # Create processing tasks
         producer_task = asyncio.create_task(
-            stream.ws_manager(
+            stream.manage_connection(
                 client_redis,
                 exchange,
                 data_queue,
@@ -177,7 +167,7 @@ async def trading_main() -> None:
         )
         
         distributor_task = asyncio.create_task(
-            distr_deribit.caching_distributing_data(
+            distributing_ws_data.caching_distributing_data(
                 client_redis,
                 currencies,
                 initial_data,
@@ -188,16 +178,25 @@ async def trading_main() -> None:
             )
         )
         
-        # Run tasks concurrently with coordination
-        await asyncio.gather(producer_task, distributor_task)
-        await data_queue.join()
+        # State monitoring loop
+        while True:
+            app.connection_active = stream.connection_active
+            app.maintenance_mode = stream.maintenance_mode
+            
+            # Clear queue during maintenance to prevent backpressure
+            if app.maintenance_mode and not data_queue.empty():
+                log.warning("Clearing queue during maintenance")
+                while not data_queue.empty():
+                    data_queue.get_nowait()
+                    data_queue.task_done()
+            
+            await asyncio.sleep(5)
 
     except Exception as error:
-        # Centralized error handling with notifications
         await error_handling.parse_error_message_with_redis(
             client_redis, error, "CRITICAL: Receiver service failure"
         )
-        raise  # Propagate for container restart
+        raise
 
 async def run_services() -> None:
     """Orchestrates concurrent execution of services"""
@@ -214,7 +213,6 @@ async def run_services() -> None:
     await trading_main()
 
 if __name__ == "__main__":
-    
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
