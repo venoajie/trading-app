@@ -4,7 +4,7 @@ config/config.py
 
 from configparser import ConfigParser
 
-from shared import system_tools
+from shared.utils import system_tools
 
 
 def catch_error(error, idle: int = None) -> list:

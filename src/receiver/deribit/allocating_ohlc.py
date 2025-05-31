@@ -17,7 +17,7 @@ from shared.db_management.sqlite_management import (
 )
 from restful_api.deribit import end_point_params_template as end_point
 from restful_api import connector
-from shared import error_handling, string_modification as str_mod
+from shared.utils import error_handling, string_modification as str_mod
 
 
 async def last_tick_fr_sqlite(last_tick_query_ohlc1: str) -> int:

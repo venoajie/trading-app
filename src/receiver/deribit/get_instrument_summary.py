@@ -7,7 +7,7 @@ import asyncio
 # user defined formula
 from restful_api.deribit import end_point_params_template as end_point
 from shared.pickling import read_data
-from shared.string_modification import (
+from shared.utils.string_modification import (
     remove_double_brackets_in_list,
 )
 from shared.system_tools import provide_path_for_file

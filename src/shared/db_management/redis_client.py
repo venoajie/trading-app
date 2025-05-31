@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional, Union
 
 import redis.asyncio as aioredis
 import orjson
-from shared import error_handling
+from shared.utils import error_handling
 from shared.config import get_config_value
 
 # Configure logger

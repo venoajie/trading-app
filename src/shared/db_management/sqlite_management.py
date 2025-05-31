@@ -13,7 +13,7 @@ from loguru import logger as log
 # user defined formulas
 from shared.db_management.redis_client import publishing_specific_purposes
 
-from shared import (
+from shared.utils import (
     error_handling,
     string_modification as str_mod,
 )

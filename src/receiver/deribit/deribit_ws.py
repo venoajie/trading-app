@@ -18,7 +18,7 @@ from websockets import WebSocketClientProtocol
 
 # Application imports
 from restful_api.deribit import end_point_params_template
-from shared import error_handling, string_modification as str_mod
+from shared.utils import error_handling, string_modification as str_mod
 from shared.config import CONFIG, get_config_value
 
 # Configure logger

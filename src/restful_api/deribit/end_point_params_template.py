@@ -5,7 +5,7 @@ import asyncio
 from dataclassy import dataclass
 
 # user defined formula
-from shared import (
+from shared.utils import (
     time_modification as time_mod,
     string_modification as str_mod,
 )

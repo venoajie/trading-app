@@ -13,7 +13,7 @@ from shared.db_management import redis_client as redis_client_module
 from shared.db_management import sqlite_management as db_mgt
 from restful_api.deribit import end_point_params_template as end_point
 from receiver.deribit import get_instrument_summary, allocating_ohlc
-from shared import caching, error_handling, pickling,string_modification as str_mod, system_tools, template
+from shared.utils import caching, error_handling, pickling,string_modification as str_mod, system_tools, template
 
 # Configure logger
 log = logging.getLogger(__name__)
