@@ -1,16 +1,17 @@
-[blocked_scanners]
-list = [
+
+[security]
+blocked_scanners = [
     "censysinspect",
     "nmap",
     "nessus",
     "acunetix"
 ]
 
-[rate_limiting]
-global = 10
+rate_limit = 10
 
 [headers]
 X-Content-Type-Options = "nosniff"
 X-Frame-Options = "DENY"
 Content-Security-Policy = "default-src 'self'"
 Strict-Transport-Security = "max-age=63072000; includeSubDomains"
+Referrer-Policy = "no-referrer"

@@ -14,8 +14,10 @@ import uvloop
 from aiohttp import web
 
 # Application imports
+
 from shared.config.settings import (
-    DERIBIT_SUBACCOUNT, DERIBIT_CURRENCIES
+    DERIBIT_SUBACCOUNT, DERIBIT_CURRENCIES,
+    SECURITY_BLOCKED_SCANNERS, SECURITY_RATE_LIMIT, SECURITY_HEADERS
 )
 from shared.db.redis import redis_client as global_redis_client
 from shared.security import security_middleware_factory
