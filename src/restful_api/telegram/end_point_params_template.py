@@ -1,5 +1,5 @@
 
-from trading_app.restful_api import connector
+from restful_api import connector
 
 
 def get_basic_https() -> str:
