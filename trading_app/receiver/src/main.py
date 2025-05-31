@@ -41,6 +41,10 @@ from trading_app.shared import (
     system_tools,
     template
 )
+from trading_app.shared.db_management.sqlite_management import (
+    get_db_path, 
+    set_redis_client
+)
 
 # Configure uvloop for better async performance
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
