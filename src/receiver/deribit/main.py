@@ -22,7 +22,8 @@ from shared.config.settings import (
 from shared.db.redis import redis_client as global_redis_client
 from shared.security import security_middleware_factory
 from receiver.deribit import deribit_ws, distributing_ws_data, get_instrument_summary
-from shared.utils import error_handling, system_tools
+from shared.utils import error_handling, system_tools, template, starter
+from restful_api.deribit import end_point_params_template
 
 # Create security middleware with application settings
 security_middleware = security_middleware_factory({
@@ -121,6 +122,9 @@ async def trading_main() -> None:
         client_id = os.getenv("DERIBIT_CLIENT_ID")
         client_secret = os.getenv("DERIBIT_CLIENT_SECRET")
         
+        #instantiate private connection
+        api_request: object = end_point_params_template.SendApiRequest(client_id,client_secret)
+
         if not client_id or not client_secret:
             log.critical("Deribit credentials not configured in environment")
             app.maintenance_mode = True  # Enter maintenance mode
@@ -170,7 +174,6 @@ async def trading_main() -> None:
         try:
             config_app = system_tools.get_config_tomli(config_path)
             log.info(f"Successfully loaded configuration from {config_path}")
-            print("config_app", config_app)
             
             # Extract specific configuration sections
             redis_channels = config_app.get("redis_channels", [{}])[0]
@@ -186,11 +189,26 @@ async def trading_main() -> None:
             strategy_config = []
             ws_config = {}
         
+        sub_account_cached_channel: str = redis_channels["sub_account_cache_updating"]
+        
+        # sub_account_combining        
+        sub_accounts = [await api_request.get_subaccounts_details(o) for o in currencies]
+        
+        
+        result_template = template.redis_message_template()
+        
+        
+        initial_data_subaccount = starter.sub_account_combining(
+            sub_accounts,
+            sub_account_cached_channel,
+            result_template,
+        )
+        
         distributor_task = asyncio.create_task(
             distributing_ws_data.caching_distributing_data(
                 client_redis,
                 currencies,
-                {},  # Initial data placeholder
+                initial_data_subaccount,  # Initial data placeholder
                 redis_channels,  # Pass actual Redis channels config
                 redis_keys,       # Pass actual Redis keys config
                 strategy_config,  # Pass actual strategy config
