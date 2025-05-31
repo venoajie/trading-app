@@ -9,7 +9,7 @@ from typing import Dict, List, Any, Optional
 import redis.asyncio as aioredis
 
 # Application imports
-from shared.db.redis import redis_client
+from shared.db import redis as redis_publish
 from shared.db_management import sqlite_management as db_mgt
 from restful_api.deribit import end_point_params_template as end_point
 from receiver.deribit import get_instrument_summary, allocating_ohlc
@@ -156,7 +156,7 @@ async def caching_distributing_data(
                             my_trades_active_all = await db_mgt.executing_query_with_return(query_trades)
                             result["params"].update({"channel": my_trades_channel})
                             result["params"].update({"data": my_trades_active_all})
-                            await redis_client.publishing_result(pipe, result)
+                            await redis_publish.publishing_result(pipe, result)
 
                     # Handle ticker data
                     if message_channel.startswith("incremental_ticker."):
@@ -223,7 +223,7 @@ async def updating_portfolio(
         portfolio.append(data["data"])
 
     result["params"]["data"].update({"cached_portfolio": portfolio})
-    await redis_client.publishing_result(pipe, result)
+    await redis_publish.publishing_result(pipe, result)
 
 def get_settlement_period(strategy_attributes: List) -> List:
     """Extract settlement periods from strategy config"""
@@ -254,7 +254,7 @@ async def trades_in_message_channel(
 ) -> None:
     """Process trade messages and update cache"""
     result["params"].update({"channel": my_trade_receiving_channel})
-    await redis_client.publishing_result(pipe, result)
+    await redis_publish.publishing_result(pipe, result)
 
     for trade in data:
         log.info(f"Trade update: {trade}")
@@ -280,7 +280,7 @@ async def order_in_message_channel(
 
     result["params"].update({"channel": order_update_channel})
     result["params"].update({"data": order_data})
-    await redis_client.publishing_result(pipe, result)
+    await redis_publish.publishing_result(pipe, result)
 
 async def incremental_ticker_in_message_channel(
     pipe: aioredis.Redis,
@@ -326,7 +326,7 @@ async def incremental_ticker_in_message_channel(
 
     result["params"].update({"channel": ticker_cached_channel})
     result["params"].update({"data": pub_message})
-    await redis_client.publishing_result(pipe, result)
+    await redis_publish.publishing_result(pipe, result)
 
     # Handle perpetual instruments
     if "PERPETUAL" in instrument_name_future:
@@ -360,7 +360,7 @@ async def chart_trades_in_message_channel(
 
     result["params"].update({"channel": chart_low_high_tick_channel})
     result["params"].update({"data": pub_message})
-    await redis_client.publishing_result(pipe, result)
+    await redis_publish.publishing_result(pipe, result)
 
 async def updating_sub_account(
     client_redis: aioredis.Redis,
@@ -393,4 +393,4 @@ async def updating_sub_account(
     
     message_byte_data["params"].update({"channel": sub_account_cached_channel})
     message_byte_data["params"].update({"data": data})
-    await redis_client.publishing_result(client_redis, message_byte_data)
+    await redis_publish.publishing_result(client_redis, message_byte_data)
