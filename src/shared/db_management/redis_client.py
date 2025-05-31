@@ -1,293 +1,80 @@
-# -*- coding: utf-8 -*-
+"""
+shared/db_management/redis_client.py
+Async Redis client utilities with enhanced connection management
+"""
 
-# built ins
-import asyncio
+import logging
+from typing import Any, Dict, Optional, Union
 
-# installed
-from dataclassy import dataclass
+import aioredis
 import orjson
+from shared import error_handling
+from shared.config import get_config_value
 
-import redis.asyncio as aioredis
+# Configure logger
+log = logging.getLogger(__name__)
 
-from trading_app.shared import error_handling
+async def create_redis_pool() -> aioredis.Redis:
+    """Create Redis connection pool with configuration"""
+    redis_url = get_config_value("redis.url", "redis://localhost:6379")
+    redis_db = get_config_value("redis.db", 0)
+    log.info(f"Creating Redis pool for {redis_url}, db {redis_db}")
+    
+    return await aioredis.from_url(
+        redis_url,
+        db=redis_db,
+        encoding="utf-8",
+        decode_responses=True,
+        socket_connect_timeout=5,
+        socket_keepalive=True
+    )
 
-
-class RedisPubSubManager:
-    """
-
-    https://medium.com/@nandagopal05/scaling-websockets-with-pub-sub-using-python-redis-fastapi-b16392ffe291
-        Initializes the RedisPubSubManager.
-
-    Args:
-        host (str): Redis server host.
-        port (int): Redis server port.
-    """
-
-    def __init__(self, host="localhost", port=6379):
-        self.redis_host = host
-        self.redis_port = port
-        self.pubsub = None
-
-    async def _get_redis_connection(self) -> aioredis.Redis:
-        """
-        Establishes a connection to Redis.
-
-        Returns:
-            aioredis.Redis: Redis connection object.
-        """
-        return aioredis.Redis(
-            host=self.redis_host, port=self.redis_port, auto_close_connection_pool=False
-        )
-
-    async def connect(self) -> None:
-        """
-        Connects to the Redis server and initializes the pubsub client.
-        """
-        self.redis_connection = await self._get_redis_connection()
-        self.pubsub = self.redis_connection.pubsub()
-
-    async def _publish(self, room_id: str, message: str) -> None:
-        """
-        Publishes a message to a specific Redis channel.
-
-        Args:
-            room_id (str): Channel or room ID.
-            message (str): Message to be published.
-        """
-        await self.redis_connection.publish(room_id, message)
-
-    async def subscribe(self, room_id: str) -> aioredis.Redis:
-        """
-        Subscribes to a Redis channel.
-
-        Args:
-            room_id (str): Channel or room ID to subscribe to.
-
-        Returns:
-            aioredis.ChannelSubscribe: PubSub object for the subscribed channel.
-        """
-        await self.pubsub.subscribe(room_id)
-        return self.pubsub
-
-    async def unsubscribe(self, room_id: str) -> None:
-        """
-        Unsubscribes from a Redis channel.
-
-        Args:
-            room_id (str): Channel or room ID to unsubscribe from.
-        """
-        await self.pubsub.unsubscribe(room_id)
-
-
-class Singleton(type):
-    """
-    https://stackoverflow.com/questions/49398590/correct-way-of-using-redis-connection-pool-in-python
-    """
-
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
-
-
-@dataclass(unsafe_hash=True, slots=True)
-class RedisClient(metaclass=Singleton):
-
-    host: str = "redis://localhost"
-    port: int = 6379
-    db: int = 0
-    protocol: int = 3
-    pool: object = None
-
-    def __post_init__(self):
-        return redis.Redis.from_pool(
-            redis.ConnectionPool.from_url(
-                self.host,
-                port=self.port,
-                db=self.db,
-                protocol=self.protocol,
-            )
-        )
-
-    def conn(self):
-        return self.pool
-
-
-async def saving_and_publishing_result(
-    client_redis: object,
+async def publish_message(
+    client_redis: aioredis.Redis,
     channel: str,
-    keys: str,
-    cached_data: list,
-    message: dict,
+    message: Union[Dict, str],
 ) -> None:
-    """ """
-
+    """Publish message to Redis channel with error handling"""
     try:
-        # updating cached data
-        if cached_data:
-            await saving_result(
-                client_redis,
-                channel,
-                keys,
-                cached_data,
-            )
-
-        # publishing message
-        await publishing_result(
-            client_redis,
-            channel,
-            message,
-        )
-
+        # Serialize if message is dict
+        if isinstance(message, dict):
+            message = orjson.dumps(message).decode("utf-8")
+        await client_redis.publish(channel, message)
     except Exception as error:
+        log.error(f"Redis publish error: {error}")
+        await error_handling.handle_error(client_redis, error, "REDIS_PUB_ERROR")
 
-        await error_handling.parse_error_message_with_redis(
-            client_redis,
-            error,
-        )
-
-
-async def publishing_result(
-    client_redis: object,
-    message: dict,
+async def save_to_hash(
+    client_redis: aioredis.Redis,
+    hash_key: str,
+    field: str,
+    data: Any,
 ) -> None:
-    """ """
-
+    """Save data to Redis hash field"""
     try:
-
-        channel = message["params"]["channel"]
-
-        # publishing message
-        await client_redis.publish(
-            channel,
-            orjson.dumps(message),
-        )
-
+        # Serialize if data is not string
+        if not isinstance(data, (str, bytes)):
+            data = orjson.dumps(data).decode("utf-8")
+        await client_redis.hset(hash_key, field, data)
     except Exception as error:
+        log.error(f"Redis save error: {error}")
+        await error_handling.handle_error(client_redis, error, "REDIS_SAVE_ERROR")
 
-        await error_handling.parse_error_message_with_redis(
-            client_redis,
-            error,
-        )
-
-
-async def saving_result(
-    client_redis: object,
-    channel: str,
-    keys: str,
-    cached_data: list,
-) -> None:
-    """ """
-
+async def get_from_hash(
+    client_redis: aioredis.Redis,
+    hash_key: str,
+    field: str,
+) -> Optional[Any]:
+    """Retrieve data from Redis hash field"""
     try:
-
-        channel = message["channel"]
-
-        await client_redis.hset(
-            keys,
-            channel,
-            orjson.dumps(cached_data),
-        )
-
+        data = await client_redis.hget(hash_key, field)
+        if data:
+            try:
+                return orjson.loads(data)
+            except orjson.JSONDecodeError:
+                return data
+        return None
     except Exception as error:
-
-        await error_handling.parse_error_message_with_redis(
-            client_redis,
-            error,
-        )
-
-
-async def querying_data(
-    client_redis: object,
-    channel: str,
-    keys: str,
-) -> None:
-    """ """
-
-    try:
-
-        return await client_redis.hget(
-            keys,
-            channel,
-        )
-
-    except Exception as error:
-
-        await error_handling.parse_error_message_with_redis(
-            client_redis,
-            error,
-        )
-
-
-async def publishing_specific_purposes(
-    purpose,
-    message,
-    redis_channels: list = None,
-    client_redis: object = None,
-) -> None:
-    """
-    purposes:
-    + porfolio
-    + sub_account_update
-    + trading_update
-
-        my_trades_channel:
-        + send messages that "high probabilities" trade DB has changed
-            sender: redis publisher + sqlite insert, update & delete
-        + updating trading cache at end user
-            consumer: fut spread, hedging, cancelling
-        + checking data integrity
-            consumer: app data cleaning/size reconciliation
-
-        sub_account_channel:
-        + send messages that sub_account has changed
-            sender: deribit API module
-        + updating sub account cache at end user
-            consumer: fut spread, hedging, cancelling
-        + checking data integrity
-            consumer: app data cleaning/size reconciliation
-
-    """
-
-    try:
-
-        if not client_redis:
-            pool = aioredis.ConnectionPool.from_url(
-                "redis://localhost",
-                port=6379,
-                db=0,
-                protocol=3,
-                decode_responses=True,
-            )
-            client_redis: object = aioredis.Redis.from_pool(pool)
-
-        if not redis_channels:
-
-            from streaming_helper.utilities.system_tools import get_config_tomli
-
-            # registering strategy config file
-            file_toml = "config_strategies.toml"
-
-            # parsing config file
-            config_app = get_config_tomli(file_toml)
-
-            # get redis channels
-            redis_channels: dict = config_app["redis_channels"][0]
-
-        if purpose == "sqlite_record_updating":
-            channel: str = redis_channels["sqlite_record_updating"]
-            message["params"].update({"channel": channel})
-
-        await publishing_result(
-            client_redis,
-            message,
-        )
-
-    except Exception as error:
-
-        await error_handling.parse_error_message_with_redis(
-            client_redis,
-            error,
-        )
+        log.error(f"Redis get error: {error}")
+        await error_handling.handle_error(client_redis, error, "REDIS_GET_ERROR")
+        return None

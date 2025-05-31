@@ -1,32 +1,27 @@
-# trading_app/receiver/src/main.py
-"""Core application entry point with enhanced maintenance handling"""
+"""
+receiver/deribit/main.py
+Core application entry point with robust error handling
+"""
 
 import os
 import asyncio
 import logging
 import time
 from asyncio import Queue
-from typing import Dict, List, Optional, Any
 
 # Third-party imports
 import uvloop
 from aiohttp import web
-import redis.asyncio as aioredis
+import aioredis
 
 # Application imports
-from config import config, config_oci
+from config import config
 from restful_api.deribit import end_point_params_template
 from receiver.deribit import deribit_ws, distributing_ws_data, get_instrument_summary, starter
-from shared import (
-    error_handling,
-    string_modification as str_mod,
-    system_tools,
-    template
-)
-from shared.db_management.sqlite_management import (
-    get_db_path, 
-    set_redis_client
-)
+from shared import error_handling, string_modification as str_mod, system_tools, template
+from shared.db_management.redis_client import create_redis_pool
+from shared.db_management.sqlite_management import set_redis_client
+from shared.config import CONFIG
 
 # Configure uvloop for better async performance
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -41,7 +36,7 @@ app.maintenance_mode = False
 app.start_time = time.time()
 
 async def health_check(request: web.Request) -> web.Response:
-    """Enhanced health check with maintenance status"""
+    """Service health endpoint with maintenance status"""
     status = "operational"
     if app.maintenance_mode:
         status = "maintenance"
@@ -69,55 +64,44 @@ async def detailed_status(request: web.Request) -> web.Response:
 app.router.add_get("/status", detailed_status)
 
 async def setup_redis() -> aioredis.Redis:
-    """Configure and test Redis connection"""
-    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-    log.info(f"Connecting to Redis at {redis_url}")
-    
-    redis_pool = aioredis.ConnectionPool.from_url(
-        redis_url,
-        db=0,
-        protocol=3,
-        encoding="utf-8",
-        decode_responses=True
-    )
-    client = aioredis.Redis.from_pool(redis_pool)
-    
-    # Test connection
+    """Create and validate Redis connection"""
+    client = await create_redis_pool()
     if not await client.ping():
         raise ConnectionError("Redis connection failed")
-    
-    log.info("Redis connection successful")
+    log.info("Redis connection validated")
     return client
 
 async def trading_main() -> None:
     """Core trading workflow with maintenance awareness"""
-    log.info("Starting trading system initialization")
+    log.info("Initializing trading system")
     
     # Initialize Redis
     client_redis = await setup_redis()
     set_redis_client(client_redis)
     
+    # Configuration setup
     exchange = "deribit"
     sub_account_id = "deribit-148510"
-    config_file = os.getenv("CONFIG_PATH", "/app/config/config_strategies.toml")
-
+    
     try:
-        # Load configurations
+        # Load credentials
         config_path = system_tools.provide_path_for_file(".env")
         parsed = config.main_dotenv(sub_account_id, config_path)
         client_id = parsed["client_id"]
         client_secret = parsed["client_secret"]
         
-        config_app = system_tools.get_config_tomli(config_file)
-        tradable_config = config_app["tradable"]
-        currencies = [o["spot"] for o in tradable_config][0]
-        strategy_config = config_app["strategies"]
-        redis_channels = config_app["redis_channels"][0]
+        # Extract configuration
+        tradable_config = CONFIG["tradable"][0]
+        currencies = tradable_config["spot"]
+        resolutions = tradable_config["resolutions"]
+        redis_channels = CONFIG["redis_channels"][0]
+        strategy_config = CONFIG["strategies"]
+        ws_config = CONFIG.get("ws", {})
         
         # Prepare instruments
         settlement_periods = str_mod.remove_redundant_elements(
             str_mod.remove_double_brackets_in_list(
-                [o["settlement_period"] for o in strategy_config]
+                [s["settlement_period"] for s in strategy_config]
             )
         )
         
@@ -126,18 +110,7 @@ async def trading_main() -> None:
         )
         
         # Initialize components
-        resolutions = [o["resolutions"] for o in tradable_config][0]
         data_queue = Queue(maxsize=1000)  # Backpressure control
-        
-        # Create Redis connection pool
-        redis_pool = aioredis.ConnectionPool.from_url(
-            os.getenv("REDIS_URL", "redis://localhost:6379"),
-            db=0,
-            protocol=3,
-            encoding="utf-8",
-            decode_responses=True
-        )
-        client_redis = aioredis.Redis.from_pool(redis_pool)
         
         # Initialize API client
         api_request = end_point_params_template.SendApiRequest(client_id, client_secret)
@@ -152,7 +125,13 @@ async def trading_main() -> None:
         
         # Create connection manager
         stream = deribit_ws.StreamingAccountData(
-            sub_account_id, client_id, client_secret
+            sub_account_id=sub_account_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            reconnect_base_delay=ws_config.get("reconnect_base_delay", 5),
+            max_reconnect_delay=ws_config.get("max_reconnect_delay", 300),
+            maintenance_threshold=ws_config.get("maintenance_threshold", 900),
+            heartbeat_interval=ws_config.get("heartbeat_interval", 30)
         )
         
         # Create processing tasks
@@ -172,7 +151,7 @@ async def trading_main() -> None:
                 currencies,
                 initial_data,
                 redis_channels,
-                config_app["redis_keys"][0],
+                CONFIG["redis_keys"][0],
                 strategy_config,
                 data_queue
             )
@@ -193,13 +172,16 @@ async def trading_main() -> None:
             await asyncio.sleep(5)
 
     except Exception as error:
-        await error_handling.parse_error_message_with_redis(
-            client_redis, error, "CRITICAL: Receiver service failure"
+        log.exception("Critical error in trading system")
+        await error_handling.handle_error(
+            client_redis, 
+            error, 
+            "CRITICAL: Receiver service failure"
         )
         raise
 
 async def run_services() -> None:
-    """Orchestrates concurrent execution of services"""
+    """Orchestrate concurrent service execution"""
     log.info("Starting service orchestration")
     
     # Web server setup
@@ -215,7 +197,8 @@ async def run_services() -> None:
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
     )
     
     try:
@@ -224,5 +207,5 @@ if __name__ == "__main__":
     except (KeyboardInterrupt, SystemExit):
         log.info("Service shutdown requested")
     except Exception as error:
-        error_handling.parse_error_message(error)
+        log.exception("Unhandled error in main")
         raise SystemExit(1)
