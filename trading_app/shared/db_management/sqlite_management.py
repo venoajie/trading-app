@@ -13,6 +13,14 @@ from loguru import logger as log
 # user defined formulas
 from trading_app.shared.db_management.redis_client import publishing_specific_purposes
 
+# Initialize module-level Redis client (to be set at runtime)
+_redis_client = None
+
+def set_redis_client(redis_client):
+    """Set Redis client for error reporting"""
+    global _redis_client
+    _redis_client = redis_client
+    
 from trading_app.shared import (
     error_handling,
     string_modification as str_mod,
