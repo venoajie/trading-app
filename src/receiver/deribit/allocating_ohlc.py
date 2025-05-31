@@ -15,9 +15,9 @@ from shared.db_management.sqlite_management import (
     querying_arithmetic_operator,
     update_status_data,
 )
-from trading_app.restful_api.deribit import end_point_params_template as end_point
-from trading_app.restful_api import connector
-from trading_app.shared import error_handling, string_modification as str_mod
+from restful_api.deribit import end_point_params_template as end_point
+from restful_api import connector
+from shared import error_handling, string_modification as str_mod
 
 
 async def last_tick_fr_sqlite(last_tick_query_ohlc1: str) -> int:
