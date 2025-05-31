@@ -1,4 +1,4 @@
-# trading_app/receiver/src/distributing_ws_data.py
+# receiver/src/distributing_ws_data.py
 """Data distribution service with maintenance awareness"""
 
 import asyncio
@@ -58,6 +58,7 @@ async def caching_distributing_data(
         asyncio.create_task(maintenance_handler())
         
         # Prepare Redis channels
+        print(f"distributing_ws_data Redis channels: {redis_channels}")
         chart_low_high_tick_channel: str = redis_channels["chart_low_high_tick"]
         portfolio_channel: str = redis_channels["portfolio"]
         sub_account_cached_channel: str = redis_channels["sub_account_cache_updating"]
