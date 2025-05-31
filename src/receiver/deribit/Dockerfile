@@ -21,10 +21,11 @@ WORKDIR /app
 COPY ./src /app/src
 COPY ./config /app/config
 
+
 # Install dependencies using UV
 RUN . /opt/venv/bin/activate && \
     uv pip install --no-cache -r /app/src/shared/requirements.txt && \
-    uv pip install --no-cache -e /app/src
+    uv pip install --no-cache -e /app/src/receiver
 
 # Stage 3: Final production image
 FROM base AS production
