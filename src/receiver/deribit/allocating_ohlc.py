@@ -214,36 +214,29 @@ async def inserting_open_interest(
     data_orders,
 ) -> None:
     """ """
-    try:
 
-        if (
-            currency_inline_with_database_address(currency, TABLE_OHLC1)
-            and "open_interest" in data_orders
-        ):
+    if (
+        currency_inline_with_database_address(currency, TABLE_OHLC1)
+        and "open_interest" in data_orders
+    ):
 
-            open_interest = data_orders["open_interest"]
+        open_interest = data_orders["open_interest"]
 
-            last_tick_query_ohlc1: str = querying_arithmetic_operator(
-                "tick", "MAX", TABLE_OHLC1
-            )
-
-            last_tick1_fr_sqlite: int = await last_tick_fr_sqlite(last_tick_query_ohlc1)
-
-            await update_status_data(
-                TABLE_OHLC1,
-                "open_interest",
-                last_tick1_fr_sqlite,
-                WHERE_FILTER_TICK,
-                open_interest,
-                "is",
-            )
-
-    except Exception as error:
-
-        await error_handling.parse_error_message_with_redis(
-            client_redis,
-            error,
+        last_tick_query_ohlc1: str = querying_arithmetic_operator(
+            "tick", "MAX", TABLE_OHLC1
         )
+
+        last_tick1_fr_sqlite: int = await last_tick_fr_sqlite(last_tick_query_ohlc1)
+
+        await update_status_data(
+            TABLE_OHLC1,
+            "open_interest",
+            last_tick1_fr_sqlite,
+            WHERE_FILTER_TICK,
+            open_interest,
+            "is",
+        )
+
 
 
 def currency_inline_with_database_address(
