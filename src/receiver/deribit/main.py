@@ -22,6 +22,7 @@ from shared import error_handling, string_modification as str_mod, system_tools,
 from shared.db_management.redis_client import create_redis_pool
 from shared.db_management.sqlite_management import set_redis_client
 from shared.config import CONFIG
+from shared import security
 
 # Configure uvloop for better async performance
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -34,7 +35,16 @@ app = web.Application()
 app.connection_active = False
 app.maintenance_mode = False
 app.start_time = time.time()
+# Create web application with middleware
+app = web.Application(middlewares=[security.security_middleware])
 
+async def health_check(request: web.Request) -> web.Response:
+    """Minimal health endpoint without sensitive info"""
+    return web.json_response({
+        "status": "ok",
+        "service": "trading-app"
+    })
+    
 async def health_check(request: web.Request) -> web.Response:
     """Service health endpoint with maintenance status"""
     status = "operational"
