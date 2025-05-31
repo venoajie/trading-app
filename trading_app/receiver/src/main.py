@@ -24,6 +24,7 @@ import os
 import asyncio
 from asyncio import Queue
 from aiohttp import web
+import logging
 
 # Third-party imports
 import uvloop

@@ -5,6 +5,7 @@ import asyncio
 import json
 import sqlite3
 from contextlib import contextmanager
+from typing import Any, Optional, Union, List, Dict
 
 import aiosqlite
 from loguru import logger as log
@@ -94,8 +95,11 @@ async def insert_tables(
     table_name: str,
     params: list | dict | str,
     db_name: str = None,
-    ):
+    )-> None:
     """
+    
+    Insert data into specified table
+    
     alternative insert format (safer):
     https://stackoverflow.com/questions/56910918/saving-json-data-to-sqlite-python
 
