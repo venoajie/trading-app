@@ -45,5 +45,46 @@ class RedisClient:
             message = orjson.dumps(message).decode("utf-8") 
         await pool.publish(channel, message) 
 
+    async def save_to_hash(
+        self,
+        hash_key: str,
+        field: str,
+        data: Any
+    ) -> None:
+        """Save data to Redis hash field"""
+        pool = await self.get_pool()
+        if not isinstance(data, (str, bytes)):
+            data = orjson.dumps(data).decode("utf-8")
+        await pool.hset(hash_key, field, data)
+
+    async def get_from_hash(
+        self,
+        hash_key: str,
+        field: str
+    ) -> Optional[Any]:
+        """Retrieve data from Redis hash field"""
+        pool = await self.get_pool()
+        data = await pool.hget(hash_key, field)
+        if data:
+            try:
+                return orjson.loads(data)
+            except orjson.JSONDecodeError:
+                return data
+        return None
+
+    async def xadd(
+        self,
+        stream_name: str,
+        data: dict,
+        max_queue_size: int = 1000
+    ) -> None:
+        """Add to Redis stream with queue size limit"""
+        pool = await self.get_pool()
+        await pool.xadd(
+            stream_name,
+            {"data": orjson.dumps(data).decode("utf-8")},
+            maxlen=max_queue_size
+        )
+
 # Global Redis client instance 
 redis_client = RedisClient()
