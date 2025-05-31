@@ -224,5 +224,5 @@ if __name__ == "__main__":
     except (KeyboardInterrupt, SystemExit):
         log.info("Service shutdown requested")
     except Exception as error:
-        await error_handling.parse_error_message(error)
+        error_handling.parse_error_message(error)
         raise SystemExit(1)
