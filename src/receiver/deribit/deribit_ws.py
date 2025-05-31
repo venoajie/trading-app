@@ -14,8 +14,8 @@ import websockets
 from dataclassy import dataclass
 
 # Application imports
-from trading_app.restful_api.deribit import end_point_params_template
-from trading_app.shared import error_handling, string_modification as str_mod
+from restful_api.deribit import end_point_params_template
+from shared import error_handling, string_modification as str_mod
 
 # Configure logger
 log = logging.getLogger(__name__)

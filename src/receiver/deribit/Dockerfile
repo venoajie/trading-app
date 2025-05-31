@@ -1,31 +1,39 @@
-# Dockerfile
+# Stage 1: Base image with Python 3.13
 FROM python:3.13-slim AS base
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     libsqlite3-dev sqlite3 curl && \
     rm -rf /var/lib/apt/lists/*
 
 # Install UV and create virtual environment
 RUN pip install --no-cache-dir uv==0.1.0 && \
     uv venv /opt/venv
+
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Set working directory
+# Stage 2: Install dependencies
+FROM base AS dependencies
 WORKDIR /app
 
-# Copy only necessary files
+# Copy dependency specifications
 COPY ./src /app/src
 COPY ./config /app/config
 
-# Install dependencies
+# Install dependencies using UV
 RUN . /opt/venv/bin/activate && \
-    uv pip install --no-cache -r /app/src/trading_app/shared/requirements.txt && \
+    uv pip install --no-cache -r /app/src/shared/requirements.txt && \
     uv pip install --no-cache -e /app/src
+
+# Stage 3: Final production image
+FROM base AS production
+COPY --from=dependencies /opt/venv /opt/venv
+COPY --from=dependencies /app /app
 
 # Environment configuration
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONPATH="/app:/app/src" \
+    PYTHONPATH="/app/src" \
     CONFIG_PATH="/app/config/config_strategies.toml" \
     DB_BASE_PATH="/app/data"
 
@@ -33,5 +41,6 @@ ENV PYTHONUNBUFFERED=1 \
 HEALTHCHECK --interval=30s --timeout=3s \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)" || exit 1
 
-# Entrypoint
-ENTRYPOINT ["python", "-m", "trading_app.receiver.src.main"]
+# Execute application
+WORKDIR /app
+ENTRYPOINT ["python", "-m", "receiver.deribit.main"]

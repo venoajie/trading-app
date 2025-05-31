@@ -9,12 +9,11 @@ from typing import Dict, List, Any, Optional
 import redis.asyncio as aioredis
 
 # Application imports
-from trading_app.shared.db_management import redis_client as redis_client_module
-from trading_app.shared.db_management import sqlite_management as db_mgt
-from trading_app.restful_api.deribit import end_point_params_template as end_point
-from trading_app.receiver.src import get_instrument_summary, allocating_ohlc
-from trading_app.shared import caching, error_handling, string_modification as str_mod, system_tools, template
-from trading_app.shared import pickling
+from shared.db_management import redis_client as redis_client_module
+from shared.db_management import sqlite_management as db_mgt
+from restful_api.deribit import end_point_params_template as end_point
+from receiver.deribit import get_instrument_summary, allocating_ohlc
+from shared import caching, error_handling, pickling,string_modification as str_mod, system_tools, template
 
 # Configure logger
 log = logging.getLogger(__name__)

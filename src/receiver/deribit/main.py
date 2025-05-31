@@ -14,16 +14,16 @@ from aiohttp import web
 import redis.asyncio as aioredis
 
 # Application imports
-from trading_app.configuration import config, config_oci
-from trading_app.restful_api.deribit import end_point_params_template
-from trading_app.receiver.src import deribit_ws, distributing_ws_data, get_instrument_summary, starter
-from trading_app.shared import (
+from config import config, config_oci
+from restful_api.deribit import end_point_params_template
+from receiver.deribit import deribit_ws, distributing_ws_data, get_instrument_summary, starter
+from shared import (
     error_handling,
     string_modification as str_mod,
     system_tools,
     template
 )
-from trading_app.shared.db_management.sqlite_management import (
+from shared.db_management.sqlite_management import (
     get_db_path, 
     set_redis_client
 )
