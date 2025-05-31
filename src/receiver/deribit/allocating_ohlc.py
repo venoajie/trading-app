@@ -8,7 +8,7 @@ import orjson
 from loguru import logger as log
 
 # user defined formula
-from shared.db_management.redis_client import publishing_result
+from shared.db.redis import publishing_result
 from shared.db_management.sqlite_management import (
     executing_query_with_return,
     insert_tables,
