@@ -1,6 +1,8 @@
+# trading_app/receiver/src/main.py
+
 #!/usr/bin/python3
+
 """
-receiver/src/main.py
 
 Core Application Entry Point for Data Receiver Service
 
@@ -41,6 +43,7 @@ from trading_app.shared import (
 
 # Configure uvloop for better async performance
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+log = logging.getLogger(__name__)
 
 # Create web application for health checks
 app = web.Application()
@@ -68,20 +71,37 @@ async def health_check(request: web.Request) -> web.Response:
 
 app.router.add_get("/health", health_check)
 
+
+async def setup_redis() -> aioredis.Redis:
+    """Configure and test Redis connection"""
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+    log.info(f"Connecting to Redis at {redis_url}")
+    
+    redis_pool = aioredis.ConnectionPool.from_url(
+        redis_url,
+        db=0,
+        protocol=3,
+        encoding="utf-8",
+        decode_responses=True
+    )
+    client = aioredis.Redis.from_pool(redis_pool)
+    
+    # Test connection
+    if not await client.ping():
+        raise ConnectionError("Redis connection failed")
+    
+    log.info("Redis connection successful")
+    return client
+
 async def trading_main() -> None:
-    """
-    Core Trading System Workflow
+
+    """Core Trading System Workflow with enhanced logging"""
+    log.info("Starting trading system initialization")
     
-    1. Initializes connections to exchange and Redis
-    2. Loads trading configuration
-    3. Sets up market data streams
-    4. Coordinates data processing tasks
+    # Initialize Redis
+    client_redis = await setup_redis()
+    set_redis_client(client_redis)  # For SQLite error reporting
     
-    Error Handling:
-    - Automatic reconnection on exchange failures
-    - Telegram alerts on critical errors
-    - Graceful shutdown on SIGTERM
-    """
     exchange = "deribit"
     sub_account_id = "deribit-148510"
     config_file = "/app/config_strategies.toml"
@@ -175,22 +195,31 @@ async def trading_main() -> None:
         raise  # Propagate for container restart
 
 async def run_services() -> None:
-    """Orchestrates concurrent execution of trading and web services"""
+    """Orchestrates concurrent execution of services"""
+    log.info("Starting service orchestration")
+    
+    # Web server setup
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", 8000)
     await site.start()
+    log.info("Health check server running on port 8000")
     
     # Start trading system
     await trading_main()
 
 if __name__ == "__main__":
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    
     try:
-        # Start the application
+        log.info("Starting application")
         asyncio.run(run_services())
     except (KeyboardInterrupt, SystemExit):
-        print("Service shutdown requested")
+        log.info("Service shutdown requested")
     except Exception as error:
-        # Final error capture before exit
-        error_handling.parse_error_message(error)
-        raise SystemExit(1)  # Ensure container restarts
+        log.critical(f"Fatal error: {error}")
+        raise SystemExit(1)
