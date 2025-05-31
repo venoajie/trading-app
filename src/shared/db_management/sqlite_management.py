@@ -11,7 +11,7 @@ import aiosqlite
 from loguru import logger as log
 
 # user defined formulas
-from trading_app.shared.db_management.redis_client import publishing_specific_purposes
+from shared.db_management.redis_client import publishing_specific_purposes
 
 # Initialize module-level Redis client (to be set at runtime)
 _redis_client = None
