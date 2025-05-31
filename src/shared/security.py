@@ -21,9 +21,17 @@ def security_middleware_factory() -> Callable:
     """
     Factory function that creates security middleware using centralized config
     
-    Returns:
-        Middleware function ready for use in aiohttp application
+    Args:
+        config: Dictionary with security configuration
+            - blocked_scanners: List of scanner user agents to block
+            - rate_limit: Requests per second limit
+            - security_headers: Dictionary of security headers
     """
+    # Extract configuration with defaults
+    blocked_scanners = config.get("blocked_scanners", [])
+    rate_limit = config.get("rate_limit", 100)
+    security_headers = config.get("security_headers", {})
+    
     async def security_middleware(
         app: web.Application, 
         handler: Callable

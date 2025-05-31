@@ -23,20 +23,6 @@ from shared.db.redis import redis_client as global_redis_client
 from shared.security import security_middleware_factory
 from receiver.deribit import deribit_ws, distributing_ws_data, get_instrument_summary
 
-# Configure uvloop for better async performance
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-log = logging.getLogger(__name__)
-
-# Define default security settings
-SECURITY_BLOCKED_SCANNERS = []  # Default: no scanners blocked
-SECURITY_RATE_LIMIT = 100  # Default: 100 requests per minute
-SECURITY_HEADERS = {
-    "X-Frame-Options": "DENY",
-    "X-Content-Type-Options": "nosniff",
-    "Content-Security-Policy": "default-src 'self'",
-    "Referrer-Policy": "no-referrer"
-}
-
 # Create security middleware with application settings
 security_middleware = security_middleware_factory({
     "blocked_scanners": SECURITY_BLOCKED_SCANNERS,
