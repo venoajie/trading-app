@@ -99,7 +99,7 @@ async def trading_main() -> None:
     
     exchange = "deribit"
     sub_account_id = "deribit-148510"
-    config_file = "/app/config_strategies.toml"
+    config_file = "/app/configuration/config_strategies.toml"
 
     try:
         # Load configurations
