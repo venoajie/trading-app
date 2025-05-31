@@ -1,6 +1,6 @@
 """
 receiver/deribit/main.py
-Core application entry point with robust error handling
+Core application entry point with security enhancements
 """
 
 import os
@@ -8,6 +8,7 @@ import asyncio
 import logging
 import time
 from asyncio import Queue
+from typing import Any, Dict
 
 # Third-party imports
 import uvloop
@@ -22,31 +23,30 @@ from shared import error_handling, string_modification as str_mod, system_tools,
 from shared.db_management.redis_client import create_redis_pool
 from shared.db_management.sqlite_management import set_redis_client
 from shared.config import CONFIG
-from shared import security
+from shared.security import security_middleware_factory
 
 # Configure uvloop for better async performance
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 log = logging.getLogger(__name__)
 
-# Create web application
-app = web.Application()
+# Create security middleware with default configuration
+security_middleware = security_middleware_factory()
+
+# Create web application with security middleware
+app = web.Application(middlewares=[security_middleware])
 
 # State tracking for health checks
 app.connection_active = False
 app.maintenance_mode = False
 app.start_time = time.time()
-# Create web application with middleware
-app = web.Application(middlewares=[security.security_middleware])
 
 async def health_check(request: web.Request) -> web.Response:
-    """Minimal health endpoint without sensitive info"""
-    return web.json_response({
-        "status": "ok",
-        "service": "trading-app"
-    })
-    
-async def health_check(request: web.Request) -> web.Response:
-    """Service health endpoint with maintenance status"""
+    """
+    Comprehensive health endpoint with security considerations
+    - Minimal sensitive information exposure
+    - Maintenance status awareness
+    - Uptime monitoring
+    """
     status = "operational"
     if app.maintenance_mode:
         status = "maintenance"
@@ -55,34 +55,52 @@ async def health_check(request: web.Request) -> web.Response:
     
     return web.json_response({
         "status": status,
-        "service": "receiver",
-        "exchange": "deribit",
+        "service": "trading-app",  # Generic service identifier
         "uptime_seconds": int(time.time() - app.start_time)
     })
 
 app.router.add_get("/health", health_check)
 
 async def detailed_status(request: web.Request) -> web.Response:
-    """Detailed system status report"""
+    """
+    Authenticated system status report
+    - Requires API key for access
+    - Provides detailed system metrics
+    """
+    # Validate API key for sensitive information
+    if request.headers.get("X-API-KEY") != os.getenv("STATUS_API_KEY"):
+        return web.Response(status=401, text="Unauthorized")
+    
     return web.json_response({
         "websocket_connected": app.connection_active,
         "maintenance_mode": app.maintenance_mode,
         "start_time": app.start_time,
-        "redis_url": os.getenv("REDIS_URL", "not_configured")
+        "redis_url": os.getenv("REDIS_URL", "not_configured")[:15] + "..."  # Partial exposure
     })
 
 app.router.add_get("/status", detailed_status)
 
 async def setup_redis() -> aioredis.Redis:
-    """Create and validate Redis connection"""
-    client = await create_redis_pool()
-    if not await client.ping():
-        raise ConnectionError("Redis connection failed")
-    log.info("Redis connection validated")
-    return client
+    """Create and validate Redis connection with retry logic"""
+    retry_count = 0
+    max_retries = 5
+    backoff = 2  # seconds
+    
+    while retry_count < max_retries:
+        try:
+            client = await create_redis_pool()
+            if await client.ping():
+                log.info("Redis connection validated")
+                return client
+        except Exception as e:
+            log.warning(f"Redis connection failed (attempt {retry_count+1}): {e}")
+            await asyncio.sleep(backoff * (2 ** retry_count))
+            retry_count += 1
+    
+    raise ConnectionError("Redis connection failed after retries")
 
 async def trading_main() -> None:
-    """Core trading workflow with maintenance awareness"""
+    """Core trading workflow with enhanced error handling"""
     log.info("Initializing trading system")
     
     # Initialize Redis
@@ -100,23 +118,25 @@ async def trading_main() -> None:
         client_id = parsed["client_id"]
         client_secret = parsed["client_secret"]
         
-        # Extract configuration
-        tradable_config = CONFIG["tradable"][0]
-        currencies = tradable_config["spot"]
-        resolutions = tradable_config["resolutions"]
-        redis_channels = CONFIG["redis_channels"][0]
-        strategy_config = CONFIG["strategies"]
-        ws_config: Dict[str, Any] = CONFIG.get("ws", {})
+        # Extract configuration with fallbacks
+        tradable_config = CONFIG.get("tradable", [{}])[0]
+        currencies = tradable_config.get("spot", ["BTC", "ETH"])
+        resolutions = tradable_config.get("resolutions", [1, 5, 15, 60])
+        redis_channels = CONFIG.get("redis_channels", [{}])[0]
+        strategy_config = CONFIG.get("strategies", [])
+        ws_config = CONFIG.get("ws", {})
         
-        # Prepare instruments
-        settlement_periods = str_mod.remove_redundant_elements(
-            str_mod.remove_double_brackets_in_list(
-                [s["settlement_period"] for s in strategy_config]
+        # Prepare instruments with validation
+        settlement_periods = []
+        if strategy_config:
+            settlement_periods = str_mod.remove_redundant_elements(
+                str_mod.remove_double_brackets_in_list(
+                    [s.get("settlement_period", "perpetual") for s in strategy_config]
+                )
             )
-        )
         
         futures_instruments = await get_instrument_summary.get_futures_instruments(
-            currencies, settlement_periods
+            currencies, settlement_periods or ["perpetual"]
         )
         
         # Initialize components
@@ -125,11 +145,19 @@ async def trading_main() -> None:
         # Initialize API client
         api_request = end_point_params_template.SendApiRequest(client_id, client_secret)
         
-        # Fetch account data
-        sub_accounts = [await api_request.get_subaccounts_details(c) for c in currencies]
+        # Fetch account data with error handling
+        sub_accounts = []
+        for c in currencies:
+            try:
+                account = await api_request.get_subaccounts_details(c)
+                sub_accounts.append(account)
+            except Exception as e:
+                log.error(f"Failed to get subaccount for {c}: {e}")
+                await error_handling.parse_error_message_with_redis(client_redis, e)
+        
         initial_data = starter.sub_account_combining(
             sub_accounts,
-            redis_channels["sub_account_cache_updating"],
+            redis_channels.get("sub_account_cache_updating", "account.sub_account.cached_all"),
             template.redis_message_template()
         )
         
@@ -144,7 +172,6 @@ async def trading_main() -> None:
             websocket_timeout=ws_config.get("websocket_timeout", 900),
             heartbeat_interval=ws_config.get("heartbeat_interval", 30)
         )
-        
         
         # Create processing tasks
         producer_task = asyncio.create_task(
@@ -163,7 +190,7 @@ async def trading_main() -> None:
                 currencies,
                 initial_data,
                 redis_channels,
-                CONFIG["redis_keys"][0],
+                CONFIG.get("redis_keys", [{}])[0],
                 strategy_config,
                 data_queue
             )
@@ -199,14 +226,17 @@ async def run_services() -> None:
     # Web server setup
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", 8000)
+    
+    # Bind to localhost only for security
+    site = web.TCPSite(runner, "127.0.0.1", 8000)
     await site.start()
-    log.info("Health check server running on port 8000")
+    log.info("Health check server running on 127.0.0.1:8000")
     
     # Start trading system
     await trading_main()
 
 if __name__ == "__main__":
+    # Configure structured logging
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
