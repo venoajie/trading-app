@@ -99,7 +99,7 @@ async def trading_main() -> None:
     
     exchange = "deribit"
     sub_account_id = "deribit-148510"
-    config_file = "/trading_app/configuration/config_strategies.toml"
+    config_file = os.getenv("CONFIG_PATH", "/app/config/config_strategies.toml")
 
     try:
         # Load configurations
@@ -108,10 +108,7 @@ async def trading_main() -> None:
         client_id = parsed["client_id"]
         client_secret = parsed["client_secret"]
         
-        
-        
         config_app = system_tools.get_config_tomli(config_file)
-        print(config_app)
         tradable_config = config_app["tradable"]
         currencies = [o["spot"] for o in tradable_config][0]
         strategy_config = config_app["strategies"]

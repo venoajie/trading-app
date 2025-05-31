@@ -1,51 +1,16 @@
-# docker-compose.yml
-
 services:
-  redis:
-    image: redis:7-alpine
-    command: redis-server --save 60 1 --loglevel warning
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - trading-network
-
   receiver:
     build:
       context: .
-      dockerfile: trading_app/receiver/Dockerfile
-    restart: unless-stopped
+      dockerfile: Dockerfile
     volumes:
-      - ./trading_app/configuration:/app/configuration:ro
-      - ./trading_app/restful_api:/app/restful_api:ro
-      - ./trading_app/shared:/app/shared:ro
-      - ./data:/app/data 
+      - ./config:/app/config:ro
+      - ./data:/app/data
     environment:
-      REDIS_URL: redis://redis:6379 
+      REDIS_URL: redis://redis:6379
       DB_TYPE: ${DB_TYPE:-sqlite}
-      DB_BASE_PATH: /app/data
     depends_on:
       redis:
         condition: service_healthy
     ports:
       - "8000:8000"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 10  # Allow more retries during maintenance
-      start_period: 30s  # Extra time for initialization
-    networks:
-      - trading-network
-
-volumes:
-  redis-data:
-  trading-data:
-
-networks:
-  trading-network:
-    driver: bridge
