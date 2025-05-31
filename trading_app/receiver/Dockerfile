@@ -1,8 +1,13 @@
 # trading_app/receiver/Dockerfile
-# Optimized solution with virtual environment handling
 
 # Stage 1: Base image with Python 3.13
 FROM python:3.13-slim AS base
+
+# Add SQLite compatibility layer for Oracle Linux
+RUN apt-get update && apt-get install -y \
+    libsqlite3-dev \
+    sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install UV and create virtual environment
 RUN pip install --no-cache-dir uv==0.1.0 && \

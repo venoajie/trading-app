@@ -34,13 +34,14 @@ async def telegram_bot_sendtext(bot_message, purpose: str = "general_error") -> 
     return await telegram_bot(bot_message, purpose)
 
 
-async def create_dataBase_sqlite(
-    db_name: str = "databases/trading.sqlite3",
-) -> None:
+async def create_dataBase_sqlite(db_name: str = None) -> None:
     """
     https://stackoverflow.com/questions/71729956/aiosqlite-result-object-has-no-attribue-execute
     """
 
+    if db_name is None:
+        db_name = get_db_path() 
+        
     try:
         conn = await aiosqlite.connect(db_name)
         cur = await conn.cursor()
@@ -56,7 +57,7 @@ async def create_dataBase_sqlite(
 
 
 @contextmanager
-async def db_ops(db_name: str = "databases/trading.sqlite3"):
+async def db_ops(db_name: str == None):
     """
     # prepare sqlite initial connection + close
             Return and rtype: None
@@ -64,8 +65,12 @@ async def db_ops(db_name: str = "databases/trading.sqlite3"):
             # https://charlesleifer.com/blog/going-fast-with-sqlite-and-python/
             https://code-kamran.medium.com/python-convert-json-to-sqlite-d6fa8952a319
     """
-    conn = await aiosqlite.connect(db_name, isolation_level=None)
 
+    if db_name is None:
+        db_name = get_db_path() 
+
+    conn = await aiosqlite.connect(db_name, isolation_level=None)
+        
     try:
         cur = await conn.cursor()
         yield cur
@@ -88,17 +93,23 @@ async def db_ops(db_name: str = "databases/trading.sqlite3"):
 async def insert_tables(
     table_name: str,
     params#: list | dict | str,
-):
+    db_name: str = None,
+    ):
     """
     alternative insert format (safer):
     https://stackoverflow.com/questions/56910918/saving-json-data-to-sqlite-python
 
     """
+
+    if db_name is None:
+        db_name = get_db_path() 
+        
     try:
 
         async with aiosqlite.connect(
-            "databases/trading.sqlite3", isolation_level=None
-        ) as db:
+            db_name, 
+            isolation_level=None,
+            ) as db:
 
             await db.execute("pragma journal_mode=wal;")
 
@@ -155,7 +166,7 @@ async def insert_tables(
 
 async def querying_table(
     table: str = "mytrades",
-    database: str = "databases/trading.sqlite3",
+    database: str = None,
     filter: str = None,
     operator=None,
     filter_value=None,
@@ -167,6 +178,9 @@ async def querying_table(
 
     from utilities import string_modification as str_mod
 
+    if database is None:
+        database = get_db_path() 
+        
     NONE_DATA: None = [0, None, []]
 
     query_table = f"SELECT  * FROM {table} WHERE  {filter} {operator}?"
@@ -221,13 +235,16 @@ async def querying_table(
 
 async def deleting_row(
     table: str = "mytrades",
-    database: str = "databases/trading.sqlite3",
+    database: str = None,
     filter: str = None,
     operator=None,
     filter_value=None,
 ) -> list:
     """ """
 
+    if database is None:
+        database = get_db_path() 
+        
     query_table = f"DELETE  FROM {table} WHERE  {filter} {operator}?"
     query_table_filter_none = f"DELETE FROM {table}"
 
@@ -284,10 +301,13 @@ async def deleting_row(
 async def querying_duplicated_transactions(
     label: str,
     group_by: str = "trade_id",
-    database: str = "databases/trading.sqlite3",
+    database: str = None,
 ) -> list:
     """ """
 
+    if database is None:
+        database = get_db_path() 
+        
     # query_table = f"""SELECT CAST(SUBSTR((label),-13)as integer) AS label_int, count (*)  FROM {label} GROUP BY label_int HAVING COUNT (*) >1"""
     query_table = f"""SELECT id, data, {group_by}  FROM {label} GROUP BY {group_by} HAVING count(*) >1"""
     combine_result = []
@@ -322,10 +342,13 @@ async def add_additional_column(
     column_name,
     dataType,
     table: str = "ohlc1_eth_perp_json",
-    database: str = "databases/trading.sqlite3",
+    database: str = None,
 ) -> list:
     """ """
 
+    if database is None:
+        database = get_db_path() 
+        
     try:
         query_table = f"ALTER TABLE {table} ADD {column_name} {dataType}"
 
@@ -366,6 +389,7 @@ async def update_status_data(
     filter_value: any,
     new_value: any,
     operator,#=None | str,
+    database: str = None,
 ) -> None:
     """
     https://www.beekeeperstudio.io/blog/sqlite-json-with-text
@@ -393,9 +417,12 @@ async def update_status_data(
     # log.warning (f"query {query}")
     try:
 
-        async with aiosqlite.connect(
-            "databases/trading.sqlite3", isolation_level=None
-        ) as db:
+        if database is None:
+            database = get_db_path() 
+            
+        async with aiosqlite.connect(database, 
+                                     isolation_level=None,
+                                     ) as db:
 
             await db.execute("pragma journal_mode=wal;")
 
@@ -639,7 +666,7 @@ async def executing_query_with_return(
     query_table,
     filter: str = None,
     filter_value=None,
-    database: str = "databases/trading.sqlite3",
+    database: str = None,
 ) -> list:
     """
     Reference
@@ -648,6 +675,9 @@ async def executing_query_with_return(
     Return type: 'list'/'dataframe'
 
     """
+    if database is None:
+        database = get_db_path() 
+            
 
     filter_val = (f"{filter_value}",)
 
@@ -692,13 +722,17 @@ async def executing_query_with_return(
     return [] if not combine_result else (combine_result)
 
 
-async def back_up_db_sqlite():
+async def back_up_db_sqlite(database: str = None) -> None:
 
     from datetime import datetime
 
     TIMESTAMP = datetime.now().strftime("%Y%m%d-%H-%M-%S")
 
-    src = sqlite3.connect("databases/trading.sqlite3")
+    if database is None:
+        database = get_db_path() 
+            
+
+    src = sqlite3.connect(database)
     dst = sqlite3.connect(f"databases/trdg-{TIMESTAMP}.bak")
 
     with dst:
