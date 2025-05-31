@@ -38,6 +38,10 @@ app.connection_active = False
 app.maintenance_mode = False
 app.start_time = time.time()
 
+# Configure uvloop for better async performance
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+log = logging.getLogger(__name__)
+
 async def health_check(request: web.Request) -> web.Response:
     """Secure health endpoint"""
     status = "operational"
