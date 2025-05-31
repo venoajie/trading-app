@@ -1,4 +1,6 @@
-# -*- coding: utf-8 -*-
+"""
+config/config.py
+"""
 
 from configparser import ConfigParser
 

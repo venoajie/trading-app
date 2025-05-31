@@ -24,19 +24,17 @@ from shared.config import CONFIG, get_config_value
 # Configure logger
 log = logging.getLogger(__name__)
 
-# Get configuration values with fallbacks
-RECONNECT_BASE_DELAY = get_config_value("ws.reconnect_base_delay", 5)
-MAX_RECONNECT_DELAY = get_config_value("ws.max_reconnect_delay", 300)
-MAINTENANCE_THRESHOLD = get_config_value("ws.maintenance_threshold", 900)
-WEBSOCKET_TIMEOUT = get_config_value("ws.websocket_timeout", 900)  # 15 minutes
-HEARTBEAT_INTERVAL = get_config_value("ws.heartbeat_interval", 30)
-
 @dataclass(unsafe_hash=True, slots=True)
 class StreamingAccountData:
     """Enhanced WebSocket manager with maintenance detection and recovery"""
     sub_account_id: str
     client_id: str
     client_secret: str
+    int = 5
+    max_reconnect_delay: int = 300
+    maintenance_threshold: int = 900
+    websocket_timeout: int = 900
+    heartbeat_interval: int = 30
     loop: asyncio.AbstractEventLoop = cast(asyncio.AbstractEventLoop, None)
     ws_connection_url: str = "wss://www.deribit.com/ws/api/v2"
     websocket_client: Optional[WebSocketClientProtocol] = None
@@ -123,21 +121,33 @@ class StreamingAccountData:
     async def monitor_heartbeat(self, client_redis: Any) -> None:
         """Monitor connection health with maintenance detection"""
         while self.connection_active:
-            await asyncio.sleep(HEARTBEAT_INTERVAL)
+            await asyncio.sleep(self.heartbeat_interval)  # Use instance variable
             time_since_last = time.time() - self.last_message_time
             
             # Detect extended silence (possible maintenance)
-            if time_since_last > MAINTENANCE_THRESHOLD and not self.maintenance_mode:
+            if time_since_last > self.maintenance_threshold and not self.maintenance_mode:
                 log.warning("Exchange maintenance detected. Entering maintenance mode")
                 self.maintenance_mode = True
                 await client_redis.publish("system_status", "maintenance")
             
             # Normal timeout handling
-            elif time_since_last > WEBSOCKET_TIMEOUT:
+            elif time_since_last > self.websocket_timeout:  # Use instance variable
                 log.warning(f"No messages for {time_since_last:.0f} seconds. Reconnecting...")
                 if self.websocket_client:
                     await self.websocket_client.close()
                 break
+
+
+    async def handle_reconnect(self) -> None:
+        """Handle reconnection with exponential backoff"""
+        self.reconnect_attempts += 1
+        delay = min(
+            self.reconnect_base_delay * (2 ** self.reconnect_attempts),  # Use instance variable
+            self.max_reconnect_delay  # Use instance variable
+        )
+        
+        log.info(f"Reconnecting attempt {self.reconnect_attempts} in {delay} seconds...")
+        await asyncio.sleep(delay)
 
     async def process_messages(
         self, 
@@ -189,17 +199,6 @@ class StreamingAccountData:
             except Exception as e:
                 log.error(f"Error processing message: {e}")
                 await error_handling.parse_error_message_with_redis(client_redis, e)
-
-    async def handle_reconnect(self) -> None:
-        """Handle reconnection with exponential backoff"""
-        self.reconnect_attempts += 1
-        delay = min(
-            RECONNECT_BASE_DELAY * (2 ** self.reconnect_attempts), 
-            MAX_RECONNECT_DELAY
-        )
-        
-        log.info(f"Reconnecting attempt {self.reconnect_attempts} in {delay} seconds...")
-        await asyncio.sleep(delay)
 
     def handle_auth_response(self, message: Dict) -> None:
         """Handle authentication responses"""

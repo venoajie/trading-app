@@ -131,8 +131,10 @@ async def trading_main() -> None:
             reconnect_base_delay=ws_config.get("reconnect_base_delay", 5),
             max_reconnect_delay=ws_config.get("max_reconnect_delay", 300),
             maintenance_threshold=ws_config.get("maintenance_threshold", 900),
+            websocket_timeout=ws_config.get("websocket_timeout", 900),
             heartbeat_interval=ws_config.get("heartbeat_interval", 30)
         )
+        
         
         # Create processing tasks
         producer_task = asyncio.create_task(
