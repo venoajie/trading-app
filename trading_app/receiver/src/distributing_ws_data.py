@@ -69,7 +69,6 @@ async def caching_distributing_data(
         ticker_cached_channel: str = redis_channels["ticker_cache_updating"]
 
         # Subscribe to additional channels
-        pubsub = client_redis.pubsub()
         channels = [order_update_channel, sqlite_updating_channel]
         for channel in channels:
             await pubsub.subscribe(channel)
