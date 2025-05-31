@@ -16,13 +16,12 @@ from aiohttp import web
 import redis.asyncio as aioredis
 
 # Application imports
-from config import config
 from restful_api.deribit import end_point_params_template
 from receiver.deribit import deribit_ws, distributing_ws_data, get_instrument_summary, starter
 from shared import error_handling, string_modification as str_mod, system_tools, template
 from shared.db_management.redis_client import create_redis_pool
 from shared.db_management.sqlite_management import set_redis_client
-from shared.config import CONFIG
+from shared.config.settings import REDIS_URL, DERIBIT_CURRENCIES
 from shared.security import security_middleware_factory
 
 # Configure uvloop for better async performance

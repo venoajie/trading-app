@@ -14,6 +14,17 @@ heartbeat_interval = 30
 # Timeout for WebSocket connections (seconds)
 websocket_timeout = 900
 
+[redis]
+url = "redis://redis:6379"  # Moved from .env
+db = 0
+
+[database]
+type = "sqlite"  # Moved from .env
+
+[security]
+blocked_scanners = ["censysinspect", "nmap"]  # Array format
+rate_limit = 10 
+
 [[tradable]]
 spot = [
     "BTC",

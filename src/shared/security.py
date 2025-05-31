@@ -1,40 +1,29 @@
 """
 shared/security.py
-Enhanced security middleware with configurable threat protection
+Security middleware integrated with centralized configuration
 """
 
 import logging
 from typing import Callable, Awaitable
 from aiohttp import web
 
+# Import from consolidated config system
+from shared.config.settings import (
+    SECURITY_BLOCKED_SCANNERS,
+    SECURITY_RATE_LIMIT,
+    SECURITY_HEADERS
+)
+
 # Configure logger
 log = logging.getLogger(__name__)
 
-# Default security configuration (can be overridden via environment/config)
-DEFAULT_SECURITY_CONFIG = {
-    "blocked_scanners": ["censysinspect", "nmap", "nessus", "acunetix", "sqlmap"],
-    "rate_limit": 10,  # Requests per second
-    "security_headers": {
-        "X-Content-Type-Options": "nosniff",
-        "X-Frame-Options": "DENY",
-        "Content-Security-Policy": "default-src 'self'",
-        "Strict-Transport-Security": "max-age=63072000; includeSubDomains"
-    }
-}
-
-def security_middleware_factory(config: dict = None) -> Callable:
+def security_middleware_factory() -> Callable:
     """
-    Factory function that creates security middleware with configurable settings
+    Factory function that creates security middleware using centralized config
     
-    Args:
-        config: Security configuration dictionary. Uses DEFAULT_SECURITY_CONFIG if None.
-        
     Returns:
         Middleware function ready for use in aiohttp application
     """
-    # Merge default config with any provided overrides
-    security_config = {**DEFAULT_SECURITY_CONFIG, **(config or {})}
-    
     async def security_middleware(
         app: web.Application, 
         handler: Callable
@@ -64,12 +53,12 @@ def security_middleware_factory(config: dict = None) -> Callable:
             
             # 2. Block known security scanners
             user_agent = request.headers.get('User-Agent', '').lower()
-            if any(scanner in user_agent for scanner in security_config["blocked_scanners"]):
+            if any(scanner in user_agent for scanner in SECURITY_BLOCKED_SCANNERS):
                 log.warning(f"Blocked security scanner: {user_agent}")
                 return web.Response(status=403, text="Forbidden")
             
-            # 3. Rate limiting (placeholder - implement Redis-based solution later)
-            if await should_rate_limit(request, security_config["rate_limit"]):
+            # 3. Rate limiting (implemented in next version)
+            if await should_rate_limit(request, SECURITY_RATE_LIMIT):
                 log.warning(f"Rate limit exceeded by {request.remote}")
                 return web.Response(status=429, text="Too Many Requests")
             
@@ -77,7 +66,7 @@ def security_middleware_factory(config: dict = None) -> Callable:
             response = await handler(request)
             
             # 5. Add security headers to all responses
-            response.headers.update(security_config["security_headers"])
+            response.headers.update(SECURITY_HEADERS)
             
             return response
             
@@ -89,10 +78,7 @@ async def should_rate_limit(request: web.Request, limit: int) -> bool:
     """
     Placeholder for rate limiting functionality
     
-    Note: For production, implement Redis-based rate limiting with:
-    - IP-based tracking
-    - Token bucket algorithm
-    - Distributed counting
+    Note: Production implementation will use Redis-based rate limiting
     
     Args:
         request: Incoming request
@@ -101,5 +87,5 @@ async def should_rate_limit(request: web.Request, limit: int) -> bool:
     Returns:
         True if request should be rate limited
     """
-    # TODO: Implement proper rate limiting with Redis
+    # TODO: Implement Redis-based rate limiting
     return False
