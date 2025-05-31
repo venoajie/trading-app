@@ -183,8 +183,8 @@ async def caching_distributing_data(
                             result,
                         )
 
-                except Exception as e:
-                    log.error(f"Error in distributing_ws_data: {e}")
+                except Exception as error:
+                    error_handling.parse_error_message(error)
 
                 await pipe.execute()
 
