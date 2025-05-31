@@ -14,9 +14,19 @@ from trading_app.shared.db_management import sqlite_management as db_mgt
 from trading_app.restful_api.deribit import end_point_params_template as end_point
 from trading_app.receiver.src import get_instrument_summary, allocating_ohlc
 from trading_app.shared import caching, error_handling, string_modification as str_mod, system_tools, template
+from trading_app.shared import pickling
 
 # Configure logger
 log = logging.getLogger(__name__)
+
+def reading_from_pkl_data(
+    end_point: str,
+    currency: str,
+    status: Optional[str] = None,
+) -> Any:
+    """Read pickled data from file system"""
+    path: str = system_tools.provide_path_for_file(end_point, currency, status)
+    return pickling.read_data(path)  
 
 async def caching_distributing_data(
     client_redis: aioredis.Redis,
