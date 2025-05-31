@@ -4,15 +4,15 @@ Security middleware integrated with centralized configuration
 """
 
 import logging
-from typing import Callable, Awaitable
+from typing import Callable, Awaitable, Dict, Any
 from aiohttp import web
 
 # Configure logger
 log = logging.getLogger(__name__)
 
-def security_middleware_factory() -> Callable:
+def security_middleware_factory(config: Dict[str, Any]) -> Callable:
     """
-    Factory function that creates security middleware using centralized config
+    Factory function that creates security middleware using provided config
     
     Args:
         config: Dictionary with security configuration
@@ -54,12 +54,12 @@ def security_middleware_factory() -> Callable:
             
             # 2. Block known security scanners
             user_agent = request.headers.get('User-Agent', '').lower()
-            if any(scanner in user_agent for scanner in SECURITY_BLOCKED_SCANNERS):
+            if any(scanner in user_agent for scanner in blocked_scanners):
                 log.warning(f"Blocked security scanner: {user_agent}")
                 return web.Response(status=403, text="Forbidden")
             
             # 3. Rate limiting (implemented in next version)
-            if await should_rate_limit(request, SECURITY_RATE_LIMIT):
+            if await should_rate_limit(request, rate_limit):
                 log.warning(f"Rate limit exceeded by {request.remote}")
                 return web.Response(status=429, text="Too Many Requests")
             
@@ -67,7 +67,7 @@ def security_middleware_factory() -> Callable:
             response = await handler(request)
             
             # 5. Add security headers to all responses
-            response.headers.update(SECURITY_HEADERS)
+            response.headers.update(security_headers)
             
             return response
             
