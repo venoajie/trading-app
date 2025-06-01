@@ -181,10 +181,9 @@ async def trading_main() -> None:
             )
         )
         
-        distributor = distributing_ws_data.DataDistributor()
         
         distributor_task = asyncio.create_task(
-            distributor.caching_distributing_data(
+            distributing_ws_data.caching_distributing_data(
                 client_redis,
                 currencies,
                 initial_data_subaccount,
