@@ -35,8 +35,16 @@ RUN . /opt/venv/bin/activate && \
 
 # Stage 3: Final production image
 FROM base AS production
-COPY --from=dependencies /opt/venv /opt/venv
-COPY --from=dependencies /app /app
+
+# Create non-root user
+RUN groupadd -r appuser && \
+    useradd --no-log-init -r -g appuser -d /app -s /bin/false appuser && \
+    mkdir -p /app/data && \
+    chown appuser:appuser /app/data
+
+# Copy from dependencies stage
+COPY --from=dependencies --chown=appuser:appuser /opt/venv /opt/venv
+COPY --from=dependencies --chown=appuser:appuser /app /app
 
 # Environment configuration
 ENV PYTHONUNBUFFERED=1 \
@@ -44,9 +52,10 @@ ENV PYTHONUNBUFFERED=1 \
     CONFIG_PATH="/app/config/config_strategies.toml" \
     DB_BASE_PATH="/app/data"
 
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)" || exit 1
+    CMD python -c "import sqlite3; conn = sqlite3.connect('/app/data/status.db'); conn.close()" || exit 1
 
 # Execute application
 WORKDIR /app
