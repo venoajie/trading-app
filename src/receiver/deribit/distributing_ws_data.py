@@ -7,6 +7,7 @@ from typing import Dict, List, Any, Optional
 
 # Third-party imports
 import redis.asyncio as aioredis
+from redis.asyncio.client import PubSub 
 
 # Application imports
 from shared.db import redis as redis_publish
@@ -93,7 +94,7 @@ class DataDistributor:
             await error_handling.parse_error_message_with_redis(client_redis, error)
             raise
 
-    async def _setup_subscriptions(self, pubsub: aioredis.PubSub, redis_channels: Dict) -> None:
+    async def _setup_subscriptions(self, pubsub: PubSub, redis_channels: Dict) -> None:
         """Subscribe to necessary Redis channels"""
         await pubsub.subscribe("system_status")
         for channel in [redis_channels["order_cache_updating"], 
