@@ -23,8 +23,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 FROM base AS dependencies
 WORKDIR /app
 
-# Copy dependency specifications
-COPY ./src /app/src
+# Copy dependency specifications# Copy only necessary files for dependency installation
+COPY ./src/shared/requirements.txt /app/requirements.txt
+COPY ./src/receiver/pyproject.toml /app/receiver-pyproject.toml
 COPY ./config /app/config
 
 
@@ -50,13 +51,20 @@ COPY --from=dependencies --chown=appuser:appuser /app /app
 ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH="/app/src" \
     CONFIG_PATH="/app/config/config_strategies.toml" \
-    DB_BASE_PATH="/app/data"
-
+    DB_BASE_PATH="/app/data" \
+    # Security-related environment variables
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s \
     CMD python -c "import sqlite3; conn = sqlite3.connect('/app/data/status.db'); conn.close()" || exit 1
 
-# Execute application
+    
+# Set working directory and switch to non-root user
 WORKDIR /app
+USER appuser
+
+# Execute application
 ENTRYPOINT ["python", "-m", "receiver.deribit.main"]
