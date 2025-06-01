@@ -164,20 +164,47 @@ async def trading_main() -> None:
             )
         )
         
-        # parsing config file
-        config_app = system_tools.get_config_tomli(file_toml)
+        # Load TOML configuration
+        try:
+            config_app = system_tools.get_config_tomli(config_path)
+            log.info(f"Successfully loaded configuration from {config_path}")
+            
+            redis_channels = config_app.get("redis_channels", [{}])[0]
+            redis_keys = config_app.get("redis_keys", [{}])[0]
+            strategy_config = config_app.get("strategies", [])
+            ws_config = config_app.get("ws", {})
+            
+        except Exception as e:
+            log.error(f"Failed to load configuration: {str(e)}")
+            # Fallback to default values
+            redis_channels = {}
+            redis_keys = {}
+            strategy_config = []
+            ws_config = {}
+        
+        sub_account_cached_channel = redis_channels.get("sub_account_cache_updating", "default_channel")
         
         print("config_app", config_app)
+        
+         # Get validated template
+        result_template = template.redis_message_template()
+        
+        # Process and convert data
+        initial_data_subaccount = starter.sub_account_combining(
+        sub_accounts=sub_accounts,
+        sub_account_cached_channel=sub_account_cached_channel,
+        result_template=result_template
+    )
         
         distributor_task = asyncio.create_task(
             distributing_ws_data.caching_distributing_data(
                 client_redis,
                 currencies,
-                {},  # Initial data placeholder
-                {},  # Redis channels placeholder
-                {},  # Redis keys placeholder
-                [],  # Strategy config placeholder
-                data_queue
+                initial_data_subaccount,
+                redis_channels,
+                redis_keys,
+                strategy_config,
+                data_queue,
             )
         )
         
