@@ -1,120 +1,99 @@
 """
 receiver/deribit/main.py
-Core application entry point with security enhancements
+Optimized core application entry point with enhanced maintenance handling
 """
 
 import os
 import asyncio
 import logging
-import time
 from asyncio import Queue
 
 # Third-party imports
 import uvloop
-from aiohttp import web
 
 # Application imports
-
 from shared.config.settings import (
+    REDIS_URL, REDIS_DB,
     DERIBIT_SUBACCOUNT, DERIBIT_CURRENCIES,
-    SECURITY_BLOCKED_SCANNERS, SECURITY_RATE_LIMIT, SECURITY_HEADERS
+    DERIBIT_MAINTENANCE_THRESHOLD, DERIBIT_HEARTBEAT_INTERVAL
 )
 from shared.db.redis import redis_client as global_redis_client
-from shared.security import security_middleware_factory
 from receiver.deribit import deribit_ws, distributing_ws_data, get_instrument_summary, starter
 from shared.utils import error_handling, system_tools, template
 from restful_api.deribit import end_point_params_template
-
-# Create security middleware with application settings
-security_middleware = security_middleware_factory({
-    "blocked_scanners": SECURITY_BLOCKED_SCANNERS,
-    "rate_limit": SECURITY_RATE_LIMIT,
-    "security_headers": SECURITY_HEADERS
-})
-
-# Create web application with security middleware
-app = web.Application(middlewares=[security_middleware])
-
-# State tracking for health checks
-app.connection_active = False
-app.maintenance_mode = False
-app.start_time = time.time()
 
 # Configure uvloop for better async performance
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 log = logging.getLogger(__name__)
 
-async def health_check(request: web.Request) -> web.Response:
-    """Secure health endpoint"""
-    status = "operational"
-    if app.maintenance_mode:
-        status = "maintenance"
-    elif not app.connection_active:
-        status = "disconnected"
-    
-    return web.json_response({
-        "status": status,
-        "service": "trading-app",
-        "uptime_seconds": int(time.time() - app.start_time)
-    })
+class ApplicationState:
+    """Centralized application state management"""
+    def __init__(self):
+        self.maintenance_mode = False
+        self.connection_active = False
+        self.last_successful_connection = 0
 
-app.router.add_get("/health", health_check)
-
-async def detailed_status(request: web.Request) -> web.Response:
-    """
-    Authenticated system status report
-    - Requires API key for access
-    - Provides detailed system metrics
-    """
-    # Validate API key configuration
-    status_api_key = os.getenv("STATUS_API_KEY")
-    if not status_api_key:
-        return web.Response(
-            status=500,
-            text="STATUS_API_KEY not configured in environment"
-        )
-    
-    # Validate API key for sensitive information
-    if request.headers.get("X-API-KEY") != status_api_key:
-        return web.Response(status=401, text="Unauthorized")
-    
-    return web.json_response({
-        "websocket_connected": app.connection_active,
-        "maintenance_mode": app.maintenance_mode,
-        "start_time": app.start_time,
-        "redis_url": os.getenv("REDIS_URL", "not_configured")[:15] + "..."  # Partial exposure
-    })
-
-app.router.add_get("/status", detailed_status)
+app_state = ApplicationState()
 
 async def setup_redis():
-    """Get Redis connection from global client"""
-    try:
-        pool = await global_redis_client.get_pool()
-        if await pool.ping():
-            log.info("Redis connection validated")
-            return pool
-    except Exception as e:
-        log.error(f"Redis connection failed: {str(e)}")
-    raise ConnectionError("Redis connection failed")
+    """Get Redis connection from global client with retry logic"""
+    max_retries = 3
+    retry_delay = 5
+    
+    for attempt in range(max_retries):
+        try:
+            pool = await global_redis_client.get_pool()
+            if await pool.ping():
+                log.info("Redis connection validated")
+                return pool
+        except Exception as e:
+            log.warning(f"Redis connection attempt {attempt + 1} failed: {str(e)}")
+            if attempt < max_retries - 1:
+                await asyncio.sleep(retry_delay)
+    
+    log.critical("All Redis connection attempts failed")
+    raise ConnectionError("Redis connection failed after retries")
+
+async def enter_maintenance_mode(reason: str):
+    """Handle transition to maintenance mode"""
+    log.critical(f"Entering maintenance mode: {reason}")
+    app_state.maintenance_mode = True
+    # Add any cleanup or notification logic here
+
+async def clear_queue(queue: Queue):
+    """Safely clear a queue"""
+    while not queue.empty():
+        try:
+            queue.get_nowait()
+            queue.task_done()
+        except asyncio.QueueEmpty:
+            break
+
+async def monitor_connection_health(stream):
+    """Continuously monitor connection health"""
+    while True:
+        app_state.connection_active = stream.connection_active
+        
+        # Check if we need to enter maintenance
+        if (not stream.connection_active and 
+            time.time() - stream.last_successful_connection > DERIBIT_MAINTENANCE_THRESHOLD):
+            await enter_maintenance_mode("Connection lost for too long")
+        
+        await asyncio.sleep(5)
 
 async def trading_main() -> None:
-    """Core trading workflow with enhanced error handling"""
+    """Core trading workflow with enhanced error handling and maintenance awareness"""
     log.info("Initializing trading system")
     
     try:
-        # Initialize Redis
+        # Initialize Redis with retry logic
         client_redis = await setup_redis()
     except ConnectionError:
-        log.critical("Failed to connect to Redis. Entering maintenance mode.")
-        app.maintenance_mode = True
-        while True:
-            await asyncio.sleep(60)
+        await enter_maintenance_mode("Redis connection failed")
         return
     
     # Configuration setup
     exchange = "deribit"
-    #"XRP",
     config_path = "/app/config/strategies.toml"
     
     try:
@@ -122,16 +101,12 @@ async def trading_main() -> None:
         client_id = os.getenv("DERIBIT_CLIENT_ID")
         client_secret = os.getenv("DERIBIT_CLIENT_SECRET")
         
-        #instantiate private connection
-        api_request: object = end_point_params_template.SendApiRequest(client_id,client_secret)
-
         if not client_id or not client_secret:
-            log.critical("Deribit credentials not configured in environment")
-            app.maintenance_mode = True  # Enter maintenance mode
-            while True:
-                # Keep application running but in maintenance state
-                await asyncio.sleep(60)
+            await enter_maintenance_mode("Deribit credentials not configured")
             return
+        
+        # Instantiate private connection
+        api_request = end_point_params_template.SendApiRequest(client_id, client_secret)
         
         # Extract configuration
         currencies = DERIBIT_CURRENCIES
@@ -142,22 +117,60 @@ async def trading_main() -> None:
             currencies, ["perpetual"]  # Default to perpetual contracts
         )
         
-        # Initialize components
-        data_queue = Queue(maxsize=1000)  # Backpressure control
+        # Initialize components with backpressure control
+        data_queue = Queue(maxsize=1000)
         
-        # Create connection manager
+        # Create connection manager with configurable parameters
         stream = deribit_ws.StreamingAccountData(
             sub_account_id=DERIBIT_SUBACCOUNT,
             client_id=client_id,
             client_secret=client_secret,
-            reconnect_base_delay=5,      # Default values
-            max_reconnect_delay=300,      # 5 minutes
-            maintenance_threshold=900,    # 15 minutes
-            websocket_timeout=900,        # 15 minutes
-            heartbeat_interval=30         # 30 seconds
+            reconnect_base_delay=5,
+            max_reconnect_delay=300,
+            maintenance_threshold=DERIBIT_MAINTENANCE_THRESHOLD,
+            websocket_timeout=900,
+            heartbeat_interval=DERIBIT_HEARTBEAT_INTERVAL
         )
         
-        # Create processing tasks
+        # Load TOML configuration
+        try:
+            config_app = system_tools.get_config_tomli(config_path)
+            log.info(f"Successfully loaded configuration from {config_path}")
+            
+            redis_channels = config_app.get("redis_channels", [{}])[0]
+            redis_keys = config_app.get("redis_keys", [{}])[0]
+            strategy_config = config_app.get("strategies", [])
+            ws_config = config_app.get("ws", {})
+            
+        except Exception as e:
+            log.error(f"Failed to load configuration: {str(e)}")
+            # Fallback to default values
+            redis_channels = {}
+            redis_keys = {}
+            strategy_config = []
+            ws_config = {}
+        
+        sub_account_cached_channel = redis_channels.get("sub_account_cache_updating", "default_channel")
+        
+        # Get subaccounts data
+        sub_accounts = []
+        for currency in currencies:
+            try:
+                account_data = await api_request.get_subaccounts_details(currency)
+                sub_accounts.append(account_data)
+            except Exception as e:
+                log.error(f"Failed to get subaccount details for {currency}: {str(e)}")
+                continue
+        
+        result_template = template.redis_message_template()
+        
+        initial_data_subaccount = starter.sub_account_combining(
+            sub_accounts,
+            sub_account_cached_channel,
+            result_template,
+        )
+        
+        # Create tasks
         producer_task = asyncio.create_task(
             stream.manage_connection(
                 client_redis,
@@ -168,89 +181,52 @@ async def trading_main() -> None:
             )
         )
         
-        # parsing config file
-
-        # Load TOML configuration
-        try:
-            config_app = system_tools.get_config_tomli(config_path)
-            log.info(f"Successfully loaded configuration from {config_path}")
-            
-            # Extract specific configuration sections
-            redis_channels = config_app.get("redis_channels", [{}])[0]
-            redis_keys = config_app.get("redis_keys", [{}])[0]
-            strategy_config = config_app.get("strategies", [])
-            ws_config = config_app.get("ws", {})
-            
-        except Exception as e:
-            log.error(f"Failed to load configuration: {str(e)}")
-            # Fallback to default values if config loading fails
-            redis_channels = {}
-            redis_keys = {}
-            strategy_config = []
-            ws_config = {}
-        
-        sub_account_cached_channel: str = redis_channels["sub_account_cache_updating"]
-        
-        # sub_account_combining        
-        sub_accounts = [await api_request.get_subaccounts_details(o) for o in currencies]
-        
-        
-        result_template = template.redis_message_template()
-        
-        
-        initial_data_subaccount = starter.sub_account_combining(
-            sub_accounts,
-            sub_account_cached_channel,
-            result_template,
-        )
-        print(initial_data_subaccount)
         distributor_task = asyncio.create_task(
             distributing_ws_data.caching_distributing_data(
                 client_redis,
                 currencies,
-                initial_data_subaccount,  # Initial data placeholder
-                redis_channels,  # Pass actual Redis channels config
-                redis_keys,       # Pass actual Redis keys config
-                strategy_config,  # Pass actual strategy config
+                initial_data_subaccount,
+                redis_channels,
+                redis_keys,
+                strategy_config,
                 data_queue
             )
         )
         
-        # State monitoring loop
+        # Start monitoring tasks
+        monitor_task = asyncio.create_task(monitor_connection_health(stream))
+        
+        # Main loop
         while True:
-            app.connection_active = stream.connection_active
-            app.maintenance_mode = stream.maintenance_mode
-            
-            # Clear queue during maintenance to prevent backpressure
-            if app.maintenance_mode and not data_queue.empty():
-                log.warning("Clearing queue during maintenance")
-                while not data_queue.empty():
-                    await data_queue.get()
-                    data_queue.task_done()
+            if app_state.maintenance_mode:
+                await clear_queue(data_queue)
+                await asyncio.sleep(60)  # Longer sleep in maintenance
+                continue
             
             await asyncio.sleep(5)
 
     except Exception as error:
         log.exception("Critical error in trading system")
-        app.maintenance_mode = True  # Enter maintenance mode on critical error
-        while True:
-            await asyncio.sleep(60)  # Keep process alive
+        await enter_maintenance_mode(f"Critical error: {str(error)}")
 
 async def run_services() -> None:
-    """Orchestrate concurrent service execution"""
+    """Orchestrate concurrent service execution without web components"""
     log.info("Starting service orchestration")
     
-    # Web server setup
-    runner = web.AppRunner(app)
-    await runner.setup()
-    
-    # Bind to localhost only for security
-    site = web.TCPSite(runner, "127.0.0.1", 8000)
-    await site.start()
-    log.info("Health check server running on 127.0.0.1:8000")
-    
-    # Start trading system
-    await trading_main()
+    try:
+        while True:
+            if app_state.maintenance_mode:
+                log.warning("Application in maintenance mode - waiting")
+                await asyncio.sleep(60)
+                continue
+                
+            await trading_main()
+            
+    except (KeyboardInterrupt, SystemExit):
+        log.info("Service shutdown requested")
+    except Exception as error:
+        log.exception("Unhandled error in service orchestration")
+        await enter_maintenance_mode("Unhandled error in service orchestration")
 
 if __name__ == "__main__":
     # Configure structured logging
@@ -263,8 +239,6 @@ if __name__ == "__main__":
     try:
         log.info("Starting application")
         asyncio.run(run_services())
-    except (KeyboardInterrupt, SystemExit):
-        log.info("Service shutdown requested")
     except Exception as error:
-        log.exception("Unhandled error in main")
+        log.exception("Fatal error during application startup")
         raise SystemExit(1)
