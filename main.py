@@ -167,7 +167,6 @@ async def trading_main() -> None:
         # Load TOML configuration
         try:
             config_app = system_tools.get_config_tomli(config_path)
-            print("config_app", config_app)
             log.info(f"Successfully loaded configuration from {config_path}")
             
             redis_channels = config_app.get("redis_channels", [{}])[0]
@@ -185,7 +184,7 @@ async def trading_main() -> None:
         
         sub_account_cached_channel = redis_channels.get("sub_account_cache_updating", "default_channel")
         
-        print("config_app", config_app)
+        log.info(sub_account_cached_channel)
         
          # Get validated template
         result_template = template.redis_message_template()
@@ -196,6 +195,8 @@ async def trading_main() -> None:
         sub_account_cached_channel=sub_account_cached_channel,
         result_template=result_template
     )
+        
+        log.info(initial_data_subaccount)
         
         distributor_task = asyncio.create_task(
             distributing_ws_data.caching_distributing_data(
