@@ -167,6 +167,7 @@ async def trading_main() -> None:
         # Load TOML configuration
         try:
             config_app = system_tools.get_config_tomli(config_path)
+            print("config_app", config_app)
             log.info(f"Successfully loaded configuration from {config_path}")
             
             redis_channels = config_app.get("redis_channels", [{}])[0]
