@@ -101,7 +101,7 @@ class DataDistributor:
                        redis_channels["sqlite_record_updating"]]:
             await pubsub.subscribe(channel)
 
-    async def _maintenance_monitor(self, pubsub: aioredis.PubSub, queue: asyncio.Queue) -> None:
+    async def _maintenance_monitor(self, pubsub: PubSub, queue: asyncio.Queue) -> None:
         """Handle maintenance mode events"""
         async for message in pubsub.listen():
             if message["type"] == "message":
