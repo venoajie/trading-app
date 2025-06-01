@@ -203,7 +203,7 @@ async def trading_main() -> None:
             sub_account_cached_channel,
             result_template,
         )
-        
+        print(initial_data_subaccount)
         distributor_task = asyncio.create_task(
             distributing_ws_data.caching_distributing_data(
                 client_redis,
