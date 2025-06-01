@@ -23,9 +23,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 FROM base AS dependencies
 WORKDIR /app
 
-# Copy dependency specifications# Copy only necessary files for dependency installation
-COPY ./src/shared/requirements.txt /app/requirements.txt
-COPY ./src/receiver/pyproject.toml /app/receiver-pyproject.toml
+# Copy dependency specifications
+COPY ./src /app/src
 COPY ./config /app/config
 
 
