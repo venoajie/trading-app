@@ -1,25 +1,53 @@
 """
 shared/config/settings.py
-Centralized application settings
+Configuration settings for the application, loading from environment variables and TOML files
 """
 
-from .loader import get_setting
+import os
+import tomllib
+from typing import Any, Dict
 
-# Redis settings
-REDIS_URL = get_setting("redis.url", "redis://localhost:6379")
-REDIS_DB = int(get_setting("redis.db", 0))
+def load_toml(file_path: str) -> Dict[str, Any]:
+    """Load TOML file directly"""
+    try:
+        with open(file_path, "rb") as f:
+            return tomllib.load(f)
+    except Exception:
+        return {}
 
-# Deribit settings
-DERIBIT_SUBACCOUNT = get_setting("deribit.subaccount", "deribit-148510")
-DERIBIT_CURRENCIES = get_setting("deribit.currencies", ["BTC", "ETH"])
+def get_config() -> Dict[str, Any]:
+    """Load configuration from environment and TOML"""
+    config = {}
+    
+    # Load from environment variables first
+    config.update({
+        "redis": {
+            "url": os.getenv("REDIS_URL", "redis://localhost:6379"),
+            "db": int(os.getenv("REDIS_DB", "0"))
+        },
+        "deribit": {
+            "subaccount": os.getenv("DERIBIT_SUBACCOUNT", "deribit-148510"),
+            "currencies": os.getenv("DERIBIT_CURRENCIES", "BTC,ETH").split(",")
+        }
+    })
+    
+    # Load from TOML if exists
+    try:
+        config_path = os.getenv("CONFIG_PATH", "/app/config/strategies.toml")
+        config.update(load_toml(config_path))
+    except Exception:
+        pass
+        
+    return config
 
-# Security settings
-SECURITY_BLOCKED_SCANNERS = get_setting("security.blocked_scanners", ["censysinspect"])
-SECURITY_RATE_LIMIT = int(get_setting("security.rate_limit", 100))
-SECURITY_HEADERS = {
-    "X-Frame-Options": get_setting("headers.X-Frame-Options", "DENY"),
-    "X-Content-Type-Options": get_setting("headers.X-Content-Type-Options", "nosniff"),
-    "Content-Security-Policy": get_setting("headers.Content-Security-Policy", "default-src 'self'"),
-    "Referrer-Policy": get_setting("headers.Referrer-Policy", "no-referrer"),
-    "Strict-Transport-Security": get_setting("headers.Strict-Transport-Security", "max-age=63072000; includeSubDomains")
-}
+# Direct configuration values
+CONFIG = get_config()
+
+# Runtime settings
+REDIS_URL = CONFIG["redis"]["url"]
+REDIS_DB = CONFIG["redis"]["db"]
+DERIBIT_SUBACCOUNT = CONFIG["deribit"]["subaccount"]
+DERIBIT_CURRENCIES = CONFIG["deribit"]["currencies"]
+# Maintenance Configuration
+DERIBIT_MAINTENANCE_THRESHOLD = 900  # 15 minutes (in seconds)
+DERIBIT_HEARTBEAT_INTERVAL = 30      # 30 seconds
