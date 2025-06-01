@@ -4,7 +4,13 @@ FROM python:3.13-slim AS base
 # Install system dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    libsqlite3-dev sqlite3 curl && \
+    libsqlite3-dev \
+    sqlite3 \
+    libssl-dev \
+    libsnappy-dev \
+    libz-dev \
+    curl && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Install UV and create virtual environment

@@ -1,14 +1,18 @@
-pydantic>=2.7
-numpy>=1.26
-python-dotenv>=1.0
-orjson>=3.9
-uvloop>=0.19
-aiohttp>=3.9
-oci>=2.125
-redis>=5.0
-websockets>=12.0
-loguru
-aiosqlite
-dotenv
-tomli
-dataclassy
+# shared/requirements.txt
+# SHARED CROSS-SERVICE DEPENDENCIES
+
+# Data Processing
+orjson>=3.9.10,<4.0.0    # Ultra-fast JSON
+
+# Essential infrastructure
+redis>=5.0.0,<6.0.0       # Match Redis server version
+aiosqlite>=0.20.0,<1.0.0  # Async SQLite
+
+# Async Framework
+aiohttp>=3.9.0,<4.0.0     # Async HTTP
+
+# Utilities
+python-dotenv>=1.0.0,<2.0.0  # Environment management
+loguru>=0.7.0,<1.0.0         # Structured logging
+dataclassy          # Enhanced dataclasses
+tomli         # TOML parsing
