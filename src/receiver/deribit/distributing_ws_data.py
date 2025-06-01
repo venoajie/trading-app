@@ -1,13 +1,12 @@
-# receiver/src/distributing_ws_data.py
-"""Data distribution service with maintenance awareness"""
+# Optimized distributing_ws_data.py
+"""Enhanced data distribution service with robust maintenance handling"""
 
 import asyncio
 import logging
 from typing import Dict, List, Any, Optional
 
 # Third-party imports
-from redis.asyncio import Redis
-from redis.asyncio.client import PubSub
+import redis.asyncio as aioredis
 
 # Application imports
 from shared.db import redis as redis_publish
@@ -35,7 +34,7 @@ class DataDistributor:
 
     async def caching_distributing_data(
         self,
-        client_redis: Redis,
+        client_redis: aioredis.Redis,
         currencies: List[str],
         initial_data_subaccount: Dict,
         redis_channels: Dict,
@@ -49,14 +48,53 @@ class DataDistributor:
             pubsub = client_redis.pubsub()
             await self._setup_subscriptions(pubsub, redis_channels)
             
-            # ... rest of your existing code ...
+            # Start maintenance handler
+            asyncio.create_task(self._maintenance_monitor(pubsub, queue_general))
             
+            # Prepare initial data
+            server_time = 0
+            portfolio = []
+            settlement_periods = self._get_settlement_period(strategy_attributes)
+            
+            futures_instruments = await get_instrument_summary.get_futures_instruments(
+                currencies, settlement_periods
+            )
+            instruments_name = futures_instruments["instruments_name"]
+            ticker_all_cached = await self._combining_ticker_data(instruments_name)
+            
+            # Initialize account data
+            sub_account_data = initial_data_subaccount["params"]["data"]
+            orders_cached = sub_account_data["orders_cached"]
+            positions_cached = sub_account_data["positions_cached"]
+            query_trades = "SELECT * FROM v_trading_all_active"
+            result_template = template.redis_message_template()
+
+            # Main processing loop
+            while True:
+                if self._maintenance_mode:
+                    await asyncio.sleep(1)
+                    continue
+                    
+                message_params = await queue_general.get()
+                await self._process_message(
+                    client_redis,
+                    message_params,
+                    redis_channels,
+                    orders_cached,
+                    positions_cached,
+                    query_trades,
+                    result_template,
+                    ticker_all_cached,
+                    server_time,
+                    portfolio
+                )
+
         except Exception as error:
             await error_handling.parse_error_message_with_redis(client_redis, error)
             raise
 
-    async def _setup_subscriptions(self, pubsub: PubSub, redis_channels: Dict) -> None:
-        """Handle subscriptions with proper typing"""
+    async def _setup_subscriptions(self, pubsub: aioredis.PubSub, redis_channels: Dict) -> None:
+        """Subscribe to necessary Redis channels"""
         await pubsub.subscribe("system_status")
         for channel in [redis_channels["order_cache_updating"], 
                        redis_channels["sqlite_record_updating"]]:
