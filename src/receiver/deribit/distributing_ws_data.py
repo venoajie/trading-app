@@ -131,6 +131,8 @@ async def caching_distributing_data(
                     message_channel: str = message_params["channel"]
                     currency: str = str_mod.extract_currency_from_text(message_channel)
                     currency_upper = currency.upper()
+                    
+                    print(data)
 
                     pub_message = {
                         "data": data,
