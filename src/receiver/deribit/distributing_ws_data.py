@@ -302,6 +302,7 @@ async def handle_incremental_ticker(
     # Handle perpetual instruments
     if "PERPETUAL" in instrument_name_future:
         try:
+            print(f"data: {data}")
             await allocating_ohlc.inserting_open_interest(
                 currency,
                 "tick",
