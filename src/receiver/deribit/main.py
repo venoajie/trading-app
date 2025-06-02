@@ -1,6 +1,7 @@
 """Optimized core application entry point with enhanced maintenance handling"""
 import os
 import asyncio
+from asyncio import Queue
 import logging
 from loguru import logger as log
 
