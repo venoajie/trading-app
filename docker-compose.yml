@@ -20,6 +20,11 @@ services:
       - config/.env
     environment:
       - DB_BASE_PATH=/app/data
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
     volumes:
       - ./config:/app/config:ro
       - ./data:/app/data:rw  # Single volume mapping
