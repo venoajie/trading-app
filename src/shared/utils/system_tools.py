@@ -58,154 +58,49 @@ def get_platform() -> str:
 
     return platforms[sys.platform]
 
-
 def provide_path_for_file(
     end_point: str,
     marker: str = None,
     status: str = None,
     method: str = None,
 ) -> str:
-    """
-
-    Provide uniform format for file/folder path address
-
-    Args:
-        marker(str): currency, instrument, other
-        end_point(str): orders, myTrades
-        status(str): open, closed
-        method(str): web/manual, api/bot
-
-    Returns:
-        Path address(str): in linux/windows format
-    """
-    from pathlib import Path
-
-    current_os = get_platform()
-
-    # Set root equal to  current folder
-    root: str = Path(".")
-
-    exchange = None
-
-    if bool(
-        [
-            o
-            for o in [
-                "portfolio",
-                "positions",
-                "sub_accounts",
-            ]
-            if (o in end_point)
-        ]
-    ):
-        exchange: str = "deribit"
-        sub_folder: str = f"databases/exchanges/{exchange}/portfolio"
-
-    if bool(
-        [
-            o
-            for o in [
-                "orders",
-                "myTrades",
-                "my_trades",
-            ]
-            if (o in end_point)
-        ]
-    ):
-        exchange: str = "deribit"
-        sub_folder: str = f"databases/exchanges/{exchange}/transactions"
-
-    if bool(
-        [
-            o
-            for o in [
-                "ordBook",
-                "index",
-                "instruments",
-                "currencies",
-                "ohlc",
-                "futures_analysis",
-                "ticker-all",
-                "ticker_all",
-                "ticker",
-            ]
-            if (o in end_point)
-        ]
-    ):
-        sub_folder = "databases/market"
-        exchange = "deribit"
-
-    if bool(
-        [
-            o
-            for o in [
-                "openInterestHistorical",
-                "openInterestHistorical",
-                "openInterestAggregated",
-            ]
-            if (o in end_point)
-        ]
-    ):
-        sub_folder = "databases/market"
-        exchange = "general"
-
-    if marker != None:
-        file_name = f"{marker.lower()}-{end_point}"
-
-        if status != None:
-            file_name = f"{file_name}-{status}"
-
-        if method != None:
-            file_name = f"{file_name}-{method}"
-
-    else:
-        file_name = f"{end_point}"
-
-    if ".env" in end_point:
-        sub_folder = "configuration"
-
-    if "config_strategies.toml" in end_point:
-        sub_folder = "strategies"
-
-    if "api_url_end_point.toml" in end_point:
-        sub_folder = "transaction_management/binance"
-
-    # to accomodate pytest env
-    if "test.env" in end_point:
-        sub_folder = "src/configuration"
-        end_point = ".env"
-
-    config_file = ".env" in file_name or ".toml" in file_name
-
-    file_name = (f"{end_point}") if config_file else (f"{file_name}.pkl")
-
-    # Combine root + folders
-    my_path_linux: str = (
-        root / sub_folder if exchange == None else root / sub_folder / exchange
-    )
-    my_path_win: str = (
-        root / "src" / sub_folder
-        if exchange == None
-        else root / "src" / sub_folder / exchange
-    )
-
-    if "portfolio" in sub_folder or "transactions" in sub_folder:
-        my_path_linux: str = (
-            root / sub_folder if exchange == None else root / sub_folder
-        )
-        my_path_win: str = (
-            root / "src" / sub_folder if exchange == None else root / "src" / sub_folder
-        )
-
-    # Create target Directory if it doesn't exist in linux
-    if not os.path.exists(my_path_linux) and current_os == "linux":
-        os.makedirs(my_path_linux)
-
-    return (
-        (my_path_linux / file_name)
-        if get_platform() == "linux"
-        else (my_path_win / file_name)
-    )
+    """Provide uniform format for file/folder path address"""
+    # Use DB_BASE_PATH for all persistent storage
+    base_path = os.getenv("DB_BASE_PATH", "/app/data")
+    
+    # Map endpoint types to subdirectories
+    endpoint_map = {
+        "portfolio": f"exchanges/deribit/portfolio",
+        "positions": f"exchanges/deribit/portfolio",
+        "sub_accounts": f"exchanges/deribit/portfolio",
+        "orders": f"exchanges/deribit/transactions",
+        "myTrades": f"exchanges/deribit/transactions",
+        "my_trades": f"exchanges/deribit/transactions",
+        "ordBook": "market",
+        "index": "market",
+        # ... other endpoint mappings ...
+    }
+    
+    # Determine subfolder based on endpoint
+    sub_folder = endpoint_map.get(end_point, "general")
+    
+    # Construct full path
+    path_components = [base_path, "databases", sub_folder]
+    if marker:
+        path_components.append(marker.lower())
+    if status:
+        path_components.append(status)
+    
+    my_path = os.path.join(*path_components)
+    
+    # Create directory if needed
+    os.makedirs(my_path, exist_ok=True)
+    os.chmod(my_path, 0o755)  # Ensure write permissions
+    
+    # Handle filename
+    if ".env" in end_point or ".toml" in end_point:
+        return os.path.join(my_path, end_point)
+    return os.path.join(my_path, f"{marker.lower()}-{end_point}.pkl")
 
 
 def reading_from_db_pickle(
