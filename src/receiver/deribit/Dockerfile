@@ -35,10 +35,10 @@ RUN . /opt/venv/bin/activate && \
 COPY ./src /app/src
 COPY ./config /app/config
 
-# Install application-specific dependencies
+# Install application from source directory
 RUN . /opt/venv/bin/activate && \
-    uv pip install --no-cache /app/src/receiver/pyproject.toml
-    
+    uv pip install --no-cache -e /app/src/receiver
+
 # Stage 3: Final production image
 FROM base AS production
 
