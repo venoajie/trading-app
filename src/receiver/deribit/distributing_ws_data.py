@@ -18,7 +18,6 @@ from shared.utils import caching, error_handling, pickling, string_modification 
 # Configure logger
 log = logging.getLogger(__name__)
 
-# 1. Move combining_ticker_data to top level
 async def combining_ticker_data(instruments_name: List) -> List:
     """Combine ticker data from cache or API"""
     result = []
@@ -39,19 +38,6 @@ def reading_from_pkl_data(
     """Read pickled data from file system"""
     path: str = system_tools.provide_path_for_file(end_point, currency, status)
     return pickling.read_data(path)  
-
-# 2. Add maintenance handler
-async def maintenance_handler(queue_general: asyncio.Queue) -> None:
-    """Handle maintenance mode operations"""
-    while True:
-        try:
-            # Clear queue to prevent backpressure
-            while not queue_general.empty():
-                queue_general.get_nowait()
-                queue_general.task_done()
-            await asyncio.sleep(1)
-        except asyncio.QueueEmpty:
-            await asyncio.sleep(0.1)
 
 async def caching_distributing_data(
     client_redis: aioredis.Redis,
@@ -87,15 +73,6 @@ async def caching_distributing_data(
                 await error_handling.parse_error_message_with_redis(client_redis, e)
                 
         state_task = asyncio.create_task(state_listener())
-        maintenance_task = asyncio.create_task(maintenance_handler(queue_general))
-
-        # Prepare Redis channels
-        channels = [
-            redis_channels["order_cache_updating"],
-            redis_channels["sqlite_record_updating"]
-        ]
-        for channel in channels:
-            await pubsub.subscribe(channel)
 
         settlement_periods = [
             attr["settlement_period"] 
@@ -109,7 +86,6 @@ async def caching_distributing_data(
             currencies, settlement_periods
         )
         instruments_name = futures_instruments["instruments_name"]
-        # 3. Now combining_ticker_data is defined
         ticker_all_cached = await combining_ticker_data(instruments_name)
 
         # Initialize account data
@@ -125,6 +101,12 @@ async def caching_distributing_data(
 
         while True:
             if maintenance_active.is_set():
+                # Clear queue to prevent backpressure during maintenance
+                while not queue_general.empty():
+                    try:
+                        queue_general.get_nowait()
+                    except asyncio.QueueEmpty:
+                        break
                 await asyncio.sleep(0.1)
                 continue
 
@@ -189,7 +171,14 @@ async def caching_distributing_data(
 
     except Exception as error:
         await error_handling.parse_error_message_with_redis(client_redis, error)
-
+    finally:
+        # Clean up state listener
+        state_task.cancel()
+        try:
+            await state_task
+        except asyncio.CancelledError:
+            log.info("State listener task cancelled")
+            
 # 4. Keep other functions below
 async def handle_user_message(
     message_channel: str,
