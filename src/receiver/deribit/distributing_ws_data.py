@@ -309,7 +309,7 @@ async def handle_incremental_ticker(
                 data,
             )
         except Exception as e:
-            log.error(f"Error inserting open interest: {str(e)}")
+            error_handling.parse_error_message(e)
 
 async def handle_chart_trades(
     pipe: aioredis.Redis,
