@@ -17,7 +17,7 @@ from shared.utils import caching, error_handling, pickling, string_modification 
 
 # Configure logger
 log = logging.getLogger(__name__)
-
+from loguru import logger as log
 async def combining_ticker_data(instruments_name: List) -> List:
     """Combine ticker data from cache or API with error handling"""
     result = []
@@ -125,6 +125,7 @@ async def caching_distributing_data(
                 continue
 
             message_params: Dict = await queue_general.get()
+            log.error(f"Received message: {message_params}")
             async with client_redis.pipeline() as pipe:
                 try:
                     data: Dict = message_params["data"]
@@ -132,7 +133,7 @@ async def caching_distributing_data(
                     currency: str = str_mod.extract_currency_from_text(message_channel)
                     currency_upper = currency.upper()
                     
-                    print(data)
+                    log.debug(data)
 
                     pub_message = {
                         "data": data,
