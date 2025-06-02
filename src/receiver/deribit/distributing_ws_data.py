@@ -18,18 +18,18 @@ from shared.utils import caching, error_handling, pickling, string_modification 
 # Configure logger
 log = logging.getLogger(__name__)
 
-# 1. Add missing maintenance handler
-async def maintenance_handler(queue_general: asyncio.Queue) -> None:
-    """Handle maintenance mode operations"""
-    while True:
-        try:
-            # Clear queue to prevent backpressure
-            while not queue_general.empty():
-                queue_general.get_nowait()
-                queue_general.task_done()
-            await asyncio.sleep(1)  # Prevent tight loop
-        except asyncio.QueueEmpty:
-            await asyncio.sleep(0.1)
+# 1. Move combining_ticker_data to top level
+async def combining_ticker_data(instruments_name: List) -> List:
+    """Combine ticker data from cache or API"""
+    result = []
+    for instrument_name in instruments_name:
+        result_instrument = reading_from_pkl_data("ticker", instrument_name)
+        if result_instrument:
+            result_instrument = result_instrument[0]
+        else:
+            result_instrument = await end_point.get_ticker(instrument_name)
+        result.append(result_instrument)
+    return result
 
 def reading_from_pkl_data(
     end_point: str,
@@ -40,12 +40,25 @@ def reading_from_pkl_data(
     path: str = system_tools.provide_path_for_file(end_point, currency, status)
     return pickling.read_data(path)  
 
+# 2. Add maintenance handler
+async def maintenance_handler(queue_general: asyncio.Queue) -> None:
+    """Handle maintenance mode operations"""
+    while True:
+        try:
+            # Clear queue to prevent backpressure
+            while not queue_general.empty():
+                queue_general.get_nowait()
+                queue_general.task_done()
+            await asyncio.sleep(1)
+        except asyncio.QueueEmpty:
+            await asyncio.sleep(0.1)
+
 async def caching_distributing_data(
     client_redis: aioredis.Redis,
     currencies: List[str],
     initial_data_subaccount: Dict,
     redis_channels: Dict,
-    redis_keys: Dict,  # Keep for future use
+    redis_keys: Dict,
     strategy_attributes: List,
     queue_general: asyncio.Queue,
 ) -> None:
@@ -54,7 +67,6 @@ async def caching_distributing_data(
         pubsub = client_redis.pubsub()
         await pubsub.subscribe("system_status")
         
-        # 2. Fix maintenance handling
         maintenance_active = asyncio.Event()
         
         async def state_listener():
@@ -85,7 +97,6 @@ async def caching_distributing_data(
         for channel in channels:
             await pubsub.subscribe(channel)
 
-        # 3. Simplify settlement period extraction
         settlement_periods = [
             attr["settlement_period"] 
             for attr in strategy_attributes
@@ -98,6 +109,7 @@ async def caching_distributing_data(
             currencies, settlement_periods
         )
         instruments_name = futures_instruments["instruments_name"]
+        # 3. Now combining_ticker_data is defined
         ticker_all_cached = await combining_ticker_data(instruments_name)
 
         # Initialize account data
@@ -108,7 +120,6 @@ async def caching_distributing_data(
         query_trades = "SELECT * FROM v_trading_all_active"
         result_template = template.redis_message_template()
 
-        # 4. Create lock for shared resources
         portfolio_lock = asyncio.Lock()
         ticker_lock = asyncio.Lock()
 
@@ -127,7 +138,7 @@ async def caching_distributing_data(
 
                     pub_message = {
                         "data": data,
-                        "server_time": 0,  # Will be updated later
+                        "server_time": 0,
                         "currency_upper": currency_upper,
                         "currency": currency,
                     }
@@ -179,7 +190,7 @@ async def caching_distributing_data(
     except Exception as error:
         await error_handling.parse_error_message_with_redis(client_redis, error)
 
-# 5. Extract message handlers
+# 4. Keep other functions below
 async def handle_user_message(
     message_channel: str,
     data: Dict,
@@ -249,7 +260,6 @@ async def handle_incremental_ticker(
     ticker_lock: asyncio.Lock
 ) -> None:
     """Handle incremental ticker updates"""
-    # Update server time if available
     current_time = data.get("timestamp", 0)
     pub_message["server_time"] = current_time
     
@@ -258,16 +268,12 @@ async def handle_incremental_ticker(
         "currency_upper": currency.upper()
     })
 
-    # Update ticker cache with lock
     async with ticker_lock:
         for ticker in ticker_all_cached:
             if instrument_name_future == ticker["instrument_name"]:
-                # Update regular fields
                 for key in data:
                     if key not in ["stats", "instrument_name", "type"]:
                         ticker[key] = data[key]
-                
-                # Update stats fields
                 if "stats" in data:
                     for stat_key in data["stats"]:
                         ticker["stats"][stat_key] = data["stats"][stat_key]
@@ -279,7 +285,6 @@ async def handle_incremental_ticker(
     })
     await redis_publish.publishing_result(pipe, result_template)
 
-    # Handle perpetual instruments
     if "PERPETUAL" in instrument_name_future:
         await allocating_ohlc.inserting_open_interest(
             currency,
@@ -315,7 +320,6 @@ async def handle_chart_trades(
     })
     await redis_publish.publishing_result(pipe, result_template)
 
-# 6. Fix portfolio updating function
 async def updating_portfolio(
     pipe: aioredis.Redis,
     portfolio_channel: str,
@@ -329,7 +333,6 @@ async def updating_portfolio(
     })
     await redis_publish.publishing_result(pipe, result_template)
 
-# 7. Fix sub-account updating function
 async def updating_sub_account(
     pipe: aioredis.Redis,
     orders_cached: List,
@@ -341,17 +344,14 @@ async def updating_sub_account(
 ) -> None:
     """Update sub-account data in cache"""
     if subaccounts_details_result:
-        # Update orders cache
         open_orders = [o["open_orders"] for o in subaccounts_details_result if "open_orders" in o]
         if open_orders:
             caching.update_cached_orders(orders_cached, open_orders[0], "rest")
 
-        # Update positions cache
         positions = [o["positions"] for o in subaccounts_details_result if "positions" in o]
         if positions:
             caching.positions_updating_cached(positions_cached, positions[0], "rest")
 
-    # Update trades
     my_trades_active_all = await db_mgt.executing_query_with_return(query_trades)
     data = {
         "positions": positions_cached,
@@ -365,4 +365,41 @@ async def updating_sub_account(
     })
     await redis_publish.publishing_result(pipe, result_template)
 
-# ... keep other helper functions unchanged ...
+async def trades_in_message_channel(
+    pipe: aioredis.Redis,
+    data: List,
+    my_trade_receiving_channel: str,
+    orders_cached: List,
+    result_template: Dict,
+) -> None:
+    """Process trade messages and update cache"""
+    result_template["params"].update({"channel": my_trade_receiving_channel})
+    await redis_publish.publishing_result(pipe, result_template)
+
+    for trade in data:
+        log.info(f"Trade update: {trade}")
+        caching.update_cached_orders(orders_cached, trade)
+
+async def order_in_message_channel(
+    pipe: aioredis.Redis,
+    data: Dict,
+    order_update_channel: str,
+    orders_cached: List,
+    result_template: Dict,
+) -> None:
+    """Process order messages and update cache"""
+    currency: str = str_mod.extract_currency_from_text(data["instrument_name"])
+    caching.update_cached_orders(orders_cached, data)
+
+    order_data = {
+        "current_order": data,
+        "open_orders": orders_cached,
+        "currency": currency,
+        "currency_upper": currency.upper(),
+    }
+
+    result_template["params"].update({
+        "channel": order_update_channel,
+        "data": order_data
+    })
+    await redis_publish.publishing_result(pipe, result_template)
