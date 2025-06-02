@@ -22,9 +22,60 @@ from receiver.deribit import deribit_ws, distributing_ws_data, get_instrument_su
 from shared.utils import error_handling, system_tools, template
 from restful_api.deribit import end_point_params_template
 
+from shared.db.redis import redis_client as global_redis_client
+
+class ApplicationState:
+    def __init__(self):
+        self._maintenance_mode = False
+        self.connection_active = False
+        self.last_successful_connection = 0
+
+    @property
+    def maintenance_mode(self):
+        return self._maintenance_mode
+
+    @maintenance_mode.setter
+    def maintenance_mode(self, value):
+        """Update state and publish to Redis when changed"""
+        if self._maintenance_mode != value:
+            self._maintenance_mode = value
+            asyncio.create_task(self.publish_state())
+
+    async def publish_state(self):
+        """Publish state changes to Redis"""
+        redis = await global_redis_client.get_pool()
+        status = "maintenance" if self._maintenance_mode else "operational"
+        await redis.publish("system_status", status)
+
+app_state = ApplicationState()
+
 # Configure uvloop for better async performance
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 log = logging.getLogger(__name__)
+
+async def enter_maintenance_mode(reason: str):
+    """Handle transition to maintenance mode"""
+    log.critical(f"Entering maintenance mode: {reason}")
+    app_state.maintenance_mode = True
+
+async def exit_maintenance_mode():
+    """Handle transition out of maintenance mode"""
+    log.info("Exiting maintenance mode")
+    app_state.maintenance_mode = False
+
+async def monitor_system_alerts():
+    """Listen for system alerts from all components"""
+    redis = await global_redis_client.get_pool()
+    pubsub = redis.pubsub()
+    await pubsub.subscribe("system_alerts")
+    
+    async for message in pubsub.listen():
+        if message["type"] == "message":
+            alert = json.loads(message["data"])
+            if alert["event"] == "heartbeat_timeout":
+                await enter_maintenance_mode(alert["reason"])
+            elif alert["event"] == "heartbeat_resumed":
+                await exit_maintenance_mode()
 
 class ApplicationState:
     """Centralized application state management"""
@@ -88,6 +139,7 @@ async def trading_main() -> None:
     try:
         # Initialize Redis with retry logic
         client_redis = await setup_redis()
+        alert_monitor_task = asyncio.create_task(monitor_system_alerts())
     except ConnectionError:
         await enter_maintenance_mode("Redis connection failed")
         return
@@ -209,6 +261,9 @@ async def trading_main() -> None:
     except Exception as error:
         log.exception("Critical error in trading system")
         await enter_maintenance_mode(f"Critical error: {str(error)}")
+
+    finally:
+        alert_monitor_task.cancel() 
 
 async def run_services() -> None:
     """Orchestrate concurrent service execution without web components"""
