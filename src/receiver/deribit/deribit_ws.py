@@ -125,11 +125,14 @@ class StreamingAccountData:
             time_since_last = time.time() - self.last_message_time
             
             # Detect extended silence (possible maintenance)
-            if time_since_last > self.maintenance_threshold and not self.maintenance_mode:
-                log.warning("Exchange maintenance detected. Entering maintenance mode")
-                self.maintenance_mode = True
-                await client_redis.publish("system_status", "maintenance")
-            
+            if time_since_last > self.maintenance_threshold:
+                alert = {
+                    "component": "deribit_ws",
+                    "event": "heartbeat_timeout",
+                    "reason": f"No messages for {time_since_last:.0f} seconds"
+                }
+                await client_redis.publish("system_alerts", json.dumps(alert))
+                
             # Normal timeout handling
             elif time_since_last > self.websocket_timeout:  # Use instance variable
                 log.warning(f"No messages for {time_since_last:.0f} seconds. Reconnecting...")
@@ -149,28 +152,21 @@ class StreamingAccountData:
         log.info(f"Reconnecting attempt {self.reconnect_attempts} in {delay} seconds...")
         await asyncio.sleep(delay)
 
-    async def process_messages(
-        self, 
-        client_redis: Any, 
-        exchange: str, 
-        queue_general: asyncio.Queue
-    ) -> None:
-        """Process incoming messages with maintenance recovery"""
-        if not self.websocket_client:
-            log.error("WebSocket client not initialized")
-            return
-            
+    async def process_messages(self, client_redis, exchange, queue_general):
+        """Process incoming messages with state recovery"""
         async for message in self.websocket_client:
-            # Update last message time and check maintenance state
             current_time = time.time()
             time_since_last = current_time - self.last_message_time
             
-            # Exit maintenance mode if we receive data after long silence
-            if time_since_last >  self.maintenance_threshold  and self.maintenance_mode:
-                log.info("Exiting maintenance mode. Exchange is back online")
-                self.maintenance_mode = False
-                await client_redis.publish("system_status", "operational")
-            
+            # Detect recovery from silence
+            if time_since_last > self.maintenance_threshold:
+                alert = {
+                    "component": "deribit_ws",
+                    "event": "heartbeat_resumed",
+                    "reason": "Message flow restored"
+                }
+                await client_redis.publish("system_alerts", json.dumps(alert))
+                
             self.last_message_time = current_time
             
             try:

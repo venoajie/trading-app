@@ -10,6 +10,7 @@ from asyncio import Queue
 
 # Third-party imports
 import uvloop
+import orjson
 
 # Application imports
 from shared.config.settings import (
@@ -24,7 +25,9 @@ from restful_api.deribit import end_point_params_template
 
 from shared.db.redis import redis_client as global_redis_client
 
+
 class ApplicationState:
+    """Centralized state management with Redis synchronization"""
     def __init__(self):
         self._maintenance_mode = False
         self.connection_active = False
@@ -43,48 +46,49 @@ class ApplicationState:
 
     async def publish_state(self):
         """Publish state changes to Redis"""
-        redis = await global_redis_client.get_pool()
-        status = "maintenance" if self._maintenance_mode else "operational"
-        await redis.publish("system_status", status)
+        try:
+            redis = await global_redis_client.get_pool()
+            status = "maintenance" if self._maintenance_mode else "operational"
+            await redis.publish("system_status", status)
+            log.info(f"Published system status: {status}")
+        except Exception as e:
+            log.error(f"Failed to publish state: {str(e)}")
 
 app_state = ApplicationState()
-
-# Configure uvloop for better async performance
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-log = logging.getLogger(__name__)
 
 async def enter_maintenance_mode(reason: str):
     """Handle transition to maintenance mode"""
-    log.critical(f"Entering maintenance mode: {reason}")
-    app_state.maintenance_mode = True
+    if not app_state.maintenance_mode:
+        log.critical(f"Entering maintenance mode: {reason}")
+        app_state.maintenance_mode = True
 
 async def exit_maintenance_mode():
     """Handle transition out of maintenance mode"""
-    log.info("Exiting maintenance mode")
-    app_state.maintenance_mode = False
+    if app_state.maintenance_mode:
+        log.info("Exiting maintenance mode")
+        app_state.maintenance_mode = False
 
 async def monitor_system_alerts():
     """Listen for system alerts from all components"""
-    redis = await global_redis_client.get_pool()
-    pubsub = redis.pubsub()
-    await pubsub.subscribe("system_alerts")
-    
-    async for message in pubsub.listen():
-        if message["type"] == "message":
-            alert = json.loads(message["data"])
-            if alert["event"] == "heartbeat_timeout":
-                await enter_maintenance_mode(alert["reason"])
-            elif alert["event"] == "heartbeat_resumed":
-                await exit_maintenance_mode()
-
-class ApplicationState:
-    """Centralized application state management"""
-    def __init__(self):
-        self.maintenance_mode = False
-        self.connection_active = False
-        self.last_successful_connection = 0
-
-app_state = ApplicationState()
+    try:
+        redis = await global_redis_client.get_pool()
+        pubsub = redis.pubsub()
+        await pubsub.subscribe("system_alerts")
+        
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                try:
+                    alert = orjson.loads(message["data"])
+                    if alert["event"] == "heartbeat_timeout":
+                        await enter_maintenance_mode(alert["reason"])
+                    elif alert["event"] == "heartbeat_resumed":
+                        await exit_maintenance_mode()
+                except orjson.JSONDecodeError:
+                    log.error("Invalid alert format")
+    except Exception as e:
+        log.error(f"Alert monitoring failed: {str(e)}")
+        await enter_maintenance_mode("Alert system failure")
+        
 
 async def setup_redis():
     """Get Redis connection from global client with retry logic"""
@@ -105,12 +109,6 @@ async def setup_redis():
     log.critical("All Redis connection attempts failed")
     raise ConnectionError("Redis connection failed after retries")
 
-async def enter_maintenance_mode(reason: str):
-    """Handle transition to maintenance mode"""
-    log.critical(f"Entering maintenance mode: {reason}")
-    app_state.maintenance_mode = True
-    # Add any cleanup or notification logic here
-
 async def clear_queue(queue: Queue):
     """Safely clear a queue"""
     while not queue.empty():
@@ -120,17 +118,6 @@ async def clear_queue(queue: Queue):
         except asyncio.QueueEmpty:
             break
 
-async def monitor_connection_health(stream):
-    """Continuously monitor connection health"""
-    while True:
-        app_state.connection_active = stream.connection_active
-        
-        # Check if we need to enter maintenance
-        if (not stream.connection_active and 
-            time.time() - stream.last_successful_connection > DERIBIT_MAINTENANCE_THRESHOLD):
-            await enter_maintenance_mode("Connection lost for too long")
-        
-        await asyncio.sleep(5)
 
 async def trading_main() -> None:
     """Core trading workflow with enhanced error handling and maintenance awareness"""
@@ -246,24 +233,27 @@ async def trading_main() -> None:
             )
         )
         
-        # Start monitoring tasks
-        monitor_task = asyncio.create_task(monitor_connection_health(stream))
         
         # Main loop
         while True:
             if app_state.maintenance_mode:
                 await clear_queue(data_queue)
-                await asyncio.sleep(60)  # Longer sleep in maintenance
-                continue
-            
-            await asyncio.sleep(5)
-
+                await asyncio.sleep(60)
+            else:
+                await asyncio.sleep(5)
+                
     except Exception as error:
         log.exception("Critical error in trading system")
         await enter_maintenance_mode(f"Critical error: {str(error)}")
 
     finally:
-        alert_monitor_task.cancel() 
+
+        if 'alert_monitor_task' in locals():
+            alert_monitor_task.cancel()
+            try:
+                await alert_monitor_task
+            except asyncio.CancelledError:
+                log.info("Alert monitoring task cancelled")
 
 async def run_services() -> None:
     """Orchestrate concurrent service execution without web components"""

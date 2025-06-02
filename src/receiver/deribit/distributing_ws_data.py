@@ -42,18 +42,23 @@ async def caching_distributing_data(
         pubsub = client_redis.pubsub()
         await pubsub.subscribe("system_status")
         
-        async def maintenance_handler():
-            """Handles maintenance mode events"""
-            async for message in pubsub.listen():
-                if message["type"] == "message":
-                    status = message["data"]
-                    if status == "maintenance":
-                        log.warning("Entering maintenance handling mode")
-                        # Clear queue to prevent backpressure
-                        while not queue_general.empty():
-                            queue_general.get_nowait()
-                            queue_general.task_done()
-        
+    async def state_listener():
+        """React to centralized state changes"""
+        pubsub = client_redis.pubsub()
+    
+        await pubsub.subscribe("system_status")
+    
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                status = message["data"].decode()
+                if status == "maintenance":
+                    log.warning("System entering maintenance mode")
+                    # Clear queue to prevent backpressure
+                    while not queue_general.empty():
+                        queue_general.get_nowait()
+                        queue_general.task_done()
+    
+    
         # Start maintenance handler
         asyncio.create_task(maintenance_handler())
         
