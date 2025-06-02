@@ -7,7 +7,7 @@ import os
 import asyncio
 import logging
 from asyncio import Queue
-
+from loguru import logger as log
 # Third-party imports
 import uvloop
 import orjson
