@@ -169,6 +169,10 @@ async def trading_main() -> None:
             result_template,
         )
         
+        log.info(f"sub_account_cached_channel {sub_account_cached_channel}")
+        log.info(f"result_template {result_template}")
+        log.info(f"futures_instruments {futures_instruments}")
+        
         producer_task = asyncio.create_task(
             stream.manage_connection(
                 client_redis,
