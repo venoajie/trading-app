@@ -1,5 +1,5 @@
 # Stage 1: Base image with UV
-FROM python:3.11-slim as base
+FROM python:3.13-slim as base
 
 # Install UV and create virtual environment
 
@@ -10,6 +10,8 @@ ENV UV_LINK_MODE=copy \
 
 COPY --from=ghcr.io/astral-sh/uv:0.5.2 /uv /uvx /bin/
 
+# Create a venv with Pyton 3.12.6, installing Python along the way
+RUN uv venv --python 3.13 /venv
 
 # Stage 2: Dependency installation
 FROM base as builder
