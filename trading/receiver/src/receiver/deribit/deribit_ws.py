@@ -17,7 +17,7 @@ from dataclassy import dataclass
 from websockets import WebSocketClientProtocol
 
 # Application imports
-from restful_api.deribit import end_point_params_template
+from scripts.restful_api.deribit import end_point_params_template
 from shared.utils import error_handling, string_modification as str_mod
 from shared.config.settings import REDIS_URL, DERIBIT_CURRENCIES
 

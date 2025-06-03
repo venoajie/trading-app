@@ -15,8 +15,8 @@ from shared.db.sqlite import (
     querying_arithmetic_operator,
     update_status_data,
 )
-from restful_api.deribit import end_point_params_template as end_point
-from restful_api import connector
+from scripts.restful_api.deribit import end_point_params_template as end_point
+from scripts.restful_api import connector
 from shared.utils import error_handling, string_modification as str_mod
 
 
