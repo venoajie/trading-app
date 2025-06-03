@@ -1,0 +1,17 @@
+from setuptools import setup, find_packages
+
+setup(
+    name="shared",
+    version="1.0.0",
+    packages=find_packages(),
+    install_requires=[
+        "orjson>=3.9.10,<4.0.0",
+        "redis>=5.0.0,<6.0.0",
+        "aiohttp>=3.9.0,<4.0.0",
+        "aiosqlite>=0.20.0,<1.0.0",
+        "python-dotenv>=1.0.0,<2.0.0",
+        "loguru>=0.7.0,<1.0.0",
+        "dataclassy",
+        "tomli",
+    ]
+)
