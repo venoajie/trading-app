@@ -41,6 +41,9 @@ services:
     tmpfs:
       - /tmp
 
+  trading-data:
+    driver: local
+
 volumes:
   redis-data:
   trading-data: 
