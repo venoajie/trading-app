@@ -16,6 +16,7 @@ services:
   receiver:
     build:
       context: .
+      dockerfile: src/receiver/deribit/Dockerfile
     container_name: trading-app-receiver
     depends_on:
       redis:
