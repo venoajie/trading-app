@@ -2,7 +2,7 @@ FROM python:3.13-slim
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONPATH="/app/src" \
+    PYTHONPATH="/app/src:/app/src/shared:/app/src/receiver" \
     DB_BASE_PATH="/app/data"
 
 # Install system dependencies
@@ -18,10 +18,10 @@ COPY src/shared /app/src/shared
 COPY src/receiver /app/src/receiver
 COPY config /app/config
 
-# Install Python dependencies
+# Install Python dependencies directly from pyproject.toml
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -e ./src/shared && \
-    pip install --no-cache-dir -e ./src/receiver
+    pip install --no-cache-dir /app/src/shared && \
+    pip install --no-cache-dir /app/src/receiver
 
 # Create non-root user
 RUN useradd -u 1001 -m appuser && \
