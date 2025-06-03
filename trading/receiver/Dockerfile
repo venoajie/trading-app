@@ -15,8 +15,8 @@ RUN mkdir -p /app && chmod 775 /app
 WORKDIR /app
 
 # Copy only necessary files for dependency installation
-COPY trading/shared/pyproject.toml trading/shared/src/ /app/shared/
-COPY trading/receiver/pyproject.toml trading/receiver/src/ /app/receiver/
+COPY trading/shared/pyproject.toml trading/shared/shared/ /app/shared/
+COPY trading/receiver/pyproject.toml trading/receiver/receiver/ /app/receiver/
 COPY trading/scripts /app/scripts
 
 # Install Python dependencies using proper package structure
@@ -44,7 +44,7 @@ COPY --from=builder --chown=appuser:appuser /usr/local/bin /usr/local/bin
 # Copy application code
 COPY --chown=appuser:appuser config /app/config
 COPY --chown=appuser:appuser trading/scripts /app/scripts
-COPY --chown=appuser:appuser trading/receiver/src/deribit /app/receiver
+COPY --chown=appuser:appuser trading/receiver/receiver/deribit /app/receiver
 
 # Switch to non-root user
 USER appuser
