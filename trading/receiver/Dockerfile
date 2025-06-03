@@ -1,5 +1,5 @@
 # Stage 1: Base image with UV
-FROM python:3.13-slim as base
+FROM python:3.13-slim AS base
 
 # Install UV and create virtual environment
 
@@ -26,10 +26,10 @@ COPY trading/receiver/pyproject.toml trading/receiver/
 
 # Install dependencies with UV
 WORKDIR /app/trading/shared
-RUN uv pip install -e .
+RUN uv pip install --system . ...
 
 WORKDIR /app/trading/receiver
-RUN uv pip install -e .
+RUN uv pip install --system . ...
 
 # Stage 3: Runtime image
 FROM base as runtime
