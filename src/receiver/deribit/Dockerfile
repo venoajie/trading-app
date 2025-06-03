@@ -1,42 +1,59 @@
-# Stage 1: Base image
+# Stage 1: Base image with build dependencies
 FROM python:3.13-slim AS base
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    libsqlite3-0 libssl3 && \
+    build-essential libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Stage 2: Builder
+# Stage 2: Dependency installation
 FROM base AS builder
-RUN pip install --no-cache-dir uv==0.1.0 && \
-    uv venv /opt/venv
+WORKDIR /app
+
+# Create virtual environment
+RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Stage 3: Dependency installation
-FROM builder AS deps
+# Install build tools
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools
+
+# Copy only dependency files first for better caching
+COPY src/shared/pyproject.toml /app/src/shared/
+COPY src/receiver/pyproject.toml /app/src/receiver/
+COPY src/shared/ /app/src/shared
+COPY src/receiver/ /app/src/receiver
+
+# Install shared dependencies
+RUN pip install --no-cache-dir /app/src/shared
+
+# Install receiver dependencies
+RUN pip install --no-cache-dir /app/src/receiver
+
+# Stage 3: Production image
+FROM python:3.13-slim AS production
 WORKDIR /app
-COPY src /app/src
-COPY shared /app/shared
-RUN uv pip install --no-cache-dir /app/src/shared
 
-# Stage 4: Application build
-FROM deps AS app-builder
-COPY src /app/src
-COPY config /app/config
-RUN uv pip install --no-cache-dir /app/src/receiver
+# Copy virtual env from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Stage 5: Production image
-FROM base AS production
-COPY --from=app-builder /opt/venv /opt/venv
-COPY --from=app-builder /app /app
-ENV PATH="/opt/venv/bin:$PATH" \
-    PYTHONUNBUFFERED=1 \
+# Copy application code
+COPY src/ /app/src
+COPY config/ /app/config
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH="/app/src" \
     DB_BASE_PATH="/app/data"
 
 # Create app user and data directory
-RUN adduser --disabled-password --gecos "" appuser && \
+RUN useradd -m appuser && \
     mkdir -p /app/data && \
-    chown appuser:appuser /app/data
+    chown -R appuser:appuser /app
 
 USER appuser
+
+# Healthcheck for Redis dependency
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD python -c "import redis; r = redis.Redis(host='redis', port=6379); r.ping()"
+
 CMD ["python", "-u", "/app/src/receiver/deribit/main.py"]
