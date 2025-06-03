@@ -1,4 +1,3 @@
-# Use multi-stage build for smaller final image
 # Stage 1: Builder
 FROM python:3.13-slim AS builder
 
@@ -16,16 +15,14 @@ RUN mkdir -p /app && chmod 775 /app
 WORKDIR /app
 
 # Copy only necessary files for dependency installation
-COPY trading/shared/pyproject.toml /app/shared/
-COPY trading/shared/src /app/shared/src
-COPY trading/receiver/pyproject.toml /app/receiver/
-COPY trading/receiver/src /app/receiver/src
+COPY trading/shared/pyproject.toml trading/shared/src/ /app/shared/
+COPY trading/receiver/pyproject.toml trading/receiver/src/ /app/receiver/
 COPY trading/scripts /app/scripts
 
-# Install Python dependencies
+# Install Python dependencies using proper package structure
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir /app/shared && \
-    pip install --no-cache-dir /app/receiver
+    pip install --no-cache-dir -e /app/shared && \
+    pip install --no-cache-dir -e /app/receiver
 
 # Stage 2: Runtime
 FROM python:3.13-slim
@@ -33,8 +30,7 @@ FROM python:3.13-slim
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     DB_BASE_PATH="/app/data" \
-    PYTHONPATH="/app/scripts:/app/packages" \
-    PATH="/app/.local/bin:$PATH"
+    PYTHONPATH="/app/scripts:$PYTHONPATH"
 
 # Create app user and structure
 RUN useradd -u 1001 -m appuser && \
