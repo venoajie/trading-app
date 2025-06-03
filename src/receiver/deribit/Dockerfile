@@ -23,10 +23,12 @@ COPY src/shared/ /app/src/shared
 COPY src/receiver/ /app/src/receiver
 
 # Install shared dependencies
-RUN pip install --no-cache-dir /app/src/shared
+WORKDIR /app/src/shared
+RUN pip install --no-cache-dir .
 
 # Install receiver dependencies
-RUN pip install --no-cache-dir /app/src/receiver
+WORKDIR /app/src/receiver
+RUN pip install --no-cache-dir .
 
 # Stage 3: Production image
 FROM python:3.13-slim AS production
@@ -37,8 +39,8 @@ COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy application code
-COPY src/ /app/src
-COPY config/ /app/config
+COPY src /app/src
+COPY config /app/config
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -46,7 +48,7 @@ ENV PYTHONUNBUFFERED=1 \
     DB_BASE_PATH="/app/data"
 
 # Create app user and data directory
-RUN useradd -m appuser && \
+RUN useradd -u 1001 -m appuser && \
     mkdir -p /app/data && \
     chown -R appuser:appuser /app
 

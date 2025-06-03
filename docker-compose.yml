@@ -12,10 +12,10 @@ services:
     networks:
       - trading-network
 
+
   receiver:
     build:
       context: .
-      dockerfile: Dockerfile
     container_name: trading-app-receiver
     depends_on:
       redis:
@@ -27,13 +27,11 @@ services:
     volumes:
       - ./config:/app/config:ro
       - trading-data:/app/data
-    user: "1001:1001"  # Matches appuser in Dockerfile
-    
+
 volumes:
   redis-data:
   trading-data: 
-  
+
 networks:
   trading-network:
     driver: bridge
-    
