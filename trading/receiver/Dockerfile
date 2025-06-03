@@ -10,23 +10,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN mkdir -p /app && chmod 775 /app
 WORKDIR /app
 
-# Copy entire shared package with correct structure
-COPY trading/shared /app/shared
-RUN mv /app/shared/shared /app/shared_pkg && \
-    mv /app/shared /app/shared_src && \
-    mkdir -p /app/shared && \
-    mv /app/shared_src/pyproject.toml /app/shared/ && \
-    mv /app/shared_pkg /app/shared/shared
+# Copy only necessary files
+COPY trading/shared/pyproject.toml /app/shared/
+COPY trading/shared/shared /app/shared/shared
+COPY trading/receiver/pyproject.toml /app/receiver/
+COPY trading/receiver/receiver /app/receiver/receiver
 
-# Copy entire receiver package with correct structure
-COPY trading/receiver /app/receiver
-RUN mv /app/receiver/receiver /app/receiver_pkg && \
-    mv /app/receiver /app/receiver_src && \
-    mkdir -p /app/receiver && \
-    mv /app/receiver_src/pyproject.toml /app/receiver/ && \
-    mv /app/receiver_pkg /app/receiver/receiver
-
-# Install Python dependencies
+# Install using direct path to package source
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir /app/shared && \
     pip install --no-cache-dir /app/receiver
