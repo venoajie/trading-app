@@ -49,5 +49,6 @@ REDIS_DB = CONFIG["redis"]["db"]
 DERIBIT_SUBACCOUNT = CONFIG["deribit"]["subaccount"]
 DERIBIT_CURRENCIES = CONFIG["deribit"]["currencies"]
 # Maintenance Configuration
-DERIBIT_MAINTENANCE_THRESHOLD = 900  # 15 minutes (in seconds)
+DERIBIT_MAINTENANCE_THRESHOLD = 300  # 15 minutes (in seconds)
 DERIBIT_HEARTBEAT_INTERVAL = 30      # 30 seconds
+DB_BASE_PATH="/app/data"
