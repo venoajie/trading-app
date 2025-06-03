@@ -1,61 +1,31 @@
-# Stage 1: Base image with build dependencies
-FROM python:3.13-slim AS base
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    build-essential libssl-dev && \
-    rm -rf /var/lib/apt/lists/*
-
-# Stage 2: Dependency installation
-FROM base AS builder
-WORKDIR /app
-
-# Create virtual environment
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Install build tools
-RUN pip install --no-cache-dir --upgrade pip wheel setuptools
-
-# Copy only dependency files first for better caching
-COPY src/shared/setup.py /app/src/shared/
-COPY src/receiver/setup.py /app/src/receiver/
-COPY src/shared/ /app/src/shared
-COPY src/receiver/ /app/src/receiver
-
-# Install shared dependencies
-WORKDIR /app/src/shared
-RUN pip install --no-cache-dir -e .
-
-# Install receiver dependencies
-WORKDIR /app/src/receiver
-RUN pip install --no-cache-dir -e .
-
-# Stage 3: Production image
-FROM python:3.13-slim AS production
-WORKDIR /app
-
-# Copy virtual env from builder
-COPY --from=builder /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Copy application code
-COPY src /app/src
-COPY config /app/config
+FROM python:3.13-slim
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH="/app/src" \
     DB_BASE_PATH="/app/data"
 
-# Create app user and data directory
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create app structure
+RUN mkdir -p /app/src && chmod 775 /app
+WORKDIR /app
+
+# Copy only necessary files
+COPY src/shared /app/src/shared
+COPY src/receiver /app/src/receiver
+COPY config /app/config
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -e ./src/shared && \
+    pip install --no-cache-dir -e ./src/receiver
+
+# Create non-root user
 RUN useradd -u 1001 -m appuser && \
-    mkdir -p /app/data && \
     chown -R appuser:appuser /app
-
 USER appuser
-
-# Healthcheck for Redis dependency
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD python -c "import redis; r = redis.Redis(host='redis', port=6379); r.ping()"
 
 CMD ["python", "-u", "/app/src/receiver/deribit/main.py"]
