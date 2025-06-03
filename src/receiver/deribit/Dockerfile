@@ -15,7 +15,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 FROM builder AS deps
 WORKDIR /app
 COPY src/shared/requirements.txt .
-RUN uv pip install --no-cache-dir -e requirements.txt
+RUN uv pip install -r requirements.txt
 
 # Stage 4: Application build
 FROM deps AS app-builder
