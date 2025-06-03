@@ -1,5 +1,46 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redis-data:/data
+    networks:
+      - trading-network
+
+
+  receiver:
+    build:
+      context: .
+      dockerfile: src/receiver/deribit/Dockerfile
+    container_name: trading-app-receiver
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - trading-network
+    environment:
+      - DB_BASE_PATH=/app/data
+    volumes:
+      - ./config:/app/config:ro
+      - trading-data:/app/data
+
 deploy:
   resources:
     limits:
       cpus: '0.50'
       memory: 512M
+      
+volumes:
+  redis-data:
+  trading-data: 
+
+networks:
+  trading-network:
+    driver: bridge
+
+    
