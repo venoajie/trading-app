@@ -1,55 +1,45 @@
-# Stage 1: Builder
-FROM python:3.13-slim AS builder
+# Stage 1: Base image with UV
+FROM python:3.11-slim as base
+
+# Install UV and create virtual environment
+RUN pip install --no-cache-dir uv \
+    && python -m uv venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Stage 2: Dependency installation
+FROM base as builder
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential
 
-# Create app structure
-RUN mkdir -p /app && chmod 775 /app
+# Copy only dependency files first
 WORKDIR /app
+COPY trading/shared/pyproject.toml trading/shared/
+COPY trading/receiver/pyproject.toml trading/receiver/
 
-# Copy only necessary files
-COPY trading/shared/pyproject.toml /app/shared/
-COPY trading/shared/shared /app/shared/shared
-COPY trading/receiver/pyproject.toml /app/receiver/
-COPY trading/receiver/receiver /app/receiver/receiver
+# Install dependencies with UV
+WORKDIR /app/trading/shared
+RUN uv pip install -e .
 
-# Install using direct path to package source
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir /app/shared && \
-    pip install --no-cache-dir /app/receiver
+WORKDIR /app/trading/receiver
+RUN uv pip install -e .
 
-# Stage 2: Runtime
-FROM python:3.13-slim
+# Stage 3: Runtime image
+FROM base as runtime
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1 \
-    DB_BASE_PATH="/app/data" \
-    PYTHONPATH="/app/scripts:$PYTHONPATH"
-
-# Create app user and structure
-RUN useradd -u 1001 -m appuser && \
-    mkdir -p /app/data /app/config /app/scripts && \
-    chown -R appuser:appuser /app && \
-    chmod 775 /app /app/data
-
-# Copy installed packages from builder
-COPY --from=builder --chown=appuser:appuser /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
-COPY --from=builder --chown=appuser:appuser /usr/local/bin /usr/local/bin
+# Copy virtual environment
+COPY --from=builder /opt/venv /opt/venv
 
 # Copy application code
-COPY --chown=appuser:appuser config /app/config
-COPY --chown=appuser:appuser trading/scripts /app/scripts
-
-# Switch to non-root user
-USER appuser
 WORKDIR /app
+COPY . .
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s \
-    CMD python -c "import socket; socket.create_connection(('localhost', 8000), timeout=2)" || exit 1
+# Set up data directory
+RUN mkdir -p /app/data && chmod 775 /app/data
 
-# Run the application
-CMD ["python", "-m", "receiver.deribit.main"]
+# Environment variables
+ENV DB_BASE_PATH=/app/data \
+    PYTHONPATH=/app:$PYTHONPATH
+
+# Run receiver service
+CMD ["python", "trading/receiver/receiver/deribit/main.py"]

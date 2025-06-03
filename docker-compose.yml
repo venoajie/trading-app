@@ -1,58 +1,25 @@
+
 services:
   redis:
     image: redis:7-alpine
-    container_name: redis
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    ports:
+      - "6379:6379"
     volumes:
       - redis-data:/data
-    networks:
-      - trading-network
 
   receiver:
     build:
       context: .
-      dockerfile: trading/receiver/Dockerfile  # Fixed path
-    container_name: trading-app-receiver
-    depends_on:
-      redis:
-        condition: service_healthy
-    networks:
-      - trading-network
+      dockerfile: trading/receiver/Dockerfile
     environment:
-      - DB_BASE_PATH=/app/data
+      - REDIS_URL=redis://redis:6379
+      - DERIBIT_CLIENT_ID=${DERIBIT_CLIENT_ID}
+      - DERIBIT_CLIENT_SECRET=${DERIBIT_CLIENT_SECRET}
     volumes:
-      - ./config:/app/config:ro
-      - trading-data:/app/data
-    # Add resource limits
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-
-  # Add processor service
-  processor:
-    build:
-      context: .
-      dockerfile: trading/processor/Dockerfile
-    container_name: trading-app-processor
+      - ./data:/app/data
     depends_on:
       - redis
-    networks:
-      - trading-network
-    environment:
-      - DB_BASE_PATH=/app/data
-    volumes:
-      - trading-data:/app/data
+    restart: unless-stopped
 
 volumes:
   redis-data:
-  trading-data:
-
-networks:
-  trading-network:
-    driver: bridge
