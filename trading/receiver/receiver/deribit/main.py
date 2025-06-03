@@ -10,14 +10,14 @@ import uvloop
 import orjson
 
 # Application imports
-from shared.config.settings import (
+from trading.shared.config.settings import (
     REDIS_URL, REDIS_DB,
     DERIBIT_SUBACCOUNT, DERIBIT_CURRENCIES,
     DERIBIT_MAINTENANCE_THRESHOLD, DERIBIT_HEARTBEAT_INTERVAL
 )
-from shared.db.redis import redis_client as global_redis_client
+from trading.shared.db.redis import redis_client as global_redis_client
 from receiver.deribit import deribit_ws, distributing_ws_data, get_instrument_summary, starter
-from shared.utils import error_handling, system_tools, template
+from trading.shared.utils import error_handling, system_tools, template
 from restful_api.deribit import end_point_params_template
 
 # Ensure data directory exists with correct permissions
