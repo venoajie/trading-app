@@ -14,8 +14,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Stage 3: Dependency installation
 FROM builder AS deps
 WORKDIR /app
-COPY src/shared/requirements.txt .
-RUN uv pip install --no-cache-dir -r requirements.txt
+COPY shared /app/shared
+RUN uv pip install --no-cache-dir /app/src/shared
 
 # Stage 4: Application build
 FROM deps AS app-builder
