@@ -21,15 +21,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
 
 # Copy only dependency files first
 WORKDIR /app
-COPY trading/shared/pyproject.toml ./
-COPY trading/receiver/pyproject.toml ./
+COPY trading/shared/pyproject.toml trading/shared/
+COPY trading/receiver/pyproject.toml trading/receiver/
 
 # Install dependencies with UV
-WORKDIR /app/trading/shared
-RUN uv pip install --system . ...
-
-WORKDIR /app/trading/receiver
-RUN uv pip install --system . ...
+RUN --mount=type=cache,target=/root/.cache/uv \
+  uv sync --frozen --no-install-project --no-dev
+COPY . /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+  uv sync --frozen --no-dev
 
 # Stage 3: Runtime image
 FROM base as runtime
