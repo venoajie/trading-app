@@ -48,6 +48,11 @@ services:
       device: ${PWD}/data  # Use absolute path
       o: bind,uid=1001,gid=1001,rw
 
+volumes:
+  redis-data:
+  trading-data: 
+  
 networks:
   trading-network:
     driver: bridge
+    
