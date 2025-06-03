@@ -17,18 +17,18 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir --upgrade pip wheel setuptools
 
 # Copy only dependency files first for better caching
-COPY src/shared/pyproject.toml /app/src/shared/
-COPY src/receiver/pyproject.toml /app/src/receiver/
+COPY src/shared/setup.py /app/src/shared/
+COPY src/receiver/setup.py /app/src/receiver/
 COPY src/shared/ /app/src/shared
 COPY src/receiver/ /app/src/receiver
 
 # Install shared dependencies
 WORKDIR /app/src/shared
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir -e .
 
 # Install receiver dependencies
 WORKDIR /app/src/receiver
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir -e .
 
 # Stage 3: Production image
 FROM python:3.13-slim AS production
