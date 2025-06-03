@@ -10,9 +10,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN mkdir -p /app && chmod 775 /app
 WORKDIR /app
 
-# Copy dependency files first for caching
-COPY trading/shared/pyproject.toml /app/shared/
-COPY trading/receiver/pyproject.toml /app/receiver/
+# Copy entire shared package with correct structure
+COPY trading/shared /app/shared
+RUN mv /app/shared/shared /app/shared_pkg && \
+    mv /app/shared /app/shared_src && \
+    mkdir -p /app/shared && \
+    mv /app/shared_src/pyproject.toml /app/shared/ && \
+    mv /app/shared_pkg /app/shared/shared
+
+# Copy entire receiver package with correct structure
+COPY trading/receiver /app/receiver
+RUN mv /app/receiver/receiver /app/receiver_pkg && \
+    mv /app/receiver /app/receiver_src && \
+    mkdir -p /app/receiver && \
+    mv /app/receiver_src/pyproject.toml /app/receiver/ && \
+    mv /app/receiver_pkg /app/receiver/receiver
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
@@ -40,15 +52,14 @@ COPY --from=builder --chown=appuser:appuser /usr/local/bin /usr/local/bin
 # Copy application code
 COPY --chown=appuser:appuser config /app/config
 COPY --chown=appuser:appuser trading/scripts /app/scripts
-COPY --chown=appuser:appuser trading/receiver/receiver /app/receiver
 
 # Switch to non-root user
 USER appuser
-WORKDIR /app/receiver
+WORKDIR /app
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s \
     CMD python -c "import socket; socket.create_connection(('localhost', 8000), timeout=2)" || exit 1
 
 # Run the application
-CMD ["python", "-m", "deribit.main"]
+CMD ["python", "-m", "receiver.deribit.main"]
