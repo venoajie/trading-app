@@ -1,6 +1,3 @@
-
-    
-    
 services:
   redis:
     image: redis:7-alpine
@@ -18,7 +15,7 @@ services:
   receiver:
     build:
       context: .
-      dockerfile: trading/receiver/receiver/deribit/Dockerfile
+      dockerfile: trading/receiver/Dockerfile  # Fixed path
     container_name: trading-app-receiver
     depends_on:
       redis:
@@ -29,6 +26,27 @@ services:
       - DB_BASE_PATH=/app/data
     volumes:
       - ./config:/app/config:ro
+      - trading-data:/app/data
+    # Add resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
+  # Add processor service
+  processor:
+    build:
+      context: .
+      dockerfile: trading/processor/Dockerfile
+    container_name: trading-app-processor
+    depends_on:
+      - redis
+    networks:
+      - trading-network
+    environment:
+      - DB_BASE_PATH=/app/data
+    volumes:
       - trading-data:/app/data
 
 volumes:
