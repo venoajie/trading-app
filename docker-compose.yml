@@ -1,4 +1,6 @@
 
+    
+    
 services:
   redis:
     image: redis:7-alpine
@@ -16,7 +18,7 @@ services:
   receiver:
     build:
       context: .
-      dockerfile: docker/compose.prod.yml
+      dockerfile: trading/receiver/src/deribit/Dockerfile
     container_name: trading-app-receiver
     depends_on:
       redis:
