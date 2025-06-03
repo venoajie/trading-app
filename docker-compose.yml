@@ -41,10 +41,17 @@ services:
     tmpfs:
       - /tmp
 
+  trading-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/data  # Use absolute path
+      o: bind,uid=1001,gid=1001,rw
+
 volumes:
   redis-data:
   trading-data: 
-
+  
 networks:
   trading-network:
     driver: bridge
