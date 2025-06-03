@@ -22,7 +22,6 @@ from scripts.restful_api.deribit import end_point_params_template
 
 # Ensure data directory exists with correct permissions
 os.makedirs(os.environ.get('DB_BASE_PATH', '/app/data'), exist_ok=True)
-os.chmod(os.environ.get('DB_BASE_PATH', '/app/data'), 0o775)
 
 uvloop.install()
 

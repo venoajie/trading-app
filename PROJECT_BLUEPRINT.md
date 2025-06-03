@@ -23,6 +23,9 @@
 
 # SHORT TERM
 - ensure docker migration succesfull 
+- High Risk: Secrets in environment variables
+Docker-compose exposes credentials via ${DERIBIT_CLIENT_ID} - Use Docker secrets instead
+
 ## CURRENT PHASE (2025-06-02)
 - receiver basic functionalities has completed.just implemented work around for idle because of maintenance. seems work but have not tested it yet.
 - running receiver in docker. still get error message for permission
@@ -43,8 +46,19 @@ other services
 - migrate to postgresql
 - implement threading (to process data from exchanges)
 - code optimization
+- Add queue overflow handling
+- Implement proper task cancellation
+- Create health check endpoint
+- Split monolith into microservices
+- Implement proper backpressure mechanisms
+Redis Backpressure: No backpressure handling in distributing_ws_data.py
+
+Add max queue size and overflow handling
+
+
 
 # LONG TERM
+- Implement circuit breakers for Redis
 - add another exchanges (currently binance and deribit)
 - invites others to use the service
 
