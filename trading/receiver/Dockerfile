@@ -32,9 +32,10 @@ COPY --from=builder ${UV_VENV} ${UV_VENV}
 
 # Copy only necessary application files
 WORKDIR /app
-COPY trading/scripts trading/scripts
-COPY trading/shared trading/shared
-COPY trading/receiver trading/receiver
+
+COPY trading/shared/src/shared /app/shared
+COPY trading/receiver/src/receiver /app/receiver
+COPY trading/scripts/src/scripts /app/scripts
 COPY config config
 
 # Set up data directory with proper permissions
@@ -54,4 +55,4 @@ HEALTHCHECK --interval=30s --timeout=3s \
   CMD python -c "import socket; socket.create_connection(('localhost', 8000), 3)" || exit 1
 
 # Run receiver service
-CMD ["python", "trading/receiver/receiver/deribit/main.py"]
+CMD ["python", "/app/receiver/deribit/main.py"]
