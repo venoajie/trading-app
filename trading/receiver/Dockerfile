@@ -21,8 +21,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
 
 # Copy only dependency files first
 WORKDIR /app
-COPY trading/shared/pyproject.toml trading/shared/
-COPY trading/receiver/pyproject.toml trading/receiver/
+COPY trading/shared/pyproject.toml ./
+COPY trading/receiver/pyproject.toml ./
 
 # Install dependencies with UV
 WORKDIR /app/trading/shared
