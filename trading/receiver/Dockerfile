@@ -2,9 +2,14 @@
 FROM python:3.11-slim as base
 
 # Install UV and create virtual environment
-RUN pip install --no-cache-dir uv \
-    && python -m uv venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+
+ENV UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PROJECT_ENVIRONMENT=/code/.venv
+
+COPY --from=ghcr.io/astral-sh/uv:0.5.2 /uv /uvx /bin/
+
 
 # Stage 2: Dependency installation
 FROM base as builder
