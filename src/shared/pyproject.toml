@@ -1,4 +1,7 @@
-# shared/pyproject.toml
+# shared/pyproject.toml[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "shared"
 version = "1.0.0"
@@ -11,4 +14,13 @@ dependencies = [
     "loguru>=0.7.0,<1.0.0",
     "dataclassy",
     "tomli",
+]
+
+# Explicitly define packages
+[tool.setuptools]
+packages = [
+    "shared",
+    "shared.config",
+    "shared.db",
+    "shared.utils"
 ]
