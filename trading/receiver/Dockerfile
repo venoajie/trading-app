@@ -1,52 +1,56 @@
-# Stage 1: Base image with UV
-FROM python:3.13-slim AS base
+# Stage 1: Base with UV - common for all stages
+FROM python:3.11-slim as base
+ENV UV_VENV=/opt/venv
+RUN python -m pip install --no-cache-dir uv \
+    && python -m uv venv ${UV_VENV}
+ENV PATH="${UV_VENV}/bin:$PATH"
 
-# Install UV and create virtual environment
-
-ENV UV_LINK_MODE=copy \
-    UV_COMPILE_BYTECODE=1 \
-    UV_PYTHON_DOWNLOADS=never \
-    UV_PROJECT_ENVIRONMENT=/code/.venv
-
-COPY --from=ghcr.io/astral-sh/uv:0.5.2 /uv /uvx /bin/
-
-# Create a venv with Pyton 3.12.6, installing Python along the way
-RUN uv venv --python 3.13 /venv
-
-# Stage 2: Dependency installation
+# Stage 2: Builder for dependencies
 FROM base as builder
+WORKDIR /build
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential
-
-# Copy only dependency files first
-WORKDIR /app
+# Copy only dependency files for cache optimization
 COPY trading/shared/pyproject.toml trading/shared/
 COPY trading/receiver/pyproject.toml trading/receiver/
 
 # Install dependencies with UV
-RUN --mount=type=cache,target=/root/.cache/uv \
-  uv sync --frozen --no-install-project --no-dev
-COPY . /app
-RUN --mount=type=cache,target=/root/.cache/uv \
-  uv sync --frozen --no-dev
+RUN uv pip install \
+    --no-cache \
+    --strict \
+    --resolution=lowest-direct \
+    -e ./trading/shared \
+    -e ./trading/receiver
 
 # Stage 3: Runtime image
 FROM base as runtime
 
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
 # Copy virtual environment
-COPY --from=builder /opt/venv /opt/venv
+COPY --from=builder ${UV_VENV} ${UV_VENV}
 
-# Copy application code
+# Copy only necessary application files
 WORKDIR /app
-COPY . .
+COPY trading/shared trading/shared
+COPY trading/receiver trading/receiver
+COPY config config
 
-# Set up data directory
-RUN mkdir -p /app/data && chmod 775 /app/data
+# Set up data directory with proper permissions
+RUN mkdir -p /app/data && chown appuser:appuser /app/data && chmod 775 /app/data
 
 # Environment variables
 ENV DB_BASE_PATH=/app/data \
-    PYTHONPATH=/app:$PYTHONPATH
+    PYTHONPATH=/app:$PYTHONPATH \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPYCACHEPREFIX=/tmp/.pycache
+
+# Switch to non-root user
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD python -c "import socket; socket.create_connection(('localhost', 8000), 3)" || exit 1
 
 # Run receiver service
 CMD ["python", "trading/receiver/receiver/deribit/main.py"]

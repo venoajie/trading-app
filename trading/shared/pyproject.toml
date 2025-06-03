@@ -1,4 +1,3 @@
-# shared/pyproject.toml[build-system]
 
 [project]
 name = "shared"

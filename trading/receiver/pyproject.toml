@@ -1,4 +1,3 @@
-# receiver/pyproject.toml
 
 [project]
 name = "receiver"
