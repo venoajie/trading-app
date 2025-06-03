@@ -20,19 +20,16 @@ ENV PATH="/opt/venv/bin:$PATH"
 FROM base AS builder
 
 # Install build dependencies (separate from runtime)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    build-essential \
-    libssl-dev \
-    pkg-config \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential pkg-config && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy dependency specifications first for better caching
-COPY ./src/shared/requirements.txt /app/src/shared/
-COPY ./src/receiver/pyproject.toml /app/src/receiver/
+# Use separate layers for dependency groups
+COPY ./src/shared/requirements.txt /tmp/
+RUN uv pip install --no-cache -r /tmp/requirements.txt
+
 
 # Install base dependencies with UV
 RUN . /opt/venv/bin/activate && \
@@ -82,6 +79,10 @@ ENV PYTHONUNBUFFERED=1 \
 RUN mkdir -p /app/data/databases && \
     chown 1001:1001 /app/data/databases && \
     chmod 775 /app/data/databases
+
+# Final stage permissions
+RUN chmod -R g+rwX /app/data && \
+    find /app/data -type d -exec chmod 2775 {} +
 
 # Switch to non-root user
 USER 1001

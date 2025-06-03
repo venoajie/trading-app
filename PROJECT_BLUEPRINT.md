@@ -24,7 +24,8 @@
 # SHORT TERM
 - ensure docker migration succesfull 
 ## CURRENT PHASE (2025-06-02)
-receiver basic functionalities has completed.just implemented work around for idle because of maintenance. seems work but have not tested it yet.
+- receiver basic functionalities has completed.just implemented work around for idle because of maintenance. seems work but have not tested it yet.
+- running receiver in docker. still get error message for permission
 
 ## NEXT PHASE ()
 receiver. need add additional things:
