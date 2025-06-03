@@ -21,9 +21,6 @@ services:
       - config/.env
     environment:
       - DB_BASE_PATH=/app/data
-    volumes:
-      - ./config:/app/config:ro
-      - trading-data:/app/data
     depends_on:
       redis:
         condition: service_healthy
@@ -40,9 +37,9 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-
-  trading-data:
-    driver: local
+    volumes:
+      - ./config:/app/config:ro
+      - trading-data:/app/data
 
 volumes:
   redis-data:
