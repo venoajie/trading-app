@@ -20,9 +20,6 @@ from receiver.deribit import deribit_ws, distributing_ws_data, get_instrument_su
 from shared.utils import error_handling, system_tools, template
 from scripts.restful_api.deribit import end_point_params_template
 
-# Ensure data directory exists with correct permissions
-os.makedirs(os.environ.get('DB_BASE_PATH', '/app/data'), exist_ok=True)
-
 uvloop.install()
 
 class ApplicationState:

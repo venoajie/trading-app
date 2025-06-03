@@ -34,11 +34,13 @@ def get_db_path():
     # Ensure directory exists
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
     
-    # Set correct permissions
+    # Create empty file if doesn't exist to set permissions
+    if not os.path.exists(db_path):
+        open(db_path, 'a').close()
+    
+    # Set permissions
     try:
-        os.chmod(os.path.dirname(db_path), 0o775)
-        if os.path.exists(db_path):
-            os.chmod(db_path, 0o664)
+        os.chmod(db_path, 0o660)
     except Exception as e:
         logging.error(f"Permission setting failed: {str(e)}")
     
