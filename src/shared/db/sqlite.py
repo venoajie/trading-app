@@ -26,17 +26,35 @@ def set_redis_client(redis_client):
     global _redis_client
     _redis_client = redis_client
     
-
 def get_db_path():
     """Get SQLite database path with Docker compatibility"""
     base_path = os.environ.get('DB_BASE_PATH', '/app/data')
-    return os.path.join(base_path, 'trading.sqlite3')
+    db_path = os.path.join(base_path, 'trading.sqlite3')
+    
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    
+    # Set correct permissions
+    try:
+        os.chmod(os.path.dirname(db_path), 0o775)
+        if os.path.exists(db_path):
+            os.chmod(db_path, 0o664)
+    except Exception as e:
+        logging.error(f"Permission setting failed: {str(e)}")
+    
+    return db_path
 
 def create_connection():
     db_path = get_db_path()
-    # Ensure directory exists
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
-    return sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, check_same_thread=False)
+    
+    # Enable write-ahead logging for better concurrency
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    
+    # Set timeout to handle concurrent access
+    conn.execute("PRAGMA busy_timeout=5000")
+    return conn
 
 async def telegram_bot_sendtext(bot_message, purpose: str = "general_error") -> None:
 

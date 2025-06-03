@@ -57,10 +57,11 @@ FROM base AS production
 RUN addgroup --system --gid 1001 appgroup && \
     adduser --system --uid 1001 --ingroup appgroup appuser
 
-# Create data and config directories with correct permissions
-RUN mkdir -p /app/data/databases /app/config && \
-    chown -R 1001:1001 /app/data /app/config && \
-    chmod -R 755 /app/data /app/config
+# Create data directories with correct permissions
+RUN mkdir -p /app/data/databases && \
+    chown -R 1001:1001 /app/data && \
+    chmod u+rwx,g+rx,o+rx /app/data && \
+    chmod u+rw,g+r,o+r /app/data/* 2>/dev/null || true
 
 # Copy application with proper ownership
 COPY --from=app-builder --chown=1001:1001 /app /app
@@ -77,16 +78,18 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Set runtime permissions
-RUN find /app -type d -exec chmod 755 {} \; && \
-    find /app -type f -exec chmod 644 {} \;
-
-# Health check for container orchestration
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+# Ensure SQLite directory is writable
+RUN mkdir -p /app/data/databases && \
+    chown 1001:1001 /app/data/databases && \
+    chmod 775 /app/data/databases
 
 # Switch to non-root user
 USER 1001
 
-# Add missing CMD to start application - SOLUTION TO PRINT ISSUE
+# Health check for container orchestration
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import os, sqlite3; \
+    exit(0) if os.access('/app/data/trading.sqlite3', os.W_OK) else exit(1)"
+
+# Execute application
 CMD ["python", "-u", "/app/src/receiver/deribit/main.py"]
