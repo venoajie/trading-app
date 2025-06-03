@@ -97,40 +97,40 @@ async def setup_redis():
     
     log.critical("All Redis connection attempts failed")
     raise ConnectionError("Redis connection failed after retries")
+
+
 async def verify_permissions():
     """Verify critical paths have correct permissions"""
     from shared.config.settings import DB_BASE_PATH
     from pathlib import Path
+    import sqlite3
     
     required_paths = [
         Path(DB_BASE_PATH),
-        Path(DB_BASE_PATH) / 'databases',
-        Path(DB_BASE_PATH) / 'trading.sqlite3'
     ]
     
     for path in required_paths:
-        if not path.exists():
-            path.mkdir(parents=True, exist_ok=True)
+        path.mkdir(parents=True, exist_ok=True)
         
         if not os.access(path, os.W_OK):
             log.critical(f"Permission denied: {path}")
             await enter_maintenance_mode(f"Permission issue: {path}")
             return False
     
-    # Test database connection
+    # Test database write
     try:
-        
-        
-        conn = create_connection()
+        db_path = Path(DB_BASE_PATH) / 'trading.sqlite3'
+        conn = sqlite3.connect(db_path)
         conn.execute("CREATE TABLE IF NOT EXISTS permission_test (id INTEGER);")
+        conn.execute("INSERT INTO permission_test VALUES (1);")
+        conn.commit()
         conn.execute("DROP TABLE permission_test;")
         conn.close()
+        return True
     except Exception as e:
         log.critical(f"Database write test failed: {str(e)}")
-        await enter_maintenance_mode(f"Database write failure")
+        await enter_maintenance_mode("Database write failure")
         return False
-    
-    return True
 
 async def trading_main() -> None:
     log.info("Initializing trading system")
