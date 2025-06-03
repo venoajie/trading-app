@@ -14,6 +14,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Stage 3: Dependency installation
 FROM builder AS deps
 WORKDIR /app
+COPY src /app/src
 COPY shared /app/shared
 RUN uv pip install --no-cache-dir /app/src/shared
 

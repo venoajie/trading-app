@@ -1,4 +1,4 @@
-# shared/requirements.txt
+# shared/pyproject.toml
 [project]
 name = "shared"
 version = "1.0.0"
