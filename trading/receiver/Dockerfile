@@ -1,12 +1,12 @@
 # Stage 1: Base with UV - common for all stages
-FROM python:3.11-slim as base
+FROM python:3.11-slim AS base
 ENV UV_VENV=/opt/venv
 RUN python -m pip install --no-cache-dir uv \
     && python -m uv venv ${UV_VENV}
 ENV PATH="${UV_VENV}/bin:$PATH"
 
 # Stage 2: Builder for dependencies
-FROM base as builder
+FROM base AS builder
 WORKDIR /build
 
 # Copy only dependency files for cache optimization
@@ -22,7 +22,7 @@ RUN uv pip install \
     -e ./trading/receiver
 
 # Stage 3: Runtime image
-FROM base as runtime
+FROM base AS runtime
 
 # Create non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
@@ -32,6 +32,7 @@ COPY --from=builder ${UV_VENV} ${UV_VENV}
 
 # Copy only necessary application files
 WORKDIR /app
+COPY trading/scripts trading/scripts
 COPY trading/shared trading/shared
 COPY trading/receiver trading/receiver
 COPY config config
