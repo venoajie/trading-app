@@ -1,3 +1,6 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "receiver"
@@ -6,4 +9,11 @@ dependencies = [
     "websockets>=12.0",
     "oci>=2.125",
     "uvloop>=0.19"
+]
+
+# Explicitly define packages
+[tool.setuptools]
+packages = [
+    "receiver",
+    "receiver.deribit"
 ]
