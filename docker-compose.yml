@@ -29,12 +29,6 @@ services:
       - ./config:/app/config:ro
       - trading-data:/app/data
 
-deploy:
-  resources:
-    limits:
-      cpus: '0.50'
-      memory: 512M
-      
 volumes:
   redis-data:
   trading-data: 
