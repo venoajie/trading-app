@@ -1,5 +1,5 @@
 """Optimized core application entry point with enhanced maintenance handling"""
-import os
+import os, sys
 import asyncio
 from asyncio import Queue
 import logging
@@ -23,6 +23,8 @@ from aiohttp import web
 from receiver.health_check import setup_routes
 
 uvloop.install()
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
 async def start_health_server():
     app = web.Application()

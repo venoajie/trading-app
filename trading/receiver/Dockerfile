@@ -32,18 +32,21 @@ RUN groupadd -r appuser --gid=1000 && \
     chmod -R 750 /app
 
 # Copy virtual environment
-COPY --from=builder --chown=appuser:appuser ${UV_VENV} ${UV_VENV}
+COPY --from=builder --chown=1000:1000 ${UV_VENV} ${UV_VENV}
 
-# Copy only necessary application files
+# Copy application files
 WORKDIR /app
-COPY --chown=1000:1000 . .
+COPY --chown=1000:1000 trading/shared/src/shared ./trading/shared/src/shared
+COPY --chown=1000:1000 trading/receiver/src/receiver ./trading/receiver/src/receiver
+COPY --chown=1000:1000 trading/scripts/src/scripts ./trading/scripts/src/scripts
+COPY --chown=1000:1000 config ./config
 
 # Environment variables
 ENV DB_BASE_PATH=/app/data \
-    PYTHONPATH=/app:$PYTHONPATH \
+    PYTHONPATH=/app/trading/shared/src:/app/trading/receiver/src:/app/trading/scripts/src:$PYTHONPATH \
     PYTHONUNBUFFERED=1 \
     PYTHONPYCACHEPREFIX=/tmp/.pycache
-    
+
 # Switch to non-root user
 USER 1000
 
