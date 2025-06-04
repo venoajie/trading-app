@@ -10,6 +10,7 @@ import logging
 from loguru import logger as log
 
 # Application imports
+from src.core.service_manager import service_manager
 from core.security import get_secret
 from src.shared.config.settings import (
     REDIS_URL, REDIS_DB,
@@ -21,9 +22,38 @@ from src.receiver.deribit import deribit_ws, distributing_ws_data, get_instrumen
 from src.shared.utils import error_handling, system_tools, template
 from src.scripts.restful_api.deribit import end_point_params_template
 
-
 uvloop.install()
 
+async def redis_monitor_service():
+    """Redis connection and monitoring service"""
+    while True:
+        try:
+            client_redis = await setup_redis()
+            await monitor_system_alerts(client_redis)
+        except Exception as e:
+            log.error(f"Redis monitor failed: {e}")
+            await asyncio.sleep(5)
+
+async def trading_core_service():
+    """Core trading logic service"""
+    while True:
+        if not app_state.maintenance_mode:
+            await trading_main()
+        await asyncio.sleep(5)
+
+async def websocket_service():
+    """WebSocket connection management service"""
+    while True:
+        if not app_state.maintenance_mode:
+            await manage_websocket_connection()
+        await asyncio.sleep(5)
+
+def register_services():
+    service_manager.register("redis_monitor", redis_monitor_service)
+    service_manager.register("trading_core", trading_core_service)
+    service_manager.register("websocket", websocket_service)
+    service_manager.register("distributor", distributing_service)
+            
 class ApplicationState:
     """Centralized state management with Redis synchronization"""
     def __init__(self):

@@ -22,11 +22,11 @@
   
 
 # SHORT TERM
-- ensure docker migration succesfull 
+- ensure docker migration succesfull
+  - receiver (done)
 
 ## CURRENT PHASE (2025-06-02)
-- receiver basic functionalities has completed.just implemented work around for idle because of maintenance. seems work but have not tested it yet.
-- running receiver in docker. 
+- receiver basic functionalities has completed. doing some optimizations before next steps
 
 CURRENT PHASE CONCERN:
 
@@ -70,28 +70,6 @@ src/
 │   ├── system_tools.py
 │   └── caching.py
 └── main.py
-- High Risk: Secrets in environment variables
-Docker-compose exposes credentials via ${DERIBIT_CLIENT_ID} - Use Docker secrets instead of environment variables?
-# docker-compose.yml
-services:
-  receiver:
-    secrets:
-      - deribit_client_id
-      - deribit_client_secret
-
-secrets:
-  deribit_client_id:
-    file: ./secrets/client_id.txt
-  deribit_client_secret:
-    file: ./secrets/client_secret.txt
-
-    Add secrets loader:
-
-# security.py
-def get_secret(secret_name):
-    with open(f"/run/secrets/{secret_name}", "r") as f:
-        return f.read().strip()
-
 8. Dead Code Removal
 Remove these unused components:
 
@@ -140,7 +118,7 @@ async def health_check():
         "services": ServiceManager.status()
     }
 
-    
+
 ## NEXT PHASE ()
 receiver. need add additional things:
 - docker optimization (speed, size, security. replace requirements.txt with pyproject.toml)
