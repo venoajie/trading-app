@@ -126,7 +126,7 @@ async def caching_distributing_data(
                 continue
 
             message_params: Dict = await queue_general.get()
-            log.error(f"Received message: {message_params}")
+
             async with client_redis.pipeline() as pipe:
                 try:
                     data: Dict = message_params["data"]
@@ -134,7 +134,10 @@ async def caching_distributing_data(
                     currency: str = str_mod.extract_currency_from_text(message_channel)
                     currency_upper = currency.upper()
                     
-                    log.debug(data)
+                    from loguru import logger as log
+
+                    log.warning(f "redis_channels {redis_channels}")
+                    log.error(f "message_params {message_params}")
 
                     pub_message = {
                         "data": data,
@@ -160,7 +163,7 @@ async def caching_distributing_data(
                     # Handle ticker data
                     elif message_channel.startswith("incremental_ticker."):
                         
-                        from loguru import logger as log
+                        
                         log.debug(f"Processing incremental ticker for {message_channel}")
                         log.warning(f"redis_channels for {redis_channels}")
                         instrument_name_future = message_channel[len("incremental_ticker."):]
