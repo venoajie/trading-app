@@ -24,8 +24,10 @@ services:
       redis:
         condition: service_healthy
     secrets:
-      - deribit_client_id
-      - deribit_client_secret
+      - source: deribit_client_id
+        target: deribit_client_id
+      - source: deribit_client_secret
+        target: deribit_client_secret
     restart: unless-stopped
     # Remove port mapping since no web server exists
     # ports:
