@@ -15,9 +15,9 @@ from src.shared.db.sqlite import (
     querying_arithmetic_operator,
     update_status_data,
 )
-from scripts.restful_api.deribit import end_point_params_template as end_point
-from scripts.restful_api import connector
-from shared.utils import error_handling, string_modification as str_mod
+from src.scripts.restful_api.deribit import end_point_params_template as end_point
+from src.scripts.restful_api import connector
+from src.shared.utils import error_handling, string_modification as str_mod
 
 
 async def last_tick_fr_sqlite(last_tick_query_ohlc1: str) -> int:
