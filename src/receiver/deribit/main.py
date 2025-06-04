@@ -9,6 +9,7 @@ import orjson
 import logging
 from loguru import logger as log
 
+# Application imports
 from src.shared.config.settings import (
     REDIS_URL, REDIS_DB,
     DERIBIT_SUBACCOUNT, DERIBIT_CURRENCIES,
@@ -18,6 +19,7 @@ from src.shared.db.redis import redis_client as global_redis_client
 from src.receiver.deribit import deribit_ws, distributing_ws_data, get_instrument_summary, starter
 from src.shared.utils import error_handling, system_tools, template
 from src.scripts.restful_api.deribit import end_point_params_template
+
 
 uvloop.install()
 
