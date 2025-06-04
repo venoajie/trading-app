@@ -10,7 +10,7 @@ import logging
 from loguru import logger as log
 
 # Application imports
-from src.core.service_manager import service_manager
+from core.service_manager import service_manager
 from core.security import get_secret
 from src.shared.config.settings import (
     REDIS_URL, REDIS_DB,
