@@ -182,7 +182,7 @@ async def trading_main() -> None:
         redis_channels = config_app.get("redis_channels", [{}])[0]
         redis_keys = config_app.get("redis_keys", [{}])[0]
         strategy_config = config_app.get("strategies", [])
-        from loguru import logger as log
+
         log.error(f"config_app {config_app}")
         log.warning(f"redis_channels {redis_channels}") 
         log.error(f"redis_keys {redis_keys}")

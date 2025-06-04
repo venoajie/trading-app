@@ -134,8 +134,6 @@ async def caching_distributing_data(
                     currency: str = str_mod.extract_currency_from_text(message_channel)
                     currency_upper = currency.upper()
                     
-                    from loguru import logger as log
-
                     log.warning(f"redis_channels {redis_channels}")
                     log.error(f"message_params {message_params}")
 
@@ -165,7 +163,7 @@ async def caching_distributing_data(
                         
                         
                         log.debug(f"Processing incremental ticker for {message_channel}")
-                        log.warning(f"redis_channels for {redis_channels}")
+                        log.warning(f"redis_channels  {redis_channels}")
                         instrument_name_future = message_channel[len("incremental_ticker."):]
                         await handle_incremental_ticker(
                             pipe,
