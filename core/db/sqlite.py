@@ -1,4 +1,6 @@
-# trading_app/shared/db_management/sqlite_management.py
+""" 
+core/db/sqlite.py 
+""" 
 
 # built ins
 import asyncio

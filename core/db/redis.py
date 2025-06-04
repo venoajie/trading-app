@@ -1,5 +1,5 @@
 """ 
-shared/db/redis.py 
+core/db/redis.py 
 Consolidated Redis client with connection pooling 
 """ 
 

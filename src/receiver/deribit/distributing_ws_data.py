@@ -9,8 +9,8 @@ from typing import Dict, List, Any, Optional, Tuple
 import redis.asyncio as aioredis
 
 # Application imports
-from src.shared.db import redis as redis_publish
-from src.shared.db import sqlite as db_mgt
+from core.db import redis as redis_publish
+from core.db import sqlite as db_mgt
 from src.scripts.restful_api.deribit import end_point_params_template as end_point
 from src.scripts import caching
 from src.receiver.deribit import get_instrument_summary, allocating_ohlc
