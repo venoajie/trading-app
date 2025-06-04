@@ -22,10 +22,10 @@ import aiohttp
 from aiohttp.helpers import BasicAuth
 
 # user defined formula
-from scripts.restful_api.deribit import (
+from src.scripts.restful_api.deribit import (
     end_point_params_template as end_point_deribit,
 )
-from scripts.restful_api.telegram import (
+from src.scripts.restful_api.telegram import (
     end_point_params_template as telegram_end_point,
 )
 

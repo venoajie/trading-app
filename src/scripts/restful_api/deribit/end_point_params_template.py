@@ -5,11 +5,11 @@ import asyncio
 from dataclassy import dataclass
 
 # user defined formula
-from shared.utils import (
+from src.shared.utils import (
     time_modification as time_mod,
     string_modification as str_mod,
 )
-from scripts.restful_api import connector
+from src.scripts.restful_api import connector
 
 
 def get_basic_https() -> str:

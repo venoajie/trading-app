@@ -4,12 +4,12 @@
 import asyncio
 
 # user defined formula
-from scripts.restful_api.deribit import end_point_params_template as end_point
-from shared.utils.pickling import read_data
-from shared.utils.string_modification import (
+from src.scripts.restful_api.deribit import end_point_params_template as end_point
+from src.shared.utils.pickling import read_data
+from src.shared.utils.string_modification import (
     remove_double_brackets_in_list,
 )
-from shared.utils.system_tools import provide_path_for_file
+from src.shared.utils.system_tools import provide_path_for_file
 
 
 def get_instruments_kind(

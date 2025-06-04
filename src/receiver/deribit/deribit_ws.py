@@ -17,9 +17,9 @@ from dataclassy import dataclass
 from websockets import WebSocketClientProtocol
 
 # Application imports
-from scripts.restful_api.deribit import end_point_params_template
-from shared.utils import error_handling, string_modification as str_mod
-from shared.config.settings import REDIS_URL, DERIBIT_CURRENCIES
+from src.scripts.restful_api.deribit import end_point_params_template
+from src.shared.utils import error_handling, string_modification as str_mod
+from src.shared.config.settings import REDIS_URL, DERIBIT_CURRENCIES
 
 # Configure logger
 log = logging.getLogger(__name__)

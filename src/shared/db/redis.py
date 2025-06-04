@@ -8,8 +8,8 @@ import orjson
 import redis.asyncio as aioredis 
 from typing import Any, Dict, Optional, Union
 
-from shared.config.settings import REDIS_URL, REDIS_DB 
-from shared.utils import error_handling
+from src.shared.config.settings import REDIS_URL, REDIS_DB 
+from src.shared.utils import error_handling
 
 # Configure logger 
 log = logging.getLogger(__name__) 

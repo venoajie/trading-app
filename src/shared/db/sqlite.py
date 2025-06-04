@@ -11,9 +11,9 @@ import aiosqlite
 from loguru import logger as log
 
 # user defined formulas
-from shared.db.redis import publishing_specific_purposes
+from src.shared.db.redis import publishing_specific_purposes
 
-from shared.utils import (
+from src.shared.utils import (
     error_handling,
     string_modification as str_mod,
 )

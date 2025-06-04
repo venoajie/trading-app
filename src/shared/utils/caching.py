@@ -2,9 +2,9 @@
 
 import asyncio
 
-from scripts.restful_api.deribit import end_point_params_template as end_point
-from shared.utils.pickling import read_data
-from shared.utils.system_tools import (
+from src.scripts.restful_api.deribit import end_point_params_template as end_point
+from src.shared.utils.pickling import read_data
+from src.shared.utils.system_tools import (
     provide_path_for_file,
 )
 

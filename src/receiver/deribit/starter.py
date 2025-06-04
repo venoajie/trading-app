@@ -7,9 +7,9 @@ import asyncio
 from loguru import logger as log
 
 # user defined formulas
-from shared.db import sqlite as db_mgt
-from scripts.restful_api.deribit import end_point_params_template as end_point
-from shared.utils import (
+from src.shared.db import sqlite as db_mgt
+from src.scripts.restful_api.deribit import end_point_params_template as end_point
+from src.shared.utils import (
     error_handling,
     pickling,
     string_modification as str_mod,
