@@ -21,22 +21,28 @@ from shared.db.redis import redis_client as global_redis_client
 from receiver.deribit import deribit_ws, distributing_ws_data, get_instrument_summary, starter
 from shared.utils import error_handling, system_tools, template
 from scripts.restful_api.deribit import end_point_params_template
-from aiohttp import web
-from receiver.health_check import setup_routes
+import asyncio
+from asyncio import Queue
+import logging
+from loguru import logger as log
+
+# Third-party imports
+import uvloop
+import orjson
+
+# Application imports
+from shared.config.settings import (
+    REDIS_URL, REDIS_DB,
+    DERIBIT_SUBACCOUNT, DERIBIT_CURRENCIES,
+    DERIBIT_MAINTENANCE_THRESHOLD, DERIBIT_HEARTBEAT_INTERVAL
+)
+from shared.db.redis import redis_client as global_redis_client
+from receiver.deribit import deribit_ws, distributing_ws_data, get_instrument_summary, starter
+from shared.utils import error_handling, system_tools, template
+from scripts.restful_api.deribit import end_point_params_template
 
 uvloop.install()
 
-#
-
-async def start_health_server():
-    app = web.Application()
-    setup_routes(app)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', 8000)
-    await site.start()
-    log.info("Health check server started on port 8000")
-    
 class ApplicationState:
     """Centralized state management with Redis synchronization"""
     def __init__(self):
@@ -296,10 +302,15 @@ async def run_services() -> None:
         await enter_maintenance_mode("Unhandled error in service orchestration")
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.create_task(start_health_server())
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
+    
     try:
-        loop.run_until_complete(run_services())
+        log.info("Starting application")
+        asyncio.run(run_services())
     except Exception as error:
         log.exception("Fatal error during application startup")
         raise SystemExit(1)
