@@ -10,7 +10,6 @@ import logging
 from loguru import logger as log
 
 # Application imports
-from core.service_manager import service_manager
 from core.security import get_secret
 from src.shared.config.settings import (
     REDIS_URL, REDIS_DB,
@@ -24,35 +23,26 @@ from src.scripts.restful_api.deribit import end_point_params_template
 
 uvloop.install()
 
-async def redis_monitor_service():
-    """Redis connection and monitoring service"""
-    while True:
-        try:
-            client_redis = await setup_redis()
-            await monitor_system_alerts(client_redis)
-        except Exception as e:
-            log.error(f"Redis monitor failed: {e}")
-            await asyncio.sleep(5)
 
-async def trading_core_service():
-    """Core trading logic service"""
-    while True:
-        if not app_state.maintenance_mode:
+async def run_services() -> None:
+    log.info("Starting service orchestration")
+    
+    try:
+        while True:
+            if app_state.maintenance_mode:
+                log.warning("Application in maintenance mode - waiting")
+                await asyncio.sleep(60)
+                continue
+                
             await trading_main()
-        await asyncio.sleep(5)
+            await asyncio.sleep(5)  # Brief pause before restarting
+            
+    except (KeyboardInterrupt, SystemExit):
+        log.info("Service shutdown requested")
+    except Exception as error:
+        log.exception("Unhandled error in service orchestration")
+        await enter_maintenance_mode("Unhandled error in service orchestration")
 
-async def websocket_service():
-    """WebSocket connection management service"""
-    while True:
-        if not app_state.maintenance_mode:
-            await manage_websocket_connection()
-        await asyncio.sleep(5)
-
-def register_services():
-    service_manager.register("redis_monitor", redis_monitor_service)
-    service_manager.register("trading_core", trading_core_service)
-    service_manager.register("websocket", websocket_service)
-    service_manager.register("distributor", distributing_service)
             
 class ApplicationState:
     """Centralized state management with Redis synchronization"""
@@ -296,25 +286,17 @@ async def trading_main() -> None:
                 except asyncio.CancelledError:
                     log.info("Background task cancelled")
 
-async def run_services() -> None:
-    log.info("Starting service orchestration")
-    
-    try:
-        while True:
-            if app_state.maintenance_mode:
-                log.warning("Application in maintenance mode - waiting")
-                await asyncio.sleep(60)
-                continue
-                
-            await trading_main()
-            await asyncio.sleep(5)  # Brief pause before restarting
-            
-    except (KeyboardInterrupt, SystemExit):
-        log.info("Service shutdown requested")
-    except Exception as error:
-        log.exception("Unhandled error in service orchestration")
-        await enter_maintenance_mode("Unhandled error in service orchestration")
 
+async def main():
+    register_services()
+    await service_manager.start_all()
+    
+    # Keep main running until shutdown
+    try:
+        await asyncio.Future()
+    except (KeyboardInterrupt, SystemExit):
+        await service_manager.stop_all()
+        
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
