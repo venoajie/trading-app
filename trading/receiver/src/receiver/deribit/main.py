@@ -19,9 +19,20 @@ from shared.db.redis import redis_client as global_redis_client
 from receiver.deribit import deribit_ws, distributing_ws_data, get_instrument_summary, starter
 from shared.utils import error_handling, system_tools, template
 from scripts.restful_api.deribit import end_point_params_template
+from aiohttp import web
+from receiver.health_check import setup_routes
 
 uvloop.install()
 
+async def start_health_server():
+    app = web.Application()
+    setup_routes(app)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', 8000)
+    await site.start()
+    log.info("Health check server started on port 8000")
+    
 class ApplicationState:
     """Centralized state management with Redis synchronization"""
     def __init__(self):
@@ -281,15 +292,10 @@ async def run_services() -> None:
         await enter_maintenance_mode("Unhandled error in service orchestration")
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    
+    loop = asyncio.get_event_loop()
+    loop.create_task(start_health_server())
     try:
-        log.info("Starting application")
-        asyncio.run(run_services())
+        loop.run_until_complete(run_services())
     except Exception as error:
         log.exception("Fatal error during application startup")
         raise SystemExit(1)

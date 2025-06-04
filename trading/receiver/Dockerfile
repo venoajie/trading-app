@@ -25,34 +25,31 @@ RUN uv pip install \
 FROM base AS runtime
 
 # Create non-root user
-RUN groupadd -r appuser && \
-    useradd -r -g appuser appuser && \
+RUN groupadd -r appuser --gid=1000 && \
+    useradd -r -g appuser --uid=1000 appuser && \
     mkdir -p /app/data && \
-    chown appuser:appuser /app/data && \
-    chmod 750 /app/data
+    chown -R 1000:1000 /app && \
+    chmod -R 750 /app
 
 # Copy virtual environment
 COPY --from=builder --chown=appuser:appuser ${UV_VENV} ${UV_VENV}
 
 # Copy only necessary application files
 WORKDIR /app
-COPY --chown=appuser:appuser trading/shared/src/shared ./shared/
-COPY --chown=appuser:appuser trading/receiver/src/receiver ./receiver/
-COPY --chown=appuser:appuser trading/scripts/src/scripts ./scripts/
-COPY --chown=appuser:appuser config ./config/
+COPY --chown=1000:1000 . .
 
 # Environment variables
 ENV DB_BASE_PATH=/app/data \
     PYTHONPATH=/app:$PYTHONPATH \
     PYTHONUNBUFFERED=1 \
     PYTHONPYCACHEPREFIX=/tmp/.pycache
-
+    
 # Switch to non-root user
-USER appuser
+USER 1000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s \
   CMD python -c "import socket; s=socket.socket(); s.connect(('localhost',8000))" || exit 1
 
 # Run receiver service
-CMD ["python", "/app/receiver/deribit/main.py"]
+CMD ["python", "trading/receiver/src/receiver/deribit/main.py"]
