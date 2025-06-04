@@ -21,6 +21,7 @@ RUN uv pip install \
     -e ./trading/shared \
     -e ./trading/receiver
 
+
 # Stage 3: Runtime image
 FROM base AS runtime
 
@@ -34,25 +35,19 @@ RUN groupadd -r appuser --gid=1000 && \
 # Copy virtual environment
 COPY --from=builder --chown=1000:1000 ${UV_VENV} ${UV_VENV}
 
-# Copy application files
+# Copy application files with corrected structure
 WORKDIR /app
-COPY --chown=1000:1000 trading/shared/src/shared ./trading/shared/src/shared
-COPY --chown=1000:1000 trading/receiver/src/receiver ./trading/receiver/src/receiver
-COPY --chown=1000:1000 trading/scripts/src/scripts ./trading/scripts/src/scripts
-COPY --chown=1000:1000 config ./config
+COPY --chown=1000:1000 ./src ./src
+COPY --chown=1000:1000 ./config ./config
 
-# Environment variables
+# Set PYTHONPATH to use /app as root directory
 ENV DB_BASE_PATH=/app/data \
-    PYTHONPATH=/app/trading/shared/src:/app/trading/receiver/src:/app/trading/scripts/src:$PYTHONPATH \
+    PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \
     PYTHONPYCACHEPREFIX=/tmp/.pycache
 
 # Switch to non-root user
 USER 1000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s \
-  CMD python -c "import socket; s=socket.socket(); s.connect(('localhost',8000))" || exit 1
-
 # Run receiver service
-CMD ["python", "trading/receiver/src/receiver/deribit/main.py"]
+CMD ["python", "src/receiver/deribit/main.py"]
