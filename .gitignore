@@ -172,3 +172,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# secrets
+client_id.txt
+client_secret.txt
