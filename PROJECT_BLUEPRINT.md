@@ -31,7 +31,7 @@
 CURRENT PHASE CONCERN:
 
 main.py is overly complex with mixed concerns. Need to refactor
-# services.py (new abstraction)
+# services.py (new abstraction)-->seems not needed
 class ServiceManager:
     def __init__(self):
         self.services = {}
@@ -70,6 +70,7 @@ src/
 │   ├── system_tools.py
 │   └── caching.py
 └── main.py
+
 8. Dead Code Removal
 Remove these unused components:
 
@@ -80,6 +81,8 @@ sqlite.py (replaced by db.py)
 caching.py (functionality exists in utils)
 
 Circular dependencies between redis.py and error_handling.py
+
+we have 2 error handlers, at core and shared
 
 9. Permission Fixes
 Problem: SQLite write permissions in Docker.

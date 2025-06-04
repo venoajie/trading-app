@@ -8,17 +8,17 @@ import orjson
 from loguru import logger as log
 
 # user defined formula
-from streaming_helper.restful_api.deribit import end_point_params_template
-from streaming_helper.db_management import redis_client, sqlite_management as db_mgt
-from streaming_helper.channel_management import get_published_messages
-from streaming_helper.transaction_management.deribit import (
+from src.scripts.restful_api.deribit import end_point_params_template
+from core.db import sqlite as db_mgt, redis
+from src.scripts.channel_management import get_published_messages
+from src.executor.deribit import (
     cancelling_active_orders as cancel_order,
 )
-from streaming_helper.channel_management.deribit import subscribing_to_channels
-from streaming_helper.strategies.deribit import basic_strategy
-from streaming_helper.utilities import (
+from src.scripts import caching
+from src.scripts.channel_management.deribit import subscribing_to_channels
+from src.scripts.strategies.deribit import basic_strategy
+from src.shared.utils import (
     string_modification as str_mod,
-    caching,
     system_tools as tools,
     error_handling,
     template,

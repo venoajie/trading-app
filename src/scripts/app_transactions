@@ -1,0 +1,198 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
+# built ins
+import asyncio
+from asyncio import Queue
+import signal
+import sys
+
+# installed
+import uvloop
+import numpy as np
+import redis.asyncio as aioredis
+
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
+from configuration import config, config_oci
+from streaming_helper.transaction_management.deribit import cancelling_active_orders,processing_orders
+from streaming_helper.restful_api.deribit import end_point_params_template
+from market_understanding.price_action.candles_analysis import get_market_condition
+from streaming_helper.data_announcer.deribit import get_instrument_summary, starter
+from streaming_helper.utilities import  error_handling,string_modification as str_mod,system_tools,template
+from streaming_helper.strategies.deribit import relabelling_trading_result
+
+
+pool = aioredis.ConnectionPool.from_url(
+    "redis://localhost", 
+    port=6379, 
+    db=0, 
+    protocol=3, 
+    encoding="utf-8",
+    decode_responses=True
+    )
+
+client_redis: object = aioredis.Redis.from_pool(pool)
+
+async def main():
+    """
+    """
+    
+    exchange = "deribit"
+    
+    sub_account_id = "deribit-148510"
+
+    # registering strategy config file    
+    file_toml = "config_strategies.toml"
+        
+    try:
+
+        config_path = system_tools.provide_path_for_file(".env")
+        
+        parsed= config.main_dotenv(
+            sub_account_id,
+            config_path,
+        )
+                
+        client_id: str = parsed["client_id"]
+        client_secret: str = config_oci.get_oci_key(parsed["key_ocid"])
+
+        #instantiate private connection
+        api_request: object = end_point_params_template.SendApiRequest(client_id,client_secret)
+
+        # parsing config file
+        config_app = system_tools.get_config_tomli(file_toml)
+
+        # get tradable strategies
+        tradable_config_app = config_app["tradable"]
+
+        # get TRADABLE currencies
+        currencies: list = [o["spot"] for o in tradable_config_app][0]
+
+        strategy_attributes = config_app["strategies"]
+
+        relevant_tables = config_app["relevant_tables"][0]
+
+        order_db_table = relevant_tables["orders_table"]
+
+        cancellable_strategies = [
+            o["strategy_label"] for o in strategy_attributes if o["cancellable"] == True
+        ]
+
+        settlement_periods = str_mod.remove_redundant_elements(
+        str_mod.remove_double_brackets_in_list(
+            [o["settlement_period"] for o in strategy_attributes]
+        )
+    )
+        
+        futures_instruments = await get_instrument_summary.get_futures_instruments(
+            currencies,
+            settlement_periods,
+        )
+
+        # get redis channels
+        redis_channels: dict = config_app["redis_channels"][0]
+
+        #await starter.initial_procedures(
+        #    private_data,
+        #    config_app,
+        #    )
+        
+        result_template = template.redis_message_template()
+        
+        sub_account_cached_channel: str = redis_channels["sub_account_cache_updating"]
+            
+        # sub_account_combining        
+        sub_accounts = [await api_request.get_subaccounts_details(o) for o in currencies]
+        
+        initial_data_subaccount = starter.sub_account_combining(
+            sub_accounts,
+            sub_account_cached_channel,
+            result_template,
+        )
+        
+        resolutions: list = [o["resolutions"] for o in tradable_config_app][0]
+
+        strategy_attributes = config_app["strategies"]
+   
+        await asyncio.sleep(0.0005)
+        
+        await asyncio.gather(
+         
+            relabelling_trading_result.relabelling_trades(
+                client_id,
+                client_secret,
+                client_redis,
+                config_app,
+                redis_channels,
+                ),
+            
+            processing_orders.processing_orders(
+                client_id,
+                client_secret,
+                client_redis,
+                cancellable_strategies,
+                currencies,
+                initial_data_subaccount,
+                order_db_table,
+                redis_channels,
+                strategy_attributes,
+                ),
+         
+            cancelling_active_orders.cancelling_orders(
+            client_id,
+            client_secret,
+            currencies,
+            client_redis,
+            config_app,
+            initial_data_subaccount,
+            redis_channels,
+            strategy_attributes,
+                ),
+            
+            get_market_condition(
+                client_redis,
+                config_app,
+                currencies,
+                redis_channels,
+                resolutions,
+                np),              
+                        )  
+
+   
+    except Exception as error:
+        
+        await error_handling.parse_error_message_with_redis(
+            client_redis,
+            error,
+            )
+
+def handle_ctrl_c(
+    signum, 
+    stack_frame
+    )->None:
+    
+    sys.exit(0)
+    
+                  
+signal_handler = system_tools.SignalHandler()
+
+if __name__ == "__main__":
+    
+    try:
+        signal.signal(signal.SIGINT, handle_ctrl_c) # terminate on ctrl-c
+        
+        uvloop.run(main())
+        
+    except(
+        KeyboardInterrupt, 
+        SystemExit
+        ):
+        
+        asyncio.get_event_loop().run_until_complete(main())
+        
+    except Exception as error:
+        asyncio.run (error_handling.parse_error_message_with_redis(
+            client_redis,
+            error,
+            ))

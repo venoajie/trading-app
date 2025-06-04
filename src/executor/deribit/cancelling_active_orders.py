@@ -9,19 +9,16 @@ from loguru import logger as log
 
 # user defined formula
 
-from streaming_helper.restful_api.deribit import end_point_params_template
-from streaming_helper.db_management import sqlite_management as db_mgt
-from streaming_helper.channel_management import get_published_messages
-from streaming_helper.channel_management.deribit import subscribing_to_channels
-from streaming_helper.strategies.deribit.cash_carry import combo_auto as combo
-from streaming_helper.strategies.deribit.hedging import hedging_spot
+from src.scripts.restful_api.deribit import end_point_params_template
+from core.db import sqlite as db_mgt
+from src.scripts.channel_management import get_published_messages
+from src.scripts.channel_management.deribit import subscribing_to_channels
+from src.scripts.strategies.deribit.cash_carry import combo_auto as combo
+from src.scripts.strategies.deribit.hedging import hedging_spot
 
-from streaming_helper.data_announcer.deribit import get_instrument_summary, starter
-from streaming_helper.utilities import (
-    string_modification as str_mod,
-    error_handling,
-    template,
-)
+from src.receiver.deribit import get_instrument_summary, starter
+from src.shared.utils import error_handling, string_modification as str_mod, system_tools, template
+
 
 
 async def cancelling_orders(
