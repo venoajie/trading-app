@@ -136,8 +136,8 @@ async def caching_distributing_data(
                     
                     from loguru import logger as log
 
-                    log.warning(f "redis_channels {redis_channels}")
-                    log.error(f "message_params {message_params}")
+                    log.warning(f"redis_channels {redis_channels}")
+                    log.error(f"message_params {message_params}")
 
                     pub_message = {
                         "data": data,
