@@ -23,13 +23,124 @@
 
 # SHORT TERM
 - ensure docker migration succesfull 
-- High Risk: Secrets in environment variables
-Docker-compose exposes credentials via ${DERIBIT_CLIENT_ID} - Use Docker secrets instead
 
 ## CURRENT PHASE (2025-06-02)
 - receiver basic functionalities has completed.just implemented work around for idle because of maintenance. seems work but have not tested it yet.
-- running receiver in docker. still get error message for permission
+- running receiver in docker. 
 
+CURRENT PHASE CONCERN:
+
+main.py is overly complex with mixed concerns. Need to refactor
+# services.py (new abstraction)
+class ServiceManager:
+    def __init__(self):
+        self.services = {}
+        
+    def register(self, name, coro):
+        self.services[name] = coro
+        
+    async def start_all(self):
+        for name, coro in self.services.items():
+            asyncio.create_task(coro())
+
+# main.py (simplified)
+from services import ServiceManager
+manager = ServiceManager()
+manager.register("redis_monitor", monitor_system_alerts)
+manager.register("trading_main", trading_main)
+
+asyncio.run(manager.start_all())
+
+
+7. File Structure Optimization:
+
+src/
+├── core/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── redis.py
+│   ├── db.py
+│   └── error_handler.py
+├── services/
+│   ├── receiver.py
+│   ├── processor.py
+│   └── distributor.py
+├── utils/
+│   ├── template.py
+│   ├── system_tools.py
+│   └── caching.py
+└── main.py
+- High Risk: Secrets in environment variables
+Docker-compose exposes credentials via ${DERIBIT_CLIENT_ID} - Use Docker secrets instead of environment variables?
+# docker-compose.yml
+services:
+  receiver:
+    secrets:
+      - deribit_client_id
+      - deribit_client_secret
+
+secrets:
+  deribit_client_id:
+    file: ./secrets/client_id.txt
+  deribit_client_secret:
+    file: ./secrets/client_secret.txt
+
+    Add secrets loader:
+
+# security.py
+def get_secret(secret_name):
+    with open(f"/run/secrets/{secret_name}", "r") as f:
+        return f.read().strip()
+
+8. Dead Code Removal
+Remove these unused components:
+
+starter.py (replaced by service manager)
+
+sqlite.py (replaced by db.py)
+
+caching.py (functionality exists in utils)
+
+Circular dependencies between redis.py and error_handling.py
+
+9. Permission Fixes
+Problem: SQLite write permissions in Docker.
+
+Fix:
+
+python
+# In db.py
+import os
+
+class Database:
+    @staticmethod
+    async def get_connection():
+        db_path = Config().db_path
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        if not os.path.exists(db_path):
+            open(db_path, 'w').close()  # Create empty file
+        os.chmod(db_path, 0o660)  # Set permissions
+        return await aiosqlite.connect(db_path)
+
+        10. Health Check Enhancement
+Problem: Basic Redis health check doesn't verify application state.
+
+Fix:
+
+python
+# health.py
+from fastapi import APIRouter
+
+router = APIRouter()
+
+@router.get("/health")
+async def health_check():
+    return {
+        "redis": await check_redis(),
+        "services": ServiceManager.status()
+    }
+
+    
 ## NEXT PHASE ()
 receiver. need add additional things:
 - docker optimization (speed, size, security. replace requirements.txt with pyproject.toml)
