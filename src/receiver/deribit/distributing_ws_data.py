@@ -282,6 +282,8 @@ async def handle_incremental_ticker(
         "instrument_name": instrument_name_future,
         "currency_upper": currency.upper()
     })
+    
+    log.info(f"Processing incremental ticker for {instrument_name_future}  {pub_message}")
 
     async with ticker_lock:
         for ticker in ticker_all_cached:
