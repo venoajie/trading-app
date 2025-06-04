@@ -102,7 +102,7 @@ async def setup_redis():
 
 async def verify_permissions():
     """Verify critical paths have correct permissions"""
-    from shared.config.settings import DB_BASE_PATH
+    from src.shared.config.settings import DB_BASE_PATH
     from pathlib import Path
     import sqlite3
     
