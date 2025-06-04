@@ -11,7 +11,7 @@ WORKDIR /build
 
 # Copy dependency files using actual project structure
 COPY src/shared/pyproject.toml src/shared/
-COPY src/receiver/pyproject.toml src/receiver/
+COPY src/executor/pyproject.toml src/executor/
 
 # Install dependencies with UV
 RUN uv pip install \
@@ -19,7 +19,7 @@ RUN uv pip install \
     --strict \
     --resolution=lowest-direct \
     -e ./src/shared \
-    -e ./src/receiver
+    -e ./src/executor
 
 # Stage 3: Runtime image
 FROM base AS runtime
@@ -50,4 +50,4 @@ ENV DB_BASE_PATH=/app/data \
 USER 1000
 
 # Run receiver service
-CMD ["python", "src/receiver/deribit/main.py"]
+CMD ["python", "src/executor/deribit/main.py"]
