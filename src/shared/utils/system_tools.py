@@ -205,9 +205,12 @@ def get_config_tomli(config_path) -> list:
     """ """
 
     import tomli
+    
+    print(dir(tomli))
 
     if os.path.exists(config_path):
 
         with open(config_path, "rb") as handle:
+            
             read = tomli.load(handle)
             return read
