@@ -9,18 +9,17 @@ ENV PATH="${UV_VENV}/bin:$PATH"
 FROM base AS builder
 WORKDIR /build
 
-# Copy only dependency files for cache optimization
-COPY trading/shared/pyproject.toml trading/shared/
-COPY trading/receiver/pyproject.toml trading/receiver/
+# Copy dependency files using actual project structure
+COPY src/shared/pyproject.toml src/shared/
+COPY src/receiver/pyproject.toml src/receiver/
 
 # Install dependencies with UV
 RUN uv pip install \
     --no-cache \
     --strict \
     --resolution=lowest-direct \
-    -e ./trading/shared \
-    -e ./trading/receiver
-
+    -e ./src/shared \
+    -e ./src/receiver
 
 # Stage 3: Runtime image
 FROM base AS runtime
@@ -35,12 +34,12 @@ RUN groupadd -r appuser --gid=1000 && \
 # Copy virtual environment
 COPY --from=builder --chown=1000:1000 ${UV_VENV} ${UV_VENV}
 
-# Copy application files with corrected structure
+# Copy application files using actual project structure
 WORKDIR /app
 COPY --chown=1000:1000 ./src ./src
 COPY --chown=1000:1000 ./config ./config
 
-# Set PYTHONPATH to use /app as root directory
+# Environment variables
 ENV DB_BASE_PATH=/app/data \
     PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \
