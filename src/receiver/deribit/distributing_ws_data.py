@@ -183,6 +183,7 @@ async def caching_distributing_data(
                         )
 
                 except Exception as error:
+                    error_handling.parse_error_message(error)
                     log.error(f"Error processing message: {error}")
                     await error_handling.parse_error_message_with_redis(client_redis, error)
 
