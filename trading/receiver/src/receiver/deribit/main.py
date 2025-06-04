@@ -1,7 +1,6 @@
 """Optimized core application entry point with enhanced maintenance handling"""
-import os, sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
-
+import os
+import sys
 import asyncio
 from asyncio import Queue
 import logging
@@ -12,6 +11,7 @@ import uvloop
 import orjson
 
 # Application imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 from shared.config.settings import (
     REDIS_URL, REDIS_DB,
     DERIBIT_SUBACCOUNT, DERIBIT_CURRENCIES,
