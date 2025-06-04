@@ -17,18 +17,24 @@ services:
       dockerfile: src/receiver/Dockerfile  # Updated path
     environment:
       - REDIS_URL=redis://redis:6379
-      - DERIBIT_CLIENT_ID=${DERIBIT_CLIENT_ID}
-      - DERIBIT_CLIENT_SECRET=${DERIBIT_CLIENT_SECRET}
       - TZ=UTC
     volumes:
       - ./data:/app/data
     depends_on:
       redis:
         condition: service_healthy
+    secrets:
+      - deribit_client_id
+      - deribit_client_secret
     restart: unless-stopped
     # Remove port mapping since no web server exists
     # ports:
     #   - "8000:8000"
 
 volumes:
-  redis-data:
+  redis-data:  
+secrets:
+  deribit_client_id:
+    file: ./secrets/client_id.txt
+  deribit_client_secret:
+    file: ./secrets/client_secret.txt

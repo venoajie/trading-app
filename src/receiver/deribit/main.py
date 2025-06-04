@@ -10,6 +10,7 @@ import logging
 from loguru import logger as log
 
 # Application imports
+from core.security import get_secret
 from src.shared.config.settings import (
     REDIS_URL, REDIS_DB,
     DERIBIT_SUBACCOUNT, DERIBIT_CURRENCIES,
@@ -150,8 +151,10 @@ async def trading_main() -> None:
     config_path = "/app/config/strategies.toml"
     
     try:
-        client_id = os.getenv("DERIBIT_CLIENT_ID")
-        client_secret = os.getenv("DERIBIT_CLIENT_SECRET")
+            
+        # Load secrets securely
+        client_id = get_secret("deribit_client_id")
+        client_secret = get_secret("deribit_client_secret")
         
         if not client_id or not client_secret:
             await enter_maintenance_mode("Deribit credentials not configured")
