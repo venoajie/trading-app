@@ -1,5 +1,5 @@
 # Stage 1: Base with UV - common for all stages
-FROM python:3.11-slim AS base
+FROM python:3.13-slim AS base
 ENV UV_VENV=/opt/venv
 RUN python -m pip install --no-cache-dir uv \
     && python -m uv venv ${UV_VENV}
