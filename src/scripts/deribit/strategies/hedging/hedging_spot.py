@@ -294,7 +294,8 @@ class HedgingSpot(BasicStrategy):
     """ """
 
     notional: float 
-    my_trades_currency_strategy: int
+    print(f"notional {notional}")
+    my_trades_currency_strategy: list
     market_condition: list
     index_price: float
     my_trades_currency_all: float
@@ -306,7 +307,7 @@ class HedgingSpot(BasicStrategy):
 
     def __post_init__(self):
 
-        print(f"notional {notional}")                                
+                                        
         print(f"my_trades_currency_strategy {my_trades_currency_strategy}")
         print(f"market_condition {market_condition}")
         print(f"index_price {index_price}")
