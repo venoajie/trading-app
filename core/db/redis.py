@@ -155,14 +155,12 @@ async def publishing_specific_purposes(
     try:
 
         if not client_redis:
-            pool = aioredis.ConnectionPool.from_url(
-                "redis://localhost",
+            client_redis = aioredis.Redis(
+                host="localhost",
                 port=6379,
                 db=0,
-                protocol=3,
-                decode_responses=True,
+                decode_responses=True
             )
-            client_redis: object = aioredis.Redis.from_pool(pool)
 
         if not redis_channels:
 
