@@ -13,9 +13,9 @@ from src.services.executor.deribit import (
     cancelling_active_orders as cancel_order,
 )
 from src.scripts.deribit.restful_api import end_point_params_template
-from src.scripts.deribit.channel_management import get_published_messages
+from src.scripts.deribit import get_published_messages
 from src.scripts.deribit import caching
-from src.scripts.deribit.channel_management import subscribing_to_channels
+from src.scripts.deribit import subscribing_to_channels
 from src.scripts.deribit.strategies import basic_strategy
 from src.shared.utils import (
     string_modification as str_mod,
