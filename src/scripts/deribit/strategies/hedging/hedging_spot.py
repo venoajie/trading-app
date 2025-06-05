@@ -5,7 +5,7 @@ import asyncio
 from secrets import randbelow
 
 # installed
-from dataclassy import dataclass, fields
+from dataclass import dataclass, fields
 from loguru import logger as log
 
 
