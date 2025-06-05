@@ -8,8 +8,7 @@ from dataclassy import dataclass
 from loguru import logger as log
 
 # user defined formula
-from streaming_helper.utilities import string_modification as str_mod
-
+from src.shared.utils import error_handling, string_modification as str_mod
 
 def positions_and_orders(
     current_size: int,
