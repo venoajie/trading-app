@@ -402,9 +402,7 @@ async def get_market_condition(
 
                 if chart_low_high_tick_channel in message_channel:
 
-                    message_byte_data["params"].update(
-                        {"channel": market_analytics_channel}
-                    )
+                    params.update({"channel": market_analytics_channel})
 
                     if market_analytics_data:
 
@@ -459,15 +457,15 @@ async def get_market_condition(
 
                                 market_analytics_data.append(pub_message)
 
-                                message_byte_data["params"].update(
+                                params.update(
                                     {"data": market_analytics_data}
                                 )
 
                                 await redis_client.saving_and_publishing_result(
                                     client_redis,
                                     market_condition_keys,
-                                    message_byte_data,
-                                    message_byte_data,
+                                    params,
+                                    params,
                                 )
 
                                 # log.debug(f"market_analytics_data {market_analytics_data}")
@@ -497,15 +495,15 @@ async def get_market_condition(
 
                             market_analytics_data.append(pub_message)
 
-                        message_byte_data["params"].update(
+                        params.update(
                             {"data": market_analytics_data}
                         )
 
                         await redis_client.saving_and_publishing_result(
                             client_redis,
                             market_condition_keys,
-                            message_byte_data,
-                            message_byte_data,
+                            params,
+                            params,
                         )
 
             except Exception as error:
