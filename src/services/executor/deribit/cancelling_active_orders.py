@@ -159,9 +159,6 @@ async def cancelling_orders(
 
                     instrument_name_perpetual = f"{currency_upper}-PERPETUAL"
                     
-                    print(f"instrument_name_perpetual {instrument_name_perpetual}") 
-                    print(f"market_condition_all {market_condition_all}")
-
                     market_condition = [
                         o
                         for o in market_condition_all
@@ -297,10 +294,6 @@ async def cancelling_orders(
 
                                 max_position: int = notional * -1
                                 
-                                print(f"strategy {strategy}")                                
-                                print(f"strategy_params {strategy_params}")
-                                print(f"my_trades_currency_strategy {my_trades_currency_strategy}")
-
                                 hedging = hedging_spot.HedgingSpot(
                                     strategy,
                                     strategy_params,

@@ -293,6 +293,12 @@ async def modify_hedging_instrument(
 class HedgingSpot(BasicStrategy):
     """ """
 
+    print(f"notional {notional}")                                
+    print(f"my_trades_currency_strategy {my_trades_currency_strategy}")
+    print(f"market_condition {market_condition}")
+    print(f"index_price {index_price}")
+    print(f"my_trades_currency_all {my_trades_currency_all}")
+
     notional: float 
     my_trades_currency_strategy: int
     market_condition: list
@@ -319,6 +325,8 @@ class HedgingSpot(BasicStrategy):
             self.over_hedged_closing,
             self.market_condition,
         )
+        
+        print(f"sum_my_trades_currency_strategy {self.sum_my_trades_currency_strategy}")
 
     #        log.info(
     #            f" max_position {self.max_position} over_hedged_opening {self.over_hedged_opening}  over_hedged_closing {self.over_hedged_closing} sum_my_trades_currency_strategy {self.sum_my_trades_currency_strategy}"
