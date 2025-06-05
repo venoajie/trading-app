@@ -201,6 +201,14 @@ async def trading_main() -> None:
         strategy_config = config_app.get("strategies", [])
                
         sub_account_cached_channel = redis_channels.get("sub_account_cache_updating", "default_channel")
+        strategy_attributes = config_app["strategies"]
+        relevant_tables = config_app["relevant_tables"][0]
+
+        order_db_table = relevant_tables["orders_table"]
+
+        cancellable_strategies = [
+            o["strategy_label"] for o in strategy_attributes if o["cancellable"] == True
+        ]
         
         sub_accounts = []
         for currency in currencies:
