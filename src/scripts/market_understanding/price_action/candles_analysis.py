@@ -470,7 +470,6 @@ async def get_market_condition(
 
                                     await redis_client.saving_and_publishing_result(
                                         client_redis,
-                                        market_analytics_channel,
                                         market_condition_keys,
                                         message_byte_data,
                                         message_byte_data,
@@ -509,7 +508,6 @@ async def get_market_condition(
 
                             await redis_client.saving_and_publishing_result(
                                 client_redis,
-                                market_analytics_channel,
                                 market_condition_keys,
                                 message_byte_data,
                                 message_byte_data,

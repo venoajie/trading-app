@@ -19,7 +19,6 @@ log = logging.getLogger(__name__)
 
 async def saving_and_publishing_result(
     client_redis: object,
-    channel: str,
     keys: str,
     cached_data: list,
     message: dict,
@@ -31,7 +30,6 @@ async def saving_and_publishing_result(
         if cached_data:
             await saving_result(
                 client_redis,
-                channel,
                 keys,
                 cached_data,
             )
@@ -76,19 +74,14 @@ async def publishing_result(
 
 async def saving_result(
     client_redis: object,
-    channel: str,
     keys: str,
     cached_data: list,
 ) -> None:
     """ """
 
     try:
+        channel = cached_data["params"]["channel"]
         
-        print(f"cached_data {cached_data}")
-        print(f"channel {channel}")
-
-        channel = message["channel"]
-
         await client_redis.hset(
             keys,
             channel,
