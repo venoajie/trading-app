@@ -40,10 +40,6 @@ def parse_error_message(
     exc_type, exc_value, exc_traceback = sys.exc_info()
     full_traceback = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
     
-    info = f"{traceback.format_exception(error)}"
-
-    log.critical(f"{info}")
-
     # Basic error information
     error_info = {
         "timestamp": datetime.utcnow().isoformat() + "Z",
