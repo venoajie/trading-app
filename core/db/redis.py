@@ -83,6 +83,9 @@ async def saving_result(
     """ """
 
     try:
+        
+        print(f"cached_data {cached_data}")
+        print(f"channel {channel}")
 
         channel = message["channel"]
 
