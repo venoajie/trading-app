@@ -638,6 +638,8 @@ class HedgingSpot(BasicStrategy):
         strong_bearish = market_condition["strong_bearish"]
         #        neutral = market_condition["neutral"]
         params: dict = self.get_basic_params().get_basic_opening_parameters(ask_price)
+        
+        print(f"params {params}")
 
         weighted_factor = hedging_attributes["weighted_factor"]
 
