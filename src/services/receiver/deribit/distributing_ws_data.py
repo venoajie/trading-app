@@ -11,7 +11,7 @@ import redis.asyncio as aioredis
 # Application imports
 from core.db import redis as redis_publish
 from core.db import sqlite as db_mgt
-from src.scripts.deribit.restful_api.deribit import end_point_params_template as end_point
+from src.scripts.deribit.restful_api import end_point_params_template as end_point
 from src.scripts.deribit import caching, get_instrument_summary
 from src.services.deribit import allocating_ohlc
 from src.shared.utils import error_handling, pickling, string_modification as str_mod, system_tools, template
