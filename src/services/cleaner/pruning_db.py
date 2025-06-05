@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
+# src\services\cleaner\pruning_db.py
 
 # built ins
 import asyncio
 
 # user defined formula
-from streaming_helper.db_management import sqlite_management as db_mgt
-from streaming_helper.utilities import error_handling
-
+from core.db import sqlite as db_mgt
+from src.shared.utils import error_handling
 
 async def count_and_delete_ohlc_rows(
     database: str,

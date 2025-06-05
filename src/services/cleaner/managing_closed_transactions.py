@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+# src\services\cleaner\managing_closed_transactions.py
+
 """_summary_"""
 # built ins
 import asyncio
@@ -7,16 +8,15 @@ import asyncio
 from loguru import logger as log
 
 # user defined formula
-from streaming_helper.db_management import sqlite_management as db_mgt
-from streaming_helper.db_management.sqlite_management import (
+from core.db import sqlite as db_mgt
+from core.db.sqlite import (
     executing_query_based_on_currency_or_instrument_and_strategy as get_query,
 )
-from streaming_helper.strategies.deribit.basic_strategy import get_label_integer
-from streaming_helper.utilities import (
+from src.scripts.deribit.strategies.basic_strategy import get_label_integer
+from src.shared.utils import (
     string_modification as str_mod,
     error_handling,
 )
-
 
 def get_label_main(
     result: list,

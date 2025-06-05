@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+# src\services\cleaner\reconciling_db.py
+
 """_summary_"""
 # built ins
 import asyncio
@@ -7,8 +8,8 @@ import asyncio
 from loguru import logger as log
 
 # user defined formula
-from streaming_helper.db_management import sqlite_management as db_mgt
-from streaming_helper.utilities import string_modification as str_mod
+from core.db import sqlite as db_mgt
+from src.shared.utils import string_modification as str_mod
 
 
 def get_sub_account_size_per_instrument(
