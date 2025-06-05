@@ -72,10 +72,7 @@ async def create_dataBase_sqlite(db_name: str = None) -> None:
 
     except Exception as error:
 
-        await error_handling.parse_error_message_with_redis(
-            client_redis,
-            error,
-        )
+        error_handling.parse_error_message(error)
 
 
 @contextmanager
@@ -99,10 +96,7 @@ async def db_ops(db_name: str == None):
 
     except Exception as e:
 
-        await error_handling.parse_error_message_with_redis(
-            client_redis,
-            e,
-        )
+        error_handling.parse_error_message(error)
 
         await conn.rollback()
         raise e
@@ -163,10 +157,7 @@ async def insert_tables(
 
     except Exception as error:
 
-        await error_handling.parse_error_message_with_redis(
-            client_redis,
-            error,
-        )
+        error_handling.parse_error_message(error)
 
     finally:
 
@@ -243,10 +234,7 @@ async def querying_table(
     except Exception as error:
         log.critical(f"querying_table  {table} {error}")
 
-        await error_handling.parse_error_message_with_redis(
-            client_redis,
-            error,
-        )
+        error_handling.parse_error_message(error)
 
     return dict(
         all=[] if combine_result in NONE_DATA else (combine_result),
@@ -297,10 +285,7 @@ async def deleting_row(
     except Exception as error:
         log.critical(f"deleting_row {query_table} {error}")
 
-        await error_handling.parse_error_message_with_redis(
-            client_redis,
-            error,
-        )
+        error_handling.parse_error_message(error)
 
     finally:
 
@@ -355,10 +340,7 @@ async def querying_duplicated_transactions(
     except Exception as error:
         log.critical(f"querying_table {query_table} {error}")
 
-        await error_handling.parse_error_message_with_redis(
-            client_redis,
-            error,
-        )
+        error_handling.parse_error_message(error)
 
     return 0 if (combine_result == [] or combine_result == None) else (combine_result)
 
@@ -389,10 +371,7 @@ async def add_additional_column(
     except Exception as error:
         print(f"querying_table {query_table} {error}")
 
-        await error_handling.parse_error_message_with_redis(
-            client_redis,
-            error,
-        )
+        error_handling.parse_error_message(error)
 
     try:
         return 0 if result == None else int(result[0])
@@ -463,10 +442,7 @@ async def update_status_data(
         log.critical(f" ERROR {error}")
         log.info(f"query update status data {query}")
 
-        await error_handling.parse_error_message_with_redis(
-            client_redis,
-            error,
-        )
+        error_handling.parse_error_message(error)
 
     finally:
 
@@ -739,10 +715,7 @@ async def executing_query_with_return(
         log.critical(f"querying_table {query_table} {error}")
         # traceback.format_exc()
 
-        await error_handling.parse_error_message_with_redis(
-            client_redis,
-            error,
-        )
+        error_handling.parse_error_message(error)
 
     return [] if not combine_result else (combine_result)
 
