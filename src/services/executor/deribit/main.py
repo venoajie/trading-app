@@ -6,6 +6,7 @@ import asyncio
 from asyncio import Queue
 
 # Third-party imports
+import numpy as np
 import uvloop
 import orjson
 import logging
