@@ -22,7 +22,7 @@ from src.shared.config.settings import (
 from src.scripts.deribit import get_instrument_summary, starter
 from src.scripts.deribit.restful_api import end_point_params_template
 from src.scripts.deribit.strategies import relabelling_trading_result
-from src.scripts.deribit.strategies.market_understanding.price_action.candles_analysis import get_market_condition
+from src.scripts.deribit.market_understanding.price_action.candles_analysis import get_market_condition
 from src.services.executor.deribit import cancelling_active_orders,processing_orders
 from src.shared.utils import error_handling, string_modification as str_mod, system_tools, template
 
