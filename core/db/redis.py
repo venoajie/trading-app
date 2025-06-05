@@ -164,7 +164,7 @@ async def publishing_specific_purposes(
 
         if not redis_channels:
 
-            from shared.utils.system_tools import get_config_tomli
+            from src.shared.utils.system_tools import get_config_tomli
 
             # registering strategy config file
             file_toml = "config_strategies.toml"
