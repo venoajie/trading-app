@@ -10,6 +10,7 @@ import uvloop
 import orjson
 import logging
 from loguru import logger as log
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 # Application imports
 from core.db.redis import redis_client as global_redis_client
@@ -24,7 +25,6 @@ from src.scripts.deribit import get_instrument_summary, starter
 from src.scripts.deribit.restful_api import end_point_params_template
 from src.shared.utils import error_handling, system_tools, template
 
-uvloop.install()
 
 
 async def run_services() -> None:
@@ -299,7 +299,7 @@ if __name__ == "__main__":
     
     try:
         log.info("Starting application")
-        asyncio.run(run_services())
+        uvloop.run(run_services())
     except Exception as error:
         log.exception("Fatal error during application startup")
         raise SystemExit(1)
