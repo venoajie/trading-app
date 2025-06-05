@@ -1,4 +1,4 @@
-# # -*- coding: utf-8 -*-
+# src\scripts\deribit\strategies\cash_carry\futures_spread.py
 
 # built ins
 import asyncio
@@ -7,7 +7,7 @@ import asyncio
 from dataclassy import dataclass, fields
 from loguru import logger as log
 
-from src.scripts.strategies.deribit.basic_strategy import BasicStrategy
+from src.scripts.deribit.strategies.basic_strategy import BasicStrategy
 
 # user defined formula
 

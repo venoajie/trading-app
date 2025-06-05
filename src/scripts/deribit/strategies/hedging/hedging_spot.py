@@ -1,4 +1,4 @@
-# # -*- coding: utf-8 -*-
+# src\scripts\deribit\strategies\hedging\hedging_spot.py
 
 # built ins
 import asyncio
@@ -9,7 +9,7 @@ from dataclassy import dataclass, fields
 from loguru import logger as log
 
 from core.db import sqlite as db_mgt import update_status_data
-from src.scripts.strategies.deribit.basic_strategy import (
+from src.scripts.deribit.strategies.basic_strategy import (
     BasicStrategy,
     are_size_and_order_appropriate,
     ensure_sign_consistency,
@@ -18,9 +18,8 @@ from src.scripts.strategies.deribit.basic_strategy import (
     size_rounding,
 )
 
-from streaming_helper.restful_api.deribit import end_point_params_template
-from streaming_helper.restful_api import connector
-from streaming_helper.utilities.string_modification import parsing_label
+from src.scripts.deribit.restful_api import end_point_params_template,connector
+from src.shared.utils import string_modification import parsing_label
 
 # user defined formula
 

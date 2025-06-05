@@ -1,4 +1,4 @@
-# # -*- coding: utf-8 -*-
+# src\scripts\deribit\strategies\cash_carry\combo_auto.py
 
 # built ins
 import asyncio
@@ -7,20 +7,19 @@ import asyncio
 from dataclassy import dataclass, fields
 from loguru import logger as log
 
-from src.scripts.strategies.deribit import basic_strategy as basic
-from src.scripts.strategies.deribit.basic_strategy import (
+
+# user defined formula
+from src.scripts.deribit.strategies import basic_strategy as basic
+from src.scripts.deribit.strategies.basic_strategy import (
     get_label,
     get_label_integer,
 )
-
 from src.shared.utils import (
     error_handling,
     pickling,
     string_modification as str_mod,
     system_tools,
 )
-
-# user defined formula
 
 
 def reading_from_pkl_data(end_point: str, currency: str, status: str = None) -> dict:

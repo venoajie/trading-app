@@ -1,4 +1,4 @@
-# # -*- coding: utf-8 -*-
+# src\scripts\deribit\strategies\cash_carry\reassigning_labels.py
 
 # built ins
 import asyncio
@@ -8,7 +8,7 @@ from loguru import logger as log
 
 # user defined formula
 from core.db import sqlite as db_mgt
-from src.scripts.strategies.deribit.cash_carry import combo_auto
+from src.scripts.deribit.strategies.cash_carry import combo_auto
 from src.shared.utils import string_modification as str_mod
 
 
