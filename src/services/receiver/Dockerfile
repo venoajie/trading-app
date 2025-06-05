@@ -50,4 +50,4 @@ ENV DB_BASE_PATH=/app/data \
 USER 1000
 
 # Run receiver service
-CMD ["python", "src/receiver/deribit/main.py"]
+CMD ["python", "src/services/receiver/deribit/main.py"]
