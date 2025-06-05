@@ -327,6 +327,9 @@ class HedgingSpot(BasicStrategy):
 
     def get_basic_params(self) -> dict:
         """ """
+        
+        print(f"strategy_label {self.strategy_label} strategy_parameters {self.strategy_parameters}")
+        
         return BasicStrategy(self.strategy_label, self.strategy_parameters)
 
     async def understanding_the_market(self, threshold_market_condition) -> None:
