@@ -5,7 +5,7 @@ import asyncio
 from secrets import randbelow
 
 # installed
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field
 from loguru import logger as log
 
 
@@ -292,18 +292,16 @@ async def modify_hedging_instrument(
 @dataclass 
 class HedgingSpot(BasicStrategy):
     """ """
-    print("BasicStrategy path:", BasicStrategy.__module__)
-    print("BasicStrategy contents:", dir(BasicStrategy))
 
     notional: float 
     my_trades_currency_strategy: list
     market_condition: dict
     index_price: float
     my_trades_currency_all: list
-    sum_my_trades_currency_strategy: int = fields
-    over_hedged_opening: bool = fields
-    over_hedged_closing: bool = fields
-    max_position: float = fields
+    sum_my_trades_currency_strategy: int = field
+    over_hedged_opening: bool = field
+    over_hedged_closing: bool = field
+    max_position: float = field
 
     def __post_init__(self):
         

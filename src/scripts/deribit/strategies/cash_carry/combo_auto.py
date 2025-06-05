@@ -4,7 +4,7 @@
 import asyncio
 
 # installed
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field
 from loguru import logger as log
 
 
@@ -352,8 +352,8 @@ class ComboAuto(basic.BasicStrategy):
     market_condition: list
     my_trades_currency_strategy: list
     ticker_perpetual: dict = None
-    delta: float = fields
-    basic_params: object = fields
+    delta: float = field
+    basic_params: object = field
 
     def __post_init__(self):
 
