@@ -294,6 +294,15 @@ async def cancelling_orders(
 
                                 max_position: int = notional * -1
                                 
+                                print(f"strategy {strategy} {type(strategy)}")                                
+                                print(f"strategy_params {strategy_params}  {type(strategy_params)}")
+                                print(f"max_position {max_position} {type(max_position)}")
+                                print(f"my_trades_currency_strategy {my_trades_currency_strategy} {type(my_trades_currency_strategy)}")
+                                print(f"market_condition {market_condition} {type(market_condition)}")
+                                print(f"index_price {index_price} {type(index_price)}")
+                                print(f"my_trades_currency_all {my_trades_currency_all} {type(my_trades_currency_all)}")
+                                
+
                                 hedging = hedging_spot.HedgingSpot(
                                     strategy,
                                     strategy_params,
