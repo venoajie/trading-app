@@ -41,7 +41,7 @@ def parse_error_message(
     full_traceback = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
     
     if context != None:
-        info = f"{message} {traceback.format_exception(error)}"
+        info = f"{traceback.format_exception(error)}"
 
     log.critical(f"{info}")
 
