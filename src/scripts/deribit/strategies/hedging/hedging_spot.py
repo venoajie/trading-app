@@ -292,6 +292,8 @@ async def modify_hedging_instrument(
 @dataclass(unsafe_hash=True, slots=True)
 class HedgingSpot(BasicStrategy):
     """ """
+    print("BasicStrategy path:", BasicStrategy.__module__)
+    print("BasicStrategy contents:", dir(BasicStrategy))
 
     notional: float 
     my_trades_currency_strategy: list
