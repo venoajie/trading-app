@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# src\scripts\deribit\starter.py
 
 # built ins
 import asyncio

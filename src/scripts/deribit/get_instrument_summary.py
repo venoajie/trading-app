@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#src\scripts\deribit\get_instrument_summary.py
 
 # built ins
 import asyncio

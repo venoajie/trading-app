@@ -1,3 +1,5 @@
+# src\services\receiver\deribit\main.py
+
 """Optimized core application entry point with enhanced maintenance handling"""
 import os
 import asyncio
