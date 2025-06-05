@@ -289,7 +289,7 @@ async def modify_hedging_instrument(
         return ticker_perpetual_instrument_name
 
 
-@dataclass(unsafe_hash=True, slots=True)
+@dataclass 
 class HedgingSpot(BasicStrategy):
     """ """
     print("BasicStrategy path:", BasicStrategy.__module__)
