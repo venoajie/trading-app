@@ -387,36 +387,41 @@ async def updating_sub_account(
     sub_account_channel: str,
     result_template: Dict,
 ) -> None:
-    """Update sub-account data in cache"""
+    
     if subaccounts_details_result:
-        # Update orders cache
-        for o in subaccounts_details_result:
-            if "open_orders" in o:
-                caching.update_cached_orders(orders_cached, o["open_orders"], "rest")
-                break
 
-        # Update positions cache
-        for o in subaccounts_details_result:
-            if "positions" in o:
-                caching.positions_updating_cached(positions_cached, o["positions"], "rest")
-                break
+        open_orders = [o["open_orders"] for o in subaccounts_details_result]
 
-    # Update trades
-    try:
-        my_trades_active_all = await db_mgt.executing_query_with_return(query_trades)
-        data = {
-            "positions": positions_cached,
-            "open_orders": orders_cached,
-            "my_trades": my_trades_active_all,
-        }
-        
-        result_template["params"].update({
-            "channel": sub_account_channel,
-            "data": data
-        })
-        await redis_publish.publishing_result(pipe, result_template)
-    except Exception as e:
-        log.error(f"Error updating sub-account: {str(e)}")
+        if open_orders:
+            caching.update_cached_orders(
+                orders_cached,
+                open_orders[0],
+                "rest",
+            )
+        positions = [o["positions"] for o in subaccounts_details_result]
+
+        if positions:
+            caching.positions_updating_cached(
+                positions_cached,
+                positions[0],
+                "rest",
+            )
+
+    my_trades_active_all = await db_mgt.executing_query_with_return(query_trades)
+
+    data = dict(
+        positions=positions_cached,
+        open_orders=orders_cached,
+        my_trades=my_trades_active_all,
+    )
+
+    message_byte_data["params"].update({"channel": sub_account_cached_channel})
+    message_byte_data["params"].update({"data": data})
+
+    await redis_client.publishing_result(
+        client_redis,
+        message_byte_data,
+    )
 
 async def trades_in_message_channel(
     pipe: aioredis.Redis,
