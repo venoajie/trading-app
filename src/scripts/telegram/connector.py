@@ -22,10 +22,7 @@ import aiohttp
 from aiohttp.helpers import BasicAuth
 
 # user defined formula
-from src.scripts.restful_api.deribit import (
-    end_point_params_template as end_point_deribit,
-)
-from src.scripts.restful_api.telegram import (
+from src.scripts.telegram import (
     end_point_params_template as telegram_end_point,
 )
 
@@ -96,25 +93,3 @@ async def telegram_response(
         # RESToverHTTP Response Content
         return await response.json()
 
-
-async def deribit_response(
-    session: object,
-    connection_url: str,
-    endpoint: str = None,
-    client_id: str = None,
-    client_secret: str = None,
-    params: str = None,
-) -> None:
-
-    payload: dict = end_point_deribit.get_json_payload(
-        endpoint,
-        params,
-    )
-
-    async with session.post(
-        connection_url + endpoint,
-        auth=BasicAuth(client_id, client_secret),
-        json=payload,
-    ) as response:
-
-        return await response.json()
