@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# src\scripts\deribit\strategies\relabelling_trading_result.py
 
 # built ins
 import asyncio
@@ -7,16 +7,17 @@ import asyncio
 from loguru import logger as log
 
 from core.db import sqlite as db_mgt
-from src.executor.deribit import cancelling_active_orders
-from src.scripts.channel_management import get_published_messages
-from streaming_helper.strategies.deribit.cash_carry import reassigning_labels
-from streaming_helper.data_announcer.deribit import get_instrument_summary
-from streaming_helper.channel_management.deribit import subscribing_to_channels
-from streaming_helper.utilities import (
+from src.scripts.deribit import get_published_messages
+from src.scripts.deribit import get_instrument_summary 
+from src.scripts.deribit import subscribing_to_channels
+from src.scripts.deribit.strategies.cash_carry import reassigning_labels
+from src.services.executor.deribit import cancelling_active_orders
+from src.shared.utils import (
     pickling,
     string_modification as str_mod,
     system_tools,
     error_handling,
+    template,
 )
 
 
