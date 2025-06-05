@@ -11,7 +11,7 @@ WORKDIR /build
 
 # Copy dependency files using actual project structure
 COPY src/shared/pyproject.toml src/shared/
-COPY src/receiver/pyproject.toml src/receiver/
+COPY src/services/receiver/pyproject.toml src/receiver/
 
 # Install dependencies with UV
 RUN uv pip install \
@@ -19,7 +19,7 @@ RUN uv pip install \
     --strict \
     --resolution=lowest-direct \
     -e ./src/shared \
-    -e ./src/receiver
+    -e ./src/services/receiver
 
 # Stage 3: Runtime image
 FROM base AS runtime

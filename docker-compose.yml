@@ -14,7 +14,7 @@ services:
   receiver:
     build:
       context: .
-      dockerfile: src/receiver/Dockerfile  # Updated path
+      dockerfile: src/services/receiver/Dockerfile  # Updated path
     environment:
       - REDIS_URL=redis://redis:6379
       - TZ=UTC
@@ -36,7 +36,7 @@ services:
   executor:
     build:
       context: .
-      dockerfile: src/executor/Dockerfile
+      dockerfile: src/services/executor/Dockerfile
     environment:
       - REDIS_URL=redis://redis:6379
       - TZ=UTC

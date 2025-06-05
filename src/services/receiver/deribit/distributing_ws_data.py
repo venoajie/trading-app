@@ -13,7 +13,7 @@ from core.db import redis as redis_publish
 from core.db import sqlite as db_mgt
 from src.scripts.restful_api.deribit import end_point_params_template as end_point
 from src.scripts import caching
-from src.receiver.deribit import get_instrument_summary, allocating_ohlc
+from src.services.receiver.deribit import get_instrument_summary, allocating_ohlc
 from src.shared.utils import error_handling, pickling, string_modification as str_mod, system_tools, template
 
 # Configure logger
