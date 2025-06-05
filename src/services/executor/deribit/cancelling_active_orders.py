@@ -294,9 +294,7 @@ async def cancelling_orders(
 
                                 max_position: int = notional * -1
                                 
-                                print(f"strategy {strategy}")
-                                print(f"my_trades_currency {my_trades_currency}")
-                                
+                                print(f"strategy {strategy}")                                
                                 print(f"strategy_params {strategy_params}")
                                 print(f"my_trades_currency_strategy {my_trades_currency_strategy}")
 
