@@ -19,7 +19,7 @@ from src.scripts.deribit.strategies.basic_strategy import (
 )
 
 from src.scripts.deribit.restful_api import end_point_params_template,connector
-from src.shared.utils import string_modification import parsing_label
+from src.shared.utils.string_modification import parsing_label
 
 # user defined formula
 
