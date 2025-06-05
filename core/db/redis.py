@@ -55,8 +55,7 @@ async def publishing_result(
     """ """
 
     try:
-        print(f"message {message}")
-
+        
         channel = message["params"]["channel"]
 
         # publishing message
@@ -66,6 +65,8 @@ async def publishing_result(
         )
 
     except Exception as error:
+        
+        print(f"publishing_result message {message}")
 
         await error_handling.parse_error_message_with_redis(
             client_redis,
@@ -82,7 +83,6 @@ async def saving_result(
 
     try:
         
-        print(f"cached_data {cached_data}")
         channel = cached_data["params"]["channel"]
         
         await client_redis.hset(
@@ -92,6 +92,8 @@ async def saving_result(
         )
 
     except Exception as error:
+        
+        print(f"saving_result cached_data {cached_data}")
 
         await error_handling.parse_error_message_with_redis(
             client_redis,
