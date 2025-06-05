@@ -305,6 +305,9 @@ class HedgingSpot(BasicStrategy):
 
     def __post_init__(self):
         
+        print(f"HedgingSpot init args: {args}")
+        print(f"HedgingSpot init kwargs: {kwargs}")
+        
         self.sum_my_trades_currency_strategy = get_transactions_sum(
             self.my_trades_currency_strategy
         )
