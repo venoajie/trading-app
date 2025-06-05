@@ -8,7 +8,7 @@ import orjson
 from loguru import logger as log
 
 # user defined formula
-from core.db import sqlite as db_mgt, redis
+from core.db import sqlite as db_mgt, redis as redis_client
 from src.services.executor.deribit import (
     cancelling_active_orders as cancel_order,
 )

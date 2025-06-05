@@ -209,12 +209,6 @@ async def trading_main() -> None:
         redis_keys = config_app.get("redis_keys", [{}])[0]
         strategy_config = config_app.get("strategies", [])
 
-        log.error(f"config_app {config_app}")
-        log.warning(f"redis_channels {redis_channels}") 
-        log.error(f"redis_keys {redis_keys}")
-        log.debug(f"strategy_config {strategy_config}")
-        
-               
         sub_account_cached_channel = redis_channels.get("sub_account_cache_updating", "default_channel")
         
         sub_accounts = []
