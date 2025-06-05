@@ -11,7 +11,7 @@ WORKDIR /build
 
 # Copy dependency files using actual project structure
 COPY src/shared/pyproject.toml src/shared/
-COPY src/services/executor/pyproject.toml src/executor/
+COPY src/services/executor/pyproject.toml src/services/executor/
 
 # Install dependencies with UV
 RUN uv pip install \
