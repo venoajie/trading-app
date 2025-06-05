@@ -15,6 +15,14 @@ from src.scripts.deribit.restful_api import end_point_params_template
 from src.scripts.deribit.strategies.cash_carry import combo_auto as combo
 from src.scripts.deribit.strategies.hedging import hedging_spot
 from src.shared.utils import error_handling, string_modification as str_mod, system_tools, template
+from src.scripts.deribit.strategies. basic_strategy import (
+    BasicStrategy,
+    are_size_and_order_appropriate,
+    ensure_sign_consistency,
+    is_label_and_side_consistent,
+    is_minimum_waiting_time_has_passed,
+    size_rounding,
+)
 
 async def cancelling_orders(
     client_id: str,
