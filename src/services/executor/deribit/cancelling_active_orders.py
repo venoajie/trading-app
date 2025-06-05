@@ -13,6 +13,7 @@ from src.scripts.deribit import get_published_messages
 from src.scripts.deribit import subscribing_to_channels
 from src.scripts.deribit.restful_api import end_point_params_template
 from src.scripts.deribit.strategies.cash_carry import combo_auto as combo
+from src.scripts.deribit.strategies.hedging import hedging_spot
 from src.shared.utils import error_handling, string_modification as str_mod, system_tools, template
 
 async def cancelling_orders(
