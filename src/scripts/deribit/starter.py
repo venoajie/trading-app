@@ -8,7 +8,7 @@ from loguru import logger as log
 
 # user defined formulas
 from core.db import sqlite as db_mgt
-from src.scripts.restful_api.deribit import end_point_params_template as end_point
+from src.scripts.deribit.restful_api import end_point_params_template as end_point
 from src.shared.utils import (
     error_handling,
     pickling,

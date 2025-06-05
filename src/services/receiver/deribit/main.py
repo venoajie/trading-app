@@ -19,8 +19,7 @@ from src.shared.config.settings import (
     DERIBIT_MAINTENANCE_THRESHOLD, DERIBIT_HEARTBEAT_INTERVAL
 )
 from core.db.redis import redis_client as global_redis_client
-from src.services.receiver.deribit import deribit_ws, distributing_ws_data, starter
-from src.services.deribit import deribit_ws, distributing_ws_data
+from src.services.receiver.deribit import deribit_ws, distributing_ws_data
 from src.scripts.deribit import get_instrument_summary, starter
 from src.scripts.restful_api.deribit import end_point_params_template
 from src.shared.utils import error_handling, system_tools, template
