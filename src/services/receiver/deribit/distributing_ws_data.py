@@ -402,7 +402,7 @@ async def updating_sub_account(
             if "positions" in o:
                 
                 log.info(f"positions_cached {positions_cached}")
-                caching.positions_updating_cached(positions_cached, o["positions"], "rest")
+                caching.positions_updating_cached(positions_cached, positions[0], "rest")
                 break
 
     # Update trades
