@@ -10,7 +10,6 @@ from loguru import logger as log
 
 # user defined formula
 from core.db import sqlite as db_mgt
-
 from core.db import sqlite as db_mgt, redis as redis_client
 from src.shared.utils import error_handling, string_modification as str_mod
 
