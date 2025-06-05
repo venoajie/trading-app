@@ -295,8 +295,6 @@ async def cancelling_orders(
                                 max_position: int = notional * -1
 
                                 hedging = hedging_spot.HedgingSpot(
-                                    strategy,
-                                    strategy_params,
                                     max_position,
                                     my_trades_currency_strategy,
                                     market_condition,

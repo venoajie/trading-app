@@ -163,9 +163,6 @@ async def caching_distributing_data(
                     # Handle ticker data
                     elif message_channel.startswith("incremental_ticker."):
                         
-                        
-                        log.debug(f"Processing incremental ticker for {message_channel}")
-                        log.warning(f"redis_channels  {redis_channels}")
                         instrument_name_future = message_channel[len("incremental_ticker."):]
                         await handle_incremental_ticker(
                             pipe,
