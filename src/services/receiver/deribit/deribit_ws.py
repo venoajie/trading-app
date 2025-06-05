@@ -191,8 +191,6 @@ class StreamingAccountData:
                             "account_id": self.sub_account_id
                         })
                         
-                        print(f"Received message: {message_params}")
-
                         await queue_general.put(message_params)
                         
             except orjson.JSONDecodeError as e:
