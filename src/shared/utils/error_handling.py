@@ -1,16 +1,12 @@
-# trading_app/shared/error_handling.py
-"""Enhanced error handling with verbose logging and Redis reporting"""
+# src\shared\utils\error_handling.py
 
 import asyncio
 import orjson
 import traceback
-import logging
+import logging as log
 import sys
 from datetime import datetime
 from typing import Optional, Any
-
-# Third-party imports
-from loguru import logger as log
 
 # Application imports
 from src.shared.utils import template
@@ -111,7 +107,6 @@ async def parse_error_message_with_redis(
             orjson.dumps(result)
         )
         
-        log.info(f"Error reported to Redis channel '{channel}'")
         
     except Exception as inner_error:
         # Fallback to basic logging if Redis fails

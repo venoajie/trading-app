@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# src\shared\utils\template.py
 
 
 def redis_message_template() -> str:

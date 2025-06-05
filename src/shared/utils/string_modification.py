@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# src\shared\utils\string_modification.py
 
 
 def remove_double_brackets_in_list(data: list) -> list:

@@ -1,3 +1,5 @@
+# src\shared\logging.py
+
 import logging
 
 def setup_logging(name: str, log_config: dict) -> logging.Logger:
