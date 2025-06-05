@@ -80,6 +80,8 @@ async def saving_result(
     """ """
 
     try:
+        
+        print(cached_data)
         channel = cached_data["params"]["channel"]
         
         await client_redis.hset(
