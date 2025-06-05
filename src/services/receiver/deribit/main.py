@@ -18,9 +18,10 @@ from src.shared.config.settings import (
 )
 from core.db.redis import redis_client as global_redis_client
 from src.services.receiver.deribit import deribit_ws, distributing_ws_data, starter
-from scripts.receiver.deribit import deribit_ws, distributing_ws_data, get_instrument_summary, starter
-from src.shared.utils import error_handling, system_tools, template
+from src.services.deribit import deribit_ws, distributing_ws_data
+from src.scripts.deribit import get_instrument_summary, starter
 from src.scripts.restful_api.deribit import end_point_params_template
+from src.shared.utils import error_handling, system_tools, template
 
 uvloop.install()
 

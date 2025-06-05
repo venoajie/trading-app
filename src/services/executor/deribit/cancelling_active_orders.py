@@ -16,7 +16,7 @@ from src.scripts.channel_management.deribit import subscribing_to_channels
 from src.scripts.strategies.deribit.cash_carry import combo_auto as combo
 from src.scripts.strategies.deribit.hedging import hedging_spot
 
-from src.receiver.deribit import get_instrument_summary, starter
+from src.services.receiver.deribit import get_instrument_summary, starter
 from src.shared.utils import error_handling, string_modification as str_mod, system_tools, template
 
 

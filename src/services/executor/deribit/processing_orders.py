@@ -11,7 +11,7 @@ from loguru import logger as log
 from src.scripts.restful_api.deribit import end_point_params_template
 from core.db import sqlite as db_mgt, redis
 from src.scripts.channel_management import get_published_messages
-from src.executor.deribit import (
+from src.services.executor.deribit import (
     cancelling_active_orders as cancel_order,
 )
 from src.scripts import caching

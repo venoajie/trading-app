@@ -15,8 +15,7 @@ from core.db.sqlite import (
     querying_arithmetic_operator,
     update_status_data,
 )
-from src.scripts.restful_api.deribit import end_point_params_template as end_point
-from src.scripts.restful_api import connector
+from src.scripts.deribit.restful_api import end_point_params_template as end_point, connector
 from src.shared.utils import error_handling, string_modification as str_mod
 
 

@@ -17,7 +17,7 @@ from src.shared.config.settings import (
     DERIBIT_MAINTENANCE_THRESHOLD, DERIBIT_HEARTBEAT_INTERVAL
 )
 from core.db.redis import redis_client as global_redis_client
-from src.executor.deribit import cancelling_active_orders,processing_orders
+from src.services.executor.deribit import cancelling_active_orders,processing_orders
 from src.shared.utils import error_handling, system_tools, template
 from src.scripts.restful_api.deribit import end_point_params_template
 from market_understanding.price_action.candles_analysis import get_market_condition
