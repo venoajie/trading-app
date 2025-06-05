@@ -39,7 +39,6 @@ async def saving_and_publishing_result(
         # publishing message
         await publishing_result(
             client_redis,
-            channel,
             message,
         )
 
