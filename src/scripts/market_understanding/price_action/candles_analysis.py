@@ -461,11 +461,9 @@ async def get_market_condition(
 
                                 market_analytics_data.append(pub_message)
 
-                                params.update(
-                                    {"data": market_analytics_data}
-                                )
-                                                            
-                                message_byte_data["params"].update({"data": data})
+                                message_byte_data["params"].update(
+                                        {"data": market_analytics_data}
+                                    )
 
                                 await redis_client.publishing_result(
                                     client_redis,
@@ -498,7 +496,9 @@ async def get_market_condition(
                             market_analytics_data.append(pub_message)
 
                                                     
-                        message_byte_data["params"].update({"data": data})
+                        message_byte_data["params"].update(
+                                {"data": market_analytics_data}
+                            )
 
                         await redis_client.publishing_result(
                             client_redis,
