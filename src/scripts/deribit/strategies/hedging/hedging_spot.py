@@ -8,6 +8,8 @@ from secrets import randbelow
 from dataclassy import dataclass, fields
 from loguru import logger as log
 
+
+# user defined formula
 from core.db.sqlite import update_status_data
 from src.scripts.deribit.strategies.basic_strategy import (
     BasicStrategy,
@@ -20,8 +22,6 @@ from src.scripts.deribit.strategies.basic_strategy import (
 
 from src.scripts.deribit.restful_api import end_point_params_template,connector
 from src.shared.utils.string_modification import parsing_label
-
-# user defined formula
 
 
 def get_transactions_len(result_strategy_label) -> int:

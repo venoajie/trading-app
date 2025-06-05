@@ -396,13 +396,17 @@ async def get_market_condition(
 
                 params = await get_published_messages.get_redis_message(message_byte)
 
-                data, message_channel = params["data"], params["channel"]
+                data, message_channel, message_byte_data = (
+                    params["data"],
+                    params["channel"],
+                    params["message_all"],
+                )
 
                 message_channel = params["channel"]
 
                 if chart_low_high_tick_channel in message_channel:
 
-                    params.update({"channel": market_analytics_channel})
+                    message_byte_data["params"].update({"channel": market_analytics_channel})
 
                     if market_analytics_data:
 
@@ -460,15 +464,13 @@ async def get_market_condition(
                                 params.update(
                                     {"data": market_analytics_data}
                                 )
+                                                            
+                                message_byte_data["params"].update({"data": data})
 
-                                await redis_client.saving_and_publishing_result(
+                                await redis_client.publishing_result(
                                     client_redis,
-                                    market_condition_keys,
-                                    data,
-                                    params,
+                                    message_byte_data,
                                 )
-
-                                # log.debug(f"market_analytics_data {market_analytics_data}")
 
                     else:
 
@@ -495,16 +497,14 @@ async def get_market_condition(
 
                             market_analytics_data.append(pub_message)
 
-                        params.update(
-                            {"data": market_analytics_data}
+                                                    
+                        message_byte_data["params"].update({"data": data})
+
+                        await redis_client.publishing_result(
+                            client_redis,
+                            message_byte_data,
                         )
 
-                        await redis_client.saving_and_publishing_result(
-                            client_redis,
-                            market_condition_keys,
-                            data,
-                            params,
-                        )
 
             except Exception as error:
 
