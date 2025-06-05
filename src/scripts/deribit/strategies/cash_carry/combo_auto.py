@@ -4,7 +4,7 @@
 import asyncio
 
 # installed
-from dataclassy import dataclass, fields
+from dataclasses import dataclass, fields
 from loguru import logger as log
 
 
@@ -343,7 +343,7 @@ def is_contra_order_will_reduce_delta(
         return delta < proforma
 
 
-@dataclass(unsafe_hash=True, slots=True)
+@dataclass
 class ComboAuto(basic.BasicStrategy):
     """ """
 
