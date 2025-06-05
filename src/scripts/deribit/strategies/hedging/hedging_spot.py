@@ -295,7 +295,7 @@ class HedgingSpot(BasicStrategy):
 
     notional: float 
     my_trades_currency_strategy: list
-    market_condition: list
+    market_condition: dict
     index_price: float
     my_trades_currency_all: list
     sum_my_trades_currency_strategy: int = fields
