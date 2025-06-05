@@ -8,15 +8,15 @@ import orjson
 from loguru import logger as log
 
 # user defined formula
-from src.scripts.restful_api.deribit import end_point_params_template
 from core.db import sqlite as db_mgt, redis
-from src.scripts.channel_management import get_published_messages
 from src.services.executor.deribit import (
     cancelling_active_orders as cancel_order,
 )
-from src.scripts import caching
-from src.scripts.channel_management.deribit import subscribing_to_channels
-from src.scripts.strategies.deribit import basic_strategy
+from src.scripts.deribit.restful_api import end_point_params_template
+from src.scripts.deribit.channel_management import get_published_messages
+from src.scripts.deribit import caching
+from src.scripts.deribit.channel_management import subscribing_to_channels
+from src.scripts.deribit.strategies import basic_strategy
 from src.shared.utils import (
     string_modification as str_mod,
     system_tools as tools,

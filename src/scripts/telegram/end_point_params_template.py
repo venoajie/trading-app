@@ -1,5 +1,5 @@
 
-from src.scripts.restful_api import connector
+from src.scripts.telegram import connector
 
 
 def get_basic_https() -> str:
