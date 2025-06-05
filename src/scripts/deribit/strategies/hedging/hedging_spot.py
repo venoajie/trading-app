@@ -293,7 +293,7 @@ async def modify_hedging_instrument(
 class HedgingSpot(BasicStrategy):
     """ """
 
-    notional: float
+    notional: float 
     my_trades_currency_strategy: int
     market_condition: list
     index_price: float
