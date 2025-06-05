@@ -8,7 +8,7 @@ from secrets import randbelow
 from dataclassy import dataclass, fields
 from loguru import logger as log
 
-from core.db import sqlite as db_mgt import update_status_data
+from core.db.sqlite import update_status_data
 from src.scripts.deribit.strategies.basic_strategy import (
     BasicStrategy,
     are_size_and_order_appropriate,
