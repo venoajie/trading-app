@@ -6,10 +6,9 @@ import asyncio
 # installed
 from loguru import logger as log
 
+# Application imports
 from core.db import sqlite as db_mgt
-from src.scripts.deribit import get_published_messages
-from src.scripts.deribit import get_instrument_summary 
-from src.scripts.deribit import subscribing_to_channels
+from src.scripts.deribit import get_instrument_summary, get_published_messages, subscribing_to_channels
 from src.scripts.deribit.strategies.cash_carry import reassigning_labels
 from src.services.executor.deribit import cancelling_active_orders
 from src.shared.utils import (

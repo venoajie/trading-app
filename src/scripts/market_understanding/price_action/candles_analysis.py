@@ -8,7 +8,7 @@ import orjson
 from loguru import logger as log
 
 # user defined formula
-from core.db import sqlite as db_mgt
+from src.scripts.deribit import get_published_messages
 from core.db import sqlite as db_mgt, redis as redis_client
 from src.shared.utils import error_handling, string_modification as str_mod
 
@@ -394,95 +394,45 @@ async def get_market_condition(
             try:
                 message_byte = await pubsub.get_message()
 
-                if message_byte and message_byte["type"] == "message":
+                params = await get_published_messages.get_redis_message(message_byte)
 
-                    message_byte_data = orjson.loads(message_byte["data"])
+                data, message_channel = params["data"], params["channel"]
 
-                    params = message_byte_data["params"]
+                message_channel = params["channel"]
 
-                    data = params["data"]
+                if chart_low_high_tick_channel in message_channel:
 
-                    message_channel = params["channel"]
+                    message_byte_data["params"].update(
+                        {"channel": market_analytics_channel}
+                    )
 
-                    if chart_low_high_tick_channel in message_channel:
+                    if market_analytics_data:
 
-                        message_byte_data["params"].update(
-                            {"channel": market_analytics_channel}
-                        )
+                        instrument_name = data["instrument_name"]
 
-                        if market_analytics_data:
+                        if instrument_name in data["instrument_name"]:
 
-                            instrument_name = data["instrument_name"]
+                            resolution = data["resolution"]
 
-                            if instrument_name in data["instrument_name"]:
+                            currency = data["currency"]
 
-                                resolution = data["resolution"]
+                            if resolution != 1:
 
-                                currency = data["currency"]
-
-                                if resolution != 1:
-
-                                    candles_per_resolution = (
-                                        await get_and_clean_up_candles_data(
-                                            currency,
-                                            resolution,
-                                            qty_candles,
-                                        )
+                                candles_per_resolution = (
+                                    await get_and_clean_up_candles_data(
+                                        currency,
+                                        resolution,
+                                        qty_candles,
                                     )
+                                )
 
-                                    candles_data_instrument = candles_analysis(
-                                        np,
-                                        candles_per_resolution,
-                                        dim_sequence,
-                                    )
+                                candles_data_instrument = candles_analysis(
+                                    np,
+                                    candles_per_resolution,
+                                    dim_sequence,
+                                )
 
-                                    # log.info(f"candles_data_instrument {candles_data_instrument}")
-
-                                    candles_data_instrument = [
-                                        o["result"]
-                                        for o in candles_data
-                                        if instrument_name in o["instrument_name"]
-                                    ][0]
-
-                                    pub_message = (
-                                        translate_candles_data_to_market_condition(
-                                            np,
-                                            candles_data_instrument,
-                                        )
-                                    )
-
-                                    market_analytics_data = [
-                                        o
-                                        for o in market_analytics_data
-                                        if instrument_name not in o["instrument_name"]
-                                    ]
-
-                                    pub_message.update(
-                                        {"instrument_name": instrument_name}
-                                    )
-
-                                    market_analytics_data.append(pub_message)
-
-                                    message_byte_data["params"].update(
-                                        {"data": market_analytics_data}
-                                    )
-
-                                    await redis_client.saving_and_publishing_result(
-                                        client_redis,
-                                        market_condition_keys,
-                                        message_byte_data,
-                                        message_byte_data,
-                                    )
-
-                                    # log.debug(f"market_analytics_data {market_analytics_data}")
-
-                        else:
-
-                            candles_instrument_name = str_mod.remove_redundant_elements(
-                                [o["instrument_name"] for o in candles_data]
-                            )
-
-                            for instrument_name in candles_instrument_name:
+                                # log.info(f"candles_data_instrument {candles_data_instrument}")
 
                                 candles_data_instrument = [
                                     o["result"]
@@ -497,20 +447,66 @@ async def get_market_condition(
                                     )
                                 )
 
-                                pub_message.update({"instrument_name": instrument_name})
+                                market_analytics_data = [
+                                    o
+                                    for o in market_analytics_data
+                                    if instrument_name not in o["instrument_name"]
+                                ]
+
+                                pub_message.update(
+                                    {"instrument_name": instrument_name}
+                                )
 
                                 market_analytics_data.append(pub_message)
 
-                            message_byte_data["params"].update(
-                                {"data": market_analytics_data}
+                                message_byte_data["params"].update(
+                                    {"data": market_analytics_data}
+                                )
+
+                                await redis_client.saving_and_publishing_result(
+                                    client_redis,
+                                    market_condition_keys,
+                                    message_byte_data,
+                                    message_byte_data,
+                                )
+
+                                # log.debug(f"market_analytics_data {market_analytics_data}")
+
+                    else:
+
+                        candles_instrument_name = str_mod.remove_redundant_elements(
+                            [o["instrument_name"] for o in candles_data]
+                        )
+
+                        for instrument_name in candles_instrument_name:
+
+                            candles_data_instrument = [
+                                o["result"]
+                                for o in candles_data
+                                if instrument_name in o["instrument_name"]
+                            ][0]
+
+                            pub_message = (
+                                translate_candles_data_to_market_condition(
+                                    np,
+                                    candles_data_instrument,
+                                )
                             )
 
-                            await redis_client.saving_and_publishing_result(
-                                client_redis,
-                                market_condition_keys,
-                                message_byte_data,
-                                message_byte_data,
-                            )
+                            pub_message.update({"instrument_name": instrument_name})
+
+                            market_analytics_data.append(pub_message)
+
+                        message_byte_data["params"].update(
+                            {"data": market_analytics_data}
+                        )
+
+                        await redis_client.saving_and_publishing_result(
+                            client_redis,
+                            market_condition_keys,
+                            message_byte_data,
+                            message_byte_data,
+                        )
 
             except Exception as error:
 

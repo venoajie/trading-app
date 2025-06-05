@@ -15,14 +15,14 @@ asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 # Application imports
 from core.db.redis import redis_client as global_redis_client
 from core.security import get_secret
+from src.scripts.deribit import get_instrument_summary, starter
+from src.scripts.deribit.restful_api import end_point_params_template
+from src.services.receiver.deribit import deribit_ws, distributing_ws_data
 from src.shared.config.settings import (
     REDIS_URL, REDIS_DB,
     DERIBIT_SUBACCOUNT, DERIBIT_CURRENCIES,
     DERIBIT_MAINTENANCE_THRESHOLD, DERIBIT_HEARTBEAT_INTERVAL
 )
-from src.services.receiver.deribit import deribit_ws, distributing_ws_data
-from src.scripts.deribit import get_instrument_summary, starter
-from src.scripts.deribit.restful_api import end_point_params_template
 from src.shared.utils import error_handling, system_tools, template
 
 

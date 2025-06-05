@@ -3,9 +3,6 @@
 # built ins
 import asyncio
 
-# installed
-from loguru import logger as log
-
 # user defined formulas
 from core.db import sqlite as db_mgt
 from src.scripts.deribit.restful_api import end_point_params_template as end_point
