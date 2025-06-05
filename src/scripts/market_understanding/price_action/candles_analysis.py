@@ -464,7 +464,7 @@ async def get_market_condition(
                                 await redis_client.saving_and_publishing_result(
                                     client_redis,
                                     market_condition_keys,
-                                    params,
+                                    data,
                                     params,
                                 )
 
@@ -502,7 +502,7 @@ async def get_market_condition(
                         await redis_client.saving_and_publishing_result(
                             client_redis,
                             market_condition_keys,
-                            params,
+                            data,
                             params,
                         )
 
