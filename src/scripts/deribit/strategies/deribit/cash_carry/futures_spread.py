@@ -7,7 +7,7 @@ import asyncio
 from dataclassy import dataclass, fields
 from loguru import logger as log
 
-from streaming_helper.strategies.deribit.basic_strategy import BasicStrategy
+from src.scripts.strategies.deribit.basic_strategy import BasicStrategy
 
 # user defined formula
 

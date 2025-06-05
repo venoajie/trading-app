@@ -8,8 +8,8 @@ from secrets import randbelow
 from dataclassy import dataclass, fields
 from loguru import logger as log
 
-from streaming_helper.db_management.sqlite_management import update_status_data
-from streaming_helper.strategies.deribit.basic_strategy import (
+from core.db import sqlite as db_mgt import update_status_data
+from src.scripts.strategies.deribit.basic_strategy import (
     BasicStrategy,
     are_size_and_order_appropriate,
     ensure_sign_consistency,

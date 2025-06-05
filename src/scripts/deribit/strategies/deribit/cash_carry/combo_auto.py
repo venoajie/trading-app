@@ -7,13 +7,13 @@ import asyncio
 from dataclassy import dataclass, fields
 from loguru import logger as log
 
-from streaming_helper.strategies.deribit import basic_strategy as basic
-from streaming_helper.strategies.deribit.basic_strategy import (
+from src.scripts.strategies.deribit import basic_strategy as basic
+from src.scripts.strategies.deribit.basic_strategy import (
     get_label,
     get_label_integer,
 )
 
-from streaming_helper.utilities import (
+from src.shared.utils import (
     error_handling,
     pickling,
     string_modification as str_mod,

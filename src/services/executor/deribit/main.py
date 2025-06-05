@@ -17,9 +17,13 @@ from src.shared.config.settings import (
     DERIBIT_MAINTENANCE_THRESHOLD, DERIBIT_HEARTBEAT_INTERVAL
 )
 from core.db.redis import redis_client as global_redis_client
-from src.receiver.deribit import deribit_ws, distributing_ws_data, get_instrument_summary, starter
+from src.executor.deribit import cancelling_active_orders,processing_orders
 from src.shared.utils import error_handling, system_tools, template
 from src.scripts.restful_api.deribit import end_point_params_template
+from market_understanding.price_action.candles_analysis import get_market_condition
+from streaming_helper.data_announcer.deribit import get_instrument_summary, starter
+from streaming_helper.utilities import  error_handling,string_modification as str_mod,system_tools,template
+from streaming_helper.strategies.deribit import relabelling_trading_result
 
 uvloop.install()
 
@@ -230,30 +234,53 @@ async def trading_main() -> None:
             result_template,
         )
         
-        log.info(f"sub_account_cached_channel {sub_account_cached_channel}")
-        log.info(f"result_template {result_template}")
-        log.info(f"futures_instruments {futures_instruments}")
         
-        producer_task = asyncio.create_task(
-            stream.manage_connection(
+        relabelling_task = asyncio.create_task(
+            relabelling_trading_result.relabelling_trades(
+                client_id,
+                client_secret,
                 client_redis,
-                exchange,
-                data_queue,
-                futures_instruments,
-                resolutions
-            )
+                config_app,
+                redis_channels,
+                )
         )
         
-        distributor_task = asyncio.create_task(
-            distributing_ws_data.caching_distributing_data(
+        processing_task = asyncio.create_task(
+            processing_orders.processing_orders(
+                client_id,
+                client_secret,
                 client_redis,
+                cancellable_strategies,
                 currencies,
                 initial_data_subaccount,
+                order_db_table,
                 redis_channels,
-                redis_keys,
-                strategy_config,
-                data_queue
-            )
+                strategy_attributes,
+                )
+        )
+        
+        cancelling_task = asyncio.create_task(
+            cancelling_active_orders.cancelling_orders(
+            client_id,
+            client_secret,
+            currencies,
+            client_redis,
+            config_app,
+            initial_data_subaccount,
+            redis_channels,
+            strategy_attributes,
+                )
+        )
+        
+        
+        understanding_market = asyncio.create_task(
+            get_market_condition(
+                client_redis,
+                config_app,
+                currencies,
+                redis_channels,
+                resolutions,
+                np)
         )
         
         # Main monitoring loop
@@ -278,7 +305,7 @@ async def trading_main() -> None:
                 log.info("Alert monitoring task cancelled")
 
         # Cancel producer and distributor tasks
-        for task in [producer_task, distributor_task]:
+        for task in [relabelling_task, processing_task, cancelling_task, understanding_market]:
             if task and not task.done():
                 task.cancel()
                 try:

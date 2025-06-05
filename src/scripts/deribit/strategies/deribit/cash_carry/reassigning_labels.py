@@ -7,9 +7,9 @@ import asyncio
 from loguru import logger as log
 
 # user defined formula
-from streaming_helper.db_management import sqlite_management as db_mgt
-from streaming_helper.strategies.deribit.cash_carry import combo_auto
-from streaming_helper.utilities import string_modification as str_mod
+from core.db import sqlite as db_mgt
+from src.scripts.strategies.deribit.cash_carry import combo_auto
+from src.shared.utils import string_modification as str_mod
 
 
 def waiting_time_has_expired(
