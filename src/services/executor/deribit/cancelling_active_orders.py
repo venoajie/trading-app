@@ -158,6 +158,9 @@ async def cancelling_orders(
                     currency_lower = currency_upper.lower()
 
                     instrument_name_perpetual = f"{currency_upper}-PERPETUAL"
+                    
+                    print(f"instrument_name_perpetual {instrument_name_perpetual}") 
+                    print(f"market_condition_all {market_condition_all}")
 
                     market_condition = [
                         o
