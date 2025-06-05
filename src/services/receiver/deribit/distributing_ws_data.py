@@ -136,9 +136,6 @@ async def caching_distributing_data(
                     currency: str = str_mod.extract_currency_from_text(message_channel)
                     currency_upper = currency.upper()
                     
-                    log.warning(f"redis_channels {redis_channels}")
-                    log.error(f"message_params {message_params}")
-
                     pub_message = {
                         "data": data,
                         "server_time": 0,
