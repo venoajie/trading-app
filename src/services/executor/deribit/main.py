@@ -195,27 +195,10 @@ async def trading_main() -> None:
         
         data_queue = Queue(maxsize=1000)
         
-        stream = deribit_ws.StreamingAccountData(
-            sub_account_id=DERIBIT_SUBACCOUNT,
-            client_id=client_id,
-            client_secret=client_secret,
-            reconnect_base_delay=5,
-            max_reconnect_delay=300,
-            maintenance_threshold=DERIBIT_MAINTENANCE_THRESHOLD,
-            websocket_timeout=900,
-            heartbeat_interval=DERIBIT_HEARTBEAT_INTERVAL
-        )
-        
         config_app = system_tools.get_config_tomli(config_path)
         redis_channels = config_app.get("redis_channels", [{}])[0]
         redis_keys = config_app.get("redis_keys", [{}])[0]
         strategy_config = config_app.get("strategies", [])
-
-        log.error(f"config_app {config_app}")
-        log.warning(f"redis_channels {redis_channels}") 
-        log.error(f"redis_keys {redis_keys}")
-        log.debug(f"strategy_config {strategy_config}")
-        
                
         sub_account_cached_channel = redis_channels.get("sub_account_cache_updating", "default_channel")
         
@@ -234,7 +217,6 @@ async def trading_main() -> None:
             sub_account_cached_channel,
             result_template,
         )
-        
         
         relabelling_task = asyncio.create_task(
             relabelling_trading_result.relabelling_trades(
