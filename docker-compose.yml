@@ -16,24 +16,27 @@ services:
   receiver:
     build:
       context: .
-      dockerfile: src/services/receiver/Dockerfile  # Updated path
+      dockerfile: src/services/receiver/Dockerfile
     environment:
       - REDIS_URL=redis://redis:6379
       - TZ=UTC
+      - POSTGRES_HOST=postgres  # Add PostgreSQL connection info
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=trading
     volumes:
       - ./data:/app/data
     depends_on:
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     secrets:
       - source: deribit_client_id
         target: deribit_client_id
       - source: deribit_client_secret
         target: deribit_client_secret
+      - source: db_password  # Add DB password secret
     restart: unless-stopped
-    # Remove port mapping since no web server exists
-    # ports:
-    #   - "8000:8000"
 
   executor:
     build:
@@ -42,16 +45,22 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - TZ=UTC
+      - POSTGRES_HOST=postgres  # Add PostgreSQL connection info
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=trading
     volumes:
       - ./data:/app/data
     depends_on:
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     secrets:
       - source: deribit_client_id
         target: deribit_client_id
       - source: deribit_client_secret
         target: deribit_client_secret
+      - source: db_password  # Add DB password secret
     restart: unless-stopped
 
   postgres:
@@ -81,7 +90,9 @@ services:
       - "work_mem=16MB"
 
 volumes:
-  redis-data:  
+  redis-data:
+  pgdata:  # ADD THIS VOLUME DEFINITION
+
 secrets:
   deribit_client_id:
     file: ./secrets/client_id.txt
