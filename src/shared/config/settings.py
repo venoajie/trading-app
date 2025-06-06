@@ -6,6 +6,7 @@ Configuration settings for the application, loading from environment variables a
 import os
 import tomllib
 from typing import Any, Dict
+from core.security import get_secret
 
 def load_toml(file_path: str) -> Dict[str, Any]:
     """Load TOML file directly"""
