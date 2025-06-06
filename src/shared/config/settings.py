@@ -52,3 +52,11 @@ DERIBIT_CURRENCIES = CONFIG["deribit"]["currencies"]
 DERIBIT_MAINTENANCE_THRESHOLD = 300  # 15 minutes (in seconds)
 DERIBIT_HEARTBEAT_INTERVAL = 30      # 30 seconds
 DB_BASE_PATH="/app/data"
+
+# PostgreSQL Configuration
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "postgres")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "trading")
+POSTGRES_USER = os.getenv("POSTGRES_USER", "trading_app")
+POSTGRES_PASSWORD = get_secret("db_password")
+POSTGRES_DSN = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"

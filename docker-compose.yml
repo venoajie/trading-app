@@ -54,6 +54,32 @@ services:
         target: deribit_client_secret
     restart: unless-stopped
 
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: trading_app
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_DB: trading
+      POSTGRES_INITDB_ARGS: --data-checksums
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    secrets:
+      - db_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trading_app"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: 
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pg_stat_statements"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "work_mem=16MB"
+
 volumes:
   redis-data:  
 secrets:
@@ -61,3 +87,5 @@ secrets:
     file: ./secrets/client_id.txt
   deribit_client_secret:
     file: ./secrets/client_secret.txt
+  db_password:
+    file: ./secrets/db_password.txt
