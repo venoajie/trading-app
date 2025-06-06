@@ -7,6 +7,7 @@ from src.shared.utils.pickling import read_data
 from src.shared.utils.system_tools import (
     provide_path_for_file,
 )
+from loguru import logger as log
 
 
 def reading_from_pkl_data(
@@ -216,6 +217,8 @@ def positions_updating_cached(
     source: str = "ws",
 ):
     """ """
+    
+    log.info(f"sub_account_data {sub_account_data}")
 
     if source == "ws":
         positions = sub_account_data["positions"]
@@ -227,6 +230,8 @@ def positions_updating_cached(
     if positions:
 
         for position in positions:
+            
+            log.info(f"position {position}")
 
             position_instrument_name = position["instrument_name"]
 

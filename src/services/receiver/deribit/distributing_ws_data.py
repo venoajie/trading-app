@@ -401,6 +401,7 @@ async def updating_sub_account(
         for o in subaccounts_details_result:
             if "positions" in o:
                 positions = [o["positions"] for o in subaccounts_details_result]
+                log.info(f"o {o}")
                 log.info(f"positions_cached {positions_cached}")
                 caching.positions_updating_cached(positions_cached, positions[0], "rest")
                 break
