@@ -225,16 +225,15 @@ async def handle_user_message(
                 data
             )
     elif "changes" in message_channel:
-        log.info(f"Account changes: {message_channel}")
-        await updating_sub_account(
-            pipe,
-            orders_cached,
-            positions_cached,
-            query_trades,
-            data,
-            redis_channels["sub_account_cache_updating"],
-            result_template,
-        )
+        log.info(f"Account changes: {message_channel} {data}")
+        
+        for result in subaccounts_details_result:
+            if "open_orders" in result:
+                log.info(f"open_orders {result}")
+            if "positions" in result:
+                log.info(f"positions {result}")
+            if "trade" in result:
+                log.info(f"trade {result}")
     else:
         if "trades" in message_channel:
             await trades_in_message_channel(
@@ -400,8 +399,7 @@ async def updating_sub_account(
         log.info(f"subaccounts_details_result {subaccounts_details_result}")
         for o in subaccounts_details_result:
             if "positions" in o:
-                positions = subaccounts_details_result["positions"] for o in subaccounts_details_result
-                log.info(f"o {o}")
+                positions = [o["positions"] for o in subaccounts_details_result]
                 log.info(f"positions_cached {positions_cached}")
                 caching.positions_updating_cached(positions_cached, positions[0], "rest")
                 break
