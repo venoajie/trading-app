@@ -33,6 +33,16 @@ class PostgresClient:
             
             return await conn.execute(query,data)
                 
+    async def fetch(self, query: str, *args, timeout=30):
+        await self.start_pool()  # Ensure pool exists
+        async with self._pool.acquire(timeout=timeout) as conn:
+            return await conn.fetch(query, *args)
+    
+    async def fetchrow(self, query: str, *args, timeout=30):
+        await self.start_pool()  # Ensure pool exists
+        async with self._pool.acquire(timeout=timeout) as conn:
+            return await conn.fetchrow(query, *args)
+            
     async def update_json_field(self, table: str, id: int, field: str, value):
         
         query = f"""UPDATE {table} SET data = jsonb_set(data, '{{{field}}}', $1) WHERE id = $2"""
