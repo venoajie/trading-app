@@ -25,21 +25,21 @@ class PostgresClient:
             raise ConnectionError("Failed to create PostgreSQL pool")
     
     async def insert_json(self, table: str, data: dict):
+        
+        query = f"""INSERT INTO {table} (data) VALUES ($1) ON CONFLICT (trade_id) DO NOTHING"""
+        
         await self.start_pool()  # Ensure pool exists
         async with self._pool.acquire() as conn:
-            return await conn.execute(
-                f"INSERT INTO {table} (data) VALUES ($1) 
-                 ON CONFLICT (trade_id) DO NOTHING",
-                data
-            )
+            
+            return await conn.execute(query,data)
                 
     async def update_json_field(self, table: str, id: int, field: str, value):
+        
+        query = f"""UPDATE {table} SET data = jsonb_set(data, '{{{field}}}', $1) WHERE id = $2"""
+        
         await self.start_pool()  # Ensure pool exists
         async with self._pool.acquire() as conn:
-            return await conn.execute(
-                f"UPDATE {table} SET data = jsonb_set(data, '{{{field}}}', $1) WHERE id = $2",
-                value, id
-            )
+            return await conn.execute(query, value, id)
     
     async def json_table_query(self, table: str, columns: list, condition: str = ""):
         cols = ", ".join(columns)
