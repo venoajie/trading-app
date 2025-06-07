@@ -87,7 +87,7 @@ async def cancelling_orders(
 
         cached_orders = sub_account_cached["orders_cached"]
 
-        query_trades = f"SELECT * FROM  v_trading_all_active"
+        query_trades = f"SELECT * FROM  v_trading_active"
 
         result_template = template.redis_message_template()
 
