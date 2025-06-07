@@ -8,6 +8,8 @@ from loguru import logger as log
 
 # user defined formula
 from core.db import sqlite as db_mgt, redis as redis_client
+from core.db import postgres as db_mgt  # NEW
+
 from src.scripts.deribit import get_published_messages, caching, subscribing_to_channels
 from src.scripts.deribit.restful_api import end_point_params_template
 from src.scripts.deribit.strategies import basic_strategy
@@ -220,6 +222,8 @@ async def processing_orders(
                                             order_db_table,
                                             order_id,
                                         )
+                                        
+                                        order_db_table = "orders_json"
 
                                         # log.error (f"order {order}")
                                         await db_mgt.insert_tables(
@@ -359,6 +363,8 @@ async def cancelling_and_relabelling(
             log.error("OTO" not in order_id)
 
             if "OTO" not in order_id:
+                
+                order_db_table = "orders_json"
 
                 # log.error (f"order {order}")
                 await db_mgt.insert_tables(
@@ -539,6 +545,8 @@ async def saving_order_based_on_state(
     order_state = order["order_state"]
 
     if order_state == "cancelled" or order_state == "filled":
+        
+        order_table = "orders_json"
 
         await db_mgt.deleting_row(
             order_table,
@@ -549,6 +557,8 @@ async def saving_order_based_on_state(
         )
 
     if order_state == "open":
+        
+        order_table = "orders_json"
 
         # log.error (f"order {order}")
         await db_mgt.insert_tables(
@@ -640,6 +650,8 @@ async def saving_traded_orders(
         label_open: str = template.get_custom_label(trade_result)
 
     trade_to_db.update({"label": label_open})
+    
+    trade_table = "orders_json"
 
     await db_mgt.insert_tables(
         trade_table,
@@ -684,6 +696,7 @@ async def saving_oto_order(
             ):
 
                 # log.error (f"transaction_main {transaction_main}")
+                order_table = "orders_json"
                 await db_mgt.insert_tables(
                     order_db_table,
                     transaction_main,
@@ -707,6 +720,8 @@ async def saving_oto_order(
             else:
 
                 # log.error (f"transaction_main {transaction_main}")
+                
+                order_table = "orders_json"
                 await db_mgt.insert_tables(
                     order_db_table,
                     transaction_main,

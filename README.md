@@ -1,5 +1,47 @@
+# Trading Application Deployment Guide
+
+## Prerequisites
+1. Install Docker and Docker Compose
+2. Create a Deribit API account to get credentials
+
+## Step 1: Set Environment Variables
+Run these commands in your terminal **before deployment**:
+
+```bash
+# Deribit API credentials
+export DERIBIT_CLIENT_ID="your_deribit_client_id"
+export DERIBIT_CLIENT_SECRET="your_deribit_client_secret"
+
+# PostgreSQL password (min 8 characters)
+export DB_PASSWORD="your_secure_database_password"
+
+# Optional: Set timezone (default UTC)
+export TZ="UTC"
+
+
 Step 1: Secure Secrets Initialization
 Run the deployment script to create encrypted secrets:
+bash
+# 1. Make sure environment variables are set
+export DERIBIT_CLIENT_ID="your_id"
+export DERIBIT_CLIENT_SECRET="your_secret"
+export DB_PASSWORD="your_db_password"  # Add this if missing
+
+# 2. Create the db_password secret
+mkdir -p ~/.app_secrets
+echo "$DB_PASSWORD" > ~/.app_secrets/db_password.txt
+chmod 600 ~/.app_secrets/*.txt
+
+# 3. Start fresh
+./deploy.sh
+Create secrets file:
+
+bash
+echo "secure_password" > secrets/db_password.txt
+chmod 600 secrets/db_password.txt
+
+echo "your_secure_password" > secrets/db_password.txt
+chmod 600 secrets/db_password.txt
 
 bash
 chmod +x deploy.sh  # Make executable

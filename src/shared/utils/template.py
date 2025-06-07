@@ -31,7 +31,7 @@ def trade_template() -> str:
         order_id: str=None,
         user_seq: int=None
     
-    result_example = {
+    trades_example = {
             'trades': [
                 {
                     'label': 'customLong-open-1746435478513',
@@ -64,6 +64,25 @@ def trade_template() -> str:
                 ]
             }
     
+    orders_example= [
+        {
+            'oto_order_ids': ['OTO-80322590'], 'is_liquidation': False, 'risk_reducing': False,
+            'order_type': 'limit', 'creation_timestamp': 1733172624209, 'order_state': 'open',
+            'reject_post_only': False, 'contracts': 1.0, 'average_price': 0.0, 'reduce_only': False,
+            'trigger_fill_condition': 'incremental', 'last_update_timestamp': 1733172624209,
+            'filled_amount': 0.0, 'replaced': False, 'post_only': True, 'mmp': False, 'web': True,
+            'api': False, 'instrument_name': 'BTC-PERPETUAL', 'max_show': 10.0, 'time_in_force': 'good_til_cancelled',
+            'direction': 'buy', 'amount': 10.0, 'order_id': '81944428472', 'price': 90000.0, 'label': ''},
+        {
+            'is_liquidation': False, 'risk_reducing': False, 'order_type': 'limit',
+            'creation_timestamp': 1733172624177, 'order_state': 'untriggered', 'average_price': 0.0,
+            'reduce_only': False, 'trigger_fill_condition': 'incremental', 'last_update_timestamp': 1733172624177,
+            'filled_amount': 0.0, 'is_secondary_oto': True, 'replaced': False, 'post_only': False, 'mmp': False,
+            'web': True, 'api': False, 'instrument_name': 'BTC-PERPETUAL', 'max_show': 10.0,
+            'time_in_force': 'good_til_cancelled', 'direction': 'sell', 'amount': 10.0,
+            'order_id': 'OTO-80322590', 'price': 100000.0, 'label': ''}
+        ]
+
     sl = stop loss
     tp = take profit
     both variables determined by strategy and provided before order was sent to exchange. 
@@ -74,7 +93,6 @@ def trade_template() -> str:
     """
     return dict(
         instrument_name=None,
-        amount=None,
         amount=None,
         price=None,
         side=None,
