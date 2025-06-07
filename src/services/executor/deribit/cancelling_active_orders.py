@@ -8,6 +8,7 @@ from loguru import logger as log
 
 # user defined formula
 from core.db import sqlite as db_mgt
+from core.db.postgres import fetch, insert_json
 from src.scripts.deribit import get_instrument_summary, starter
 from src.scripts.deribit import get_published_messages
 from src.scripts.deribit import subscribing_to_channels
@@ -90,9 +91,7 @@ async def cancelling_orders(
 
         result_template = template.redis_message_template()
 
-        my_trades_active_from_db = await db_mgt.executing_query_with_return(
-            query_trades
-        )
+        my_trades_active_from_db = await fetch(query_trades)
 
         initial_data_my_trades_active = starter.my_trades_active_combining(
             my_trades_active_from_db,
@@ -387,17 +386,10 @@ async def cancel_the_cancellables(
 
     log.critical(f" cancel_the_cancellables {currency}")
 
-    where_filter = f"order_id"
-
-    column_list = "label", where_filter
-
-    if open_orders_sqlite is None:
-        open_orders_sqlite: list = (
-            await db_mgt.executing_query_based_on_currency_or_instrument_and_strategy(
-                "orders_all_json", currency.upper(), "all", "all", column_list
-            )
-        )
-
+    query_orders = f"SELECT * FROM  v_orders"
+    
+    open_orders_sqlite: list = await fecth(query_orders)
+        
     if open_orders_sqlite:
 
         for strategy in cancellable_strategies:

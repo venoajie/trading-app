@@ -75,7 +75,7 @@ async def processing_orders(
 
         not_cancel = True
 
-        query_trades = f"SELECT * FROM  v_trading_all_active"
+        query_trades = f"SELECT * FROM  v_trading_active"
 
         sub_account_cached_params = initial_data_subaccount["params"]
 

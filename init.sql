@@ -45,12 +45,19 @@ ALTER TABLE orders
         END
     ) STORED;
 
--- Optimized view for active trades
-CREATE VIEW v_trading_all_active AS
+-- view for active trades
+CREATE VIEW v_trading_active AS
 SELECT instrument_name, label, amount_dir_calc AS amount, 
-       price, side, timestamp, trade_id
+       price, side, timestamp, trade_id, order_
 FROM orders
 WHERE is_open = TRUE AND trade_id IS NOT NULL;
+
+-- view for active orders
+CREATE VIEW v_orders AS
+SELECT instrument_name, label, amount_dir_calc AS amount, 
+       price, side, timestamp, order_id
+FROM orders
+WHERE trade_id IS NULL;
 
 -- Indexes for critical columns
 CREATE INDEX idx_orders_uid ON orders (uid);
