@@ -3,41 +3,38 @@ from loguru import logger as log
 from src.shared.config.settings import POSTGRES_DSN
 
 class PostgresClient:
-    _pool = None
-    
-    async def execute(self, query: str, *args):
-        async with self._pool.acquire() as conn:
-            return await conn.execute(query, *args)
-    
-    async def fetch(self, query: str, *args):
-        async with self._pool.acquire() as conn:
-            return await conn.fetch(query, *args)
-    
-    async def fetchrow(self, query: str, *args):
-        async with self._pool.acquire() as conn:
-            return await conn.fetchrow(query, *args)
-            
     async def start_pool(self):
         if not self._pool:
-            self._pool = await asyncpg.create_pool(
-                dsn=POSTGRES_DSN,
-                min_size=5,
-                max_size=20,
-                command_timeout=60,
-                server_settings={
-                    'application_name': 'trading-app',
-                    'jit': 'off'
-                }
-            )
+            for _ in range(3):  # Retry mechanism
+                try:
+                    self._pool = await asyncpg.create_pool(
+                        dsn=POSTGRES_DSN,
+                        min_size=5,
+                        max_size=20,
+                        command_timeout=60,
+                        server_settings={
+                            'application_name': 'trading-app',
+                            'jit': 'off'
+                        }
+                    )
+                    log.info("PostgreSQL pool created")
+                    return
+                except Exception as e:
+                    log.error(f"Connection failed: {e}")
+                    await asyncio.sleep(2)
+            raise ConnectionError("Failed to create PostgreSQL pool")
     
     async def insert_json(self, table: str, data: dict):
+        await self.start_pool()  # Ensure pool exists
         async with self._pool.acquire() as conn:
             return await conn.execute(
-                f"INSERT INTO {table} (data) VALUES ($1)",
+                f"INSERT INTO {table} (data) VALUES ($1) 
+                 ON CONFLICT (trade_id) DO NOTHING",
                 data
             )
-    
+                
     async def update_json_field(self, table: str, id: int, field: str, value):
+        await self.start_pool()  # Ensure pool exists
         async with self._pool.acquire() as conn:
             return await conn.execute(
                 f"UPDATE {table} SET data = jsonb_set(data, '{{{field}}}', $1) WHERE id = $2",

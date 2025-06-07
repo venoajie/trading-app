@@ -1,9 +1,8 @@
 # MY TRADIND APP PROJECT
 
 ## CORE ARCHITECTURE
-- **Database**: active: sqlite/pickle. will be migrate to PostgreSQL as expected to retain many api secrets
+- **Database**: active: sqlite/pickle. on going migrate to PostgreSQL as expected to retain many api secrets
 - **Message broker**: Redis
-- **Platform**: Docker (just migrated to docker. previously deployed using regular approach in linux)
 - **Back up**: database backed up at backblaze using inotify
 - **Key Services**:
   - `receivers` () - receive data from exchanges through websockets 
@@ -27,7 +26,7 @@
 
 ## CURRENT PHASE (2025-06-02)
 - receiver basic functionalities has completed. doing some optimizations before next steps
-
+- processorbasic functionalities in deployment stage. still facing some errors due to inconsistent caching 
 CURRENT PHASE CONCERN:
 
 main.py is overly complex with mixed concerns. Need to refactor
@@ -52,25 +51,6 @@ manager.register("trading_main", trading_main)
 asyncio.run(manager.start_all())
 
 
-7. File Structure Optimization:
-
-src/
-├── core/
-│   ├── __init__.py
-│   ├── config.py
-│   ├── redis.py
-│   ├── db.py
-│   └── error_handler.py
-├── services/
-│   ├── receiver.py
-│   ├── processor.py
-│   └── distributor.py
-├── utils/
-│   ├── template.py
-│   ├── system_tools.py
-│   └── caching.py
-└── main.py
-
 8. Dead Code Removal
 Remove these unused components:
 
@@ -83,9 +63,6 @@ caching.py (functionality exists in utils)
 Circular dependencies between redis.py and error_handling.py
 
 we have 2 error handlers, at core and shared
-
-9. Permission Fixes
-Problem: SQLite write permissions in Docker.
 
 Fix:
 
@@ -124,14 +101,10 @@ async def health_check():
 
 ## NEXT PHASE ()
 receiver. need add additional things:
-- docker optimization (speed, size, security. replace requirements.txt with pyproject.toml)
 - unit testing
 - how communicate failures
 - listing possible alternatives (speed vs easy maintenance vs technology)
 - improve documentation and familiarize my self with the code
-
-other services
-- copying everything at receiver for other services
 
 
 # MEDIUM TERM

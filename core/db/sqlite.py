@@ -191,9 +191,6 @@ async def querying_table(
     Reference
     # https://stackoverflow.com/questions/65934371/return-data-from-sqlite-with-headers-python3
     """
-
-    from utilities import string_modification as str_mod
-
     if database is None:
         database = get_db_path() 
         
