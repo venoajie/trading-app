@@ -482,7 +482,10 @@ def convert_list_to_dict(transaction: list) -> dict:
     return transaction
 
 
-def is_label_and_side_consistent(non_checked_strategies, params) -> bool:
+def is_label_and_side_consistent(
+    non_checked_strategies,
+    params,
+    ) -> bool:
     """ """
 
     # log.error (f"params {params}")
