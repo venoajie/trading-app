@@ -70,3 +70,11 @@ async def init_db():
     await postgres_client.start_pool()
     log.info("PostgreSQL connection pool initialized")
     return postgres_client
+
+    
+# Add module-level aliases for singleton methods
+insert_json = postgres_client.insert_json
+fetch = postgres_client.fetch
+fetchrow = postgres_client.fetchrow
+update_json_field = postgres_client.update_json_field
+json_table_query = postgres_client.json_table_query
