@@ -4,12 +4,12 @@ from loguru import logger as log
 from src.shared.config.settings import POSTGRES_DSN
 
 class PostgresClient:
-    def __init__(self):  # Initialize _pool attribute
+    def __init__(self):
         self._pool = None
         
     async def start_pool(self):
         if not self._pool:
-            for _ in range(3):  # Retry mechanism
+            for _ in range(3):
                 try:
                     self._pool = await asyncpg.create_pool(
                         dsn=POSTGRES_DSN,
@@ -28,15 +28,34 @@ class PostgresClient:
                     await asyncio.sleep(2)
             raise ConnectionError("Failed to create PostgreSQL pool")
     
-    async def insert_json(self, table: str, data: dict):
-    data['currency'] = data['fee_currency']
-    query = """INSERT INTO my_trades_all_json (currency, data) 
-               VALUES ($1, $2) 
-               ON CONFLICT (trade_id) DO NOTHING"""
-    await self.start_pool()
-    async with self._pool.acquire() as conn:
-        return await conn.execute(query, data['currency'], data)
-    
+    async def insert_trade_or_order(self, data: dict):
+        # Extract currency from instrument_name if fee_currency not present
+        currency = data.get('fee_currency') or data['instrument_name'].split('-')[0].lower()
+        
+        query = """
+            INSERT INTO orders (
+                currency, instrument_name, label, amount_dir, 
+                price, side, timestamp, trade_id, order_id, is_open
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            ON CONFLICT (currency, trade_id) DO NOTHING
+        """
+        params = (
+            currency,
+            data['instrument_name'],
+            data.get('label'),
+            data.get('amount_dir') or data.get('amount'),
+            data.get('price'),
+            data.get('side') or data.get('direction'),
+            data.get('timestamp'),
+            data.get('trade_id'),
+            data.get('order_id'),
+            data.get('is_open', False)
+        )
+        
+        await self.start_pool()
+        async with self._pool.acquire() as conn:
+            return await conn.execute(query, *params)
+
     async def fetch(self, query: str, *args, timeout=30):
         await self.start_pool()
         async with self._pool.acquire(timeout=timeout) as conn:

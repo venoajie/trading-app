@@ -49,13 +49,11 @@ CREATE TABLE my_trades_all_btc_json (
     user_seq INTEGER GENERATED ALWAYS AS ((data->>'user_seq')::INTEGER) STORED,
     is_open INTEGER NOT NULL DEFAULT 1 CHECK(is_open IN (0,1))
 );
-
 CREATE VIEW v_trading_all_active AS
 SELECT instrument_name, label, amount_dir AS amount, 
        price, side, timestamp, trade_id
 FROM my_trades_all_json
 WHERE is_open = true;
-
 CREATE TABLE ohlc15_btc_perp_json (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
