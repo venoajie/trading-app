@@ -66,10 +66,10 @@ class PostgresClient:
         async with self._pool.acquire() as conn:
             return await conn.execute(query, *params)
 
-    async def fetch_active_trades(self):
+    async def fetch_active_trades(self, query):
         await self.start_pool()
         async with self._pool.acquire() as conn:
-            return await conn.fetch("SELECT * FROM v_trading_all_active")
+            return await conn.fetch(query)
 
 # Singleton instance
 postgres_client = PostgresClient()
