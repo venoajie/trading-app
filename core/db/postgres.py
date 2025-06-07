@@ -29,11 +29,14 @@ class PostgresClient:
             raise ConnectionError("Failed to create PostgreSQL pool")
     
     async def insert_json(self, table: str, data: dict):
-        query = f"""INSERT INTO {table} (data) VALUES ($1) ON CONFLICT (trade_id) DO NOTHING"""
-        await self.start_pool()
-        async with self._pool.acquire() as conn:
-            return await conn.execute(query,data)
-                
+    data['currency'] = data['fee_currency']
+    query = """INSERT INTO my_trades_all_json (currency, data) 
+               VALUES ($1, $2) 
+               ON CONFLICT (trade_id) DO NOTHING"""
+    await self.start_pool()
+    async with self._pool.acquire() as conn:
+        return await conn.execute(query, data['currency'], data)
+    
     async def fetch(self, query: str, *args, timeout=30):
         await self.start_pool()
         async with self._pool.acquire(timeout=timeout) as conn:
