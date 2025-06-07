@@ -1,4 +1,5 @@
-import asyncio  # Added missing import
+# core/db/postgres.py
+import json
 import asyncpg
 from loguru import logger as log
 from src.shared.config.settings import POSTGRES_DSN
@@ -29,74 +30,50 @@ class PostgresClient:
             raise ConnectionError("Failed to create PostgreSQL pool")
     
     async def insert_trade_or_order(self, data: dict):
-        # Extract currency from instrument_name if fee_currency not present
-        currency = data.get('fee_currency') or data['instrument_name'].split('-')[0].lower()
+        currency = data.get('fee_currency') or data['instrument_name'].split('-')[0].upper()
+        is_trade = 'trade_id' in data
         
         query = """
             INSERT INTO orders (
-                currency, instrument_name, label, amount_dir, 
-                price, side, timestamp, trade_id, order_id, is_open
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            ON CONFLICT (currency, trade_id) DO NOTHING
+                currency, instrument_name, label, amount_dir, price, 
+                side, timestamp, trade_id, order_id, is_open, data
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            ON CONFLICT (currency, instrument_name, COALESCE(trade_id, order_id)) 
+            DO UPDATE SET 
+                label = EXCLUDED.label,
+                amount_dir = EXCLUDED.amount_dir,
+                price = EXCLUDED.price,
+                side = EXCLUDED.side,
+                timestamp = EXCLUDED.timestamp,
+                is_open = EXCLUDED.is_open,
+                data = EXCLUDED.data
         """
         params = (
             currency,
             data['instrument_name'],
             data.get('label'),
-            data.get('amount_dir') or data.get('amount'),
+            data.get('amount'),
             data.get('price'),
             data.get('side') or data.get('direction'),
             data.get('timestamp'),
             data.get('trade_id'),
             data.get('order_id'),
-            data.get('is_open', False)
+            is_trade,  # Mark as open if it's a trade
+            json.dumps(data)
         )
         
         await self.start_pool()
         async with self._pool.acquire() as conn:
             return await conn.execute(query, *params)
 
-    async def fetch(self, query: str, *args, timeout=30):
-        await self.start_pool()
-        async with self._pool.acquire(timeout=timeout) as conn:
-            return await conn.fetch(query, *args)
-    
-    async def fetchrow(self, query: str, *args, timeout=30):
-        await self.start_pool()
-        async with self._pool.acquire(timeout=timeout) as conn:
-            return await conn.fetchrow(query, *args)
-            
-    async def update_json_field(self, table: str, id: int, field: str, value):
-        query = f"""UPDATE {table} SET data = jsonb_set(data, '{{{field}}}', $1) WHERE id = $2"""
+    async def fetch_active_trades(self):
         await self.start_pool()
         async with self._pool.acquire() as conn:
-            return await conn.execute(query, value, id)
-    
-    async def json_table_query(self, table: str, columns: list, condition: str = ""):
-        await self.start_pool()  # Ensure pool exists
-        cols = ", ".join(columns)
-        query = f"""
-            SELECT j.* 
-            FROM {table}, 
-            JSON_TABLE(data, '$' COLUMNS({cols})) AS j
-            {condition}
-        """
-        async with self._pool.acquire() as conn:
-            return await conn.fetch(query)
-
+            return await conn.fetch("SELECT * FROM v_trading_all_active")
 
 # Singleton instance
 postgres_client = PostgresClient()
 
-async def init_db():
-    await postgres_client.start_pool()
-    log.info("PostgreSQL connection pool initialized")
-    return postgres_client
-
-    
-# Add module-level aliases for singleton methods
-insert_json = postgres_client.insert_json
-fetch = postgres_client.fetch
-fetchrow = postgres_client.fetchrow
-update_json_field = postgres_client.update_json_field
-json_table_query = postgres_client.json_table_query
+# Module-level aliases
+insert_json = postgres_client.insert_trade_or_order
+fetch = postgres_client.fetch_active_trades
