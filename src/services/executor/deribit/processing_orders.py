@@ -7,8 +7,8 @@ import asyncio
 from loguru import logger as log
 
 # user defined formula
-from core.db import sqlite as db_mgt_sqlite, redis as redis_client
-from core.db import postgres as db_mgt  # NEW
+from core.db import sqlite as db_mgt, redis as redis_client
+from core.db.postgres import fetch, insert_json
 
 from src.scripts.deribit import get_published_messages, caching, subscribing_to_channels
 from src.scripts.deribit.restful_api import end_point_params_template
@@ -757,7 +757,7 @@ async def updating_sub_account(
                 "rest",
             )
 
-    my_trades_active_all = await db_mgt.fetch(query_trades)
+    my_trades_active_all = await fetch(query_trades)
 
     data = dict(
         positions=positions_cached,
