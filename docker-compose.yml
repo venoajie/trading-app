@@ -67,7 +67,6 @@ services:
     image: postgres:17
     environment:
       POSTGRES_USER: trading_app
-      POSTGRES_USER_FILE: /run/secrets/db_user
       POSTGRES_PASSWORD_FILE: /run/secrets/db_password
       POSTGRES_DB: trading
       POSTGRES_INITDB_ARGS: --data-checksums
@@ -75,7 +74,6 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     secrets:
-      - db_user
       - db_password
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U trading_app -d trading"]
