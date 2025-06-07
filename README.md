@@ -1,3 +1,25 @@
+Step 1: Secure Secrets Initialization
+Run the deployment script to create encrypted secrets:
+
+bash
+chmod +x deploy.sh  # Make executable
+./deploy.sh         # Creates ~/.app_secrets with 700 permissions
+
+Step 2: Database Setup
+Initialize PostgreSQL with init.sql:
+
+bash
+docker compose up -d postgres  # Starts PostgreSQL first
+Verify database health:
+
+bash
+docker compose logs postgres | grep "database system is ready"
+
+Step 3: Build & Launch Services
+bash
+docker compose up -d --build  # Builds receiver, executor, Redis, PostgreSQL
+
+
 latest folder structure:
 
 [opc@instance-20250523-1627 trading-app]$ tree

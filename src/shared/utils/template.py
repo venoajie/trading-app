@@ -75,6 +75,7 @@ def trade_template() -> str:
     return dict(
         instrument_name=None,
         amount=None,
+        amount=None,
         price=None,
         side=None,
         direction=None,

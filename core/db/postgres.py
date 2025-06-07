@@ -52,6 +52,7 @@ class PostgresClient:
         async with self._pool.acquire() as conn:
             return await conn.fetch(query)
 
+
 # Singleton instance
 postgres_client = PostgresClient()
 
