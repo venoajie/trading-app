@@ -1,4 +1,3 @@
-
 -- init.sql
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
@@ -8,6 +7,7 @@ CREATE TABLE ohlc15_btc_perp_json (
     open_interest REAL,
     tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
 );
+
 -- Main partitioned orders table
 CREATE TABLE orders (
     currency VARCHAR(5) NOT NULL,
@@ -21,7 +21,13 @@ CREATE TABLE orders (
     order_id TEXT,
     is_open BOOLEAN DEFAULT TRUE,
     data JSONB NOT NULL,
-    PRIMARY KEY (currency, instrument_name, COALESCE(trade_id, order_id))
+    uid TEXT GENERATED ALWAYS AS (
+        CASE 
+            WHEN trade_id IS NOT NULL THEN 'trade_' || trade_id
+            ELSE 'order_' || order_id
+        END
+    ) STORED,
+    PRIMARY KEY (currency, instrument_name, uid)
 ) PARTITION BY LIST (currency);
 
 -- Partitions for each currency
@@ -32,7 +38,6 @@ CREATE TABLE orders_usdt PARTITION OF orders FOR VALUES IN ('USDT');
 
 -- Generated columns for efficient querying
 ALTER TABLE orders
-    ADD COLUMN uid TEXT GENERATED ALWAYS AS (COALESCE(trade_id, order_id)) STORED,
     ADD COLUMN amount_dir_calc NUMERIC GENERATED ALWAYS AS (
         CASE 
             WHEN side = 'sell' THEN - (data->>'amount')::NUMERIC 
