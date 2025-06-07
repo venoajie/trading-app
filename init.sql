@@ -48,7 +48,7 @@ ALTER TABLE orders
 -- view for active trades
 CREATE VIEW v_trading_active AS
 SELECT instrument_name, label, amount_dir_calc AS amount, 
-       price, side, timestamp, trade_id, order_
+       price, side, timestamp, trade_id, order_id
 FROM orders
 WHERE is_open = TRUE AND trade_id IS NOT NULL;
 
