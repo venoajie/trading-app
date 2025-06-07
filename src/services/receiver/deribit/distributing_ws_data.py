@@ -11,7 +11,7 @@ import redis.asyncio as aioredis
 
 # Application imports
 from core.db import redis as redis_publish
-from core.db import sqlite as db_mgt
+from core.db.postgres import fetch
 from src.scripts.deribit.restful_api import end_point_params_template as end_point
 from src.scripts.deribit import caching, get_instrument_summary
 from src.services.receiver.deribit import allocating_ohlc
@@ -253,11 +253,12 @@ async def handle_user_message(
         
         # Update trades cache
         try:
-            my_trades_active_all = await db_mgt.executing_query_with_return(query_trades)
-            result_template["params"].update({
-                "channel": redis_channels["my_trades_cache_updating"],
-                "data": my_trades_active_all
-            })
+            
+
+            query_trades = f"SELECT * FROM  v_trading_active"
+
+            my_trades_active_all = await fetch(query_trades)
+        
             await redis_publish.publishing_result(pipe, result_template)
         except Exception as e:
             log.error(f"Error updating trades cache: {str(e)}")
@@ -405,7 +406,10 @@ async def updating_sub_account(
 
     # Update trades
     try:
-        my_trades_active_all = await db_mgt.executing_query_with_return(query_trades)
+        my_trades_active_all = await fetch(query_trades)
+        
+        query_trades = f"SELECT * FROM  v_trading_active"
+        
         data = {
             "positions": positions_cached,
             "open_orders": orders_cached,

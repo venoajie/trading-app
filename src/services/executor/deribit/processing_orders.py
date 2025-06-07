@@ -7,9 +7,8 @@ import asyncio
 from loguru import logger as log
 
 # user defined formula
-from core.db import sqlite as db_mgt, redis as redis_client
-from core.db.postgres import fetch, insert_json
-
+from core.db import redis as redis_client
+from core.db.postgres import fetch, insert_json, delete_row, update_status_data
 from src.scripts.deribit import get_published_messages, caching, subscribing_to_channels
 from src.scripts.deribit.restful_api import end_point_params_template
 from src.scripts.deribit.strategies import basic_strategy
@@ -226,7 +225,7 @@ async def processing_orders(
                                         order_db_table = "orders_json"
 
                                         # log.error (f"order {order}")
-                                        await db_mgt.insert_tables(
+                                        await insert_json(
                                             order_db_table,
                                             data,
                                         )
@@ -367,7 +366,7 @@ async def cancelling_and_relabelling(
                 order_db_table = "orders_json"
 
                 # log.error (f"order {order}")
-                await db_mgt.insert_tables(
+                await insert_json(
                     order_db_table,
                     order,
                 )
@@ -548,7 +547,7 @@ async def saving_order_based_on_state(
         
         order_table = "orders_json"
 
-        await db_mgt.deleting_row(
+        await delete_row(
             order_table,
             "databases/trading.sqlite3",
             filter_trade,
@@ -561,7 +560,7 @@ async def saving_order_based_on_state(
         order_table = "orders_json"
 
         # log.error (f"order {order}")
-        await db_mgt.insert_tables(
+        await insert_json(
             order_table,
             order,
         )
@@ -585,7 +584,7 @@ async def saving_traded_orders(
     order_id = trade_result[f"{filter_trade}"]
 
     # remove respective transaction from order db
-    await db_mgt.deleting_row(
+    await delete_row(
         order_db_table,
         "databases/trading.sqlite3",
         filter_trade,
@@ -653,7 +652,7 @@ async def saving_traded_orders(
     
     trade_table = "orders_json"
 
-    await db_mgt.insert_tables(
+    await insert_json(
         trade_table,
         trade_to_db,
     )
@@ -697,7 +696,7 @@ async def saving_oto_order(
 
                 # log.error (f"transaction_main {transaction_main}")
                 order_table = "orders_json"
-                await db_mgt.insert_tables(
+                await insert_json(
                     order_db_table,
                     transaction_main,
                 )
@@ -722,7 +721,7 @@ async def saving_oto_order(
                 # log.error (f"transaction_main {transaction_main}")
                 
                 order_table = "orders_json"
-                await db_mgt.insert_tables(
+                await insert_json(
                     order_db_table,
                     transaction_main,
                 )

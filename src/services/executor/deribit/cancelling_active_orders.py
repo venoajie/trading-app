@@ -7,8 +7,7 @@ import asyncio
 from loguru import logger as log
 
 # user defined formula
-from core.db import sqlite as db_mgt
-from core.db.postgres import fetch, insert_json
+from core.db.postgres import fetch, insert_json, delete_row
 from src.scripts.deribit import get_instrument_summary, starter
 from src.scripts.deribit import get_published_messages
 from src.scripts.deribit import subscribing_to_channels
@@ -419,7 +418,7 @@ async def cancel_by_order_id(
 
     where_filter = f"order_id"
 
-    await db_mgt.deleting_row(
+    await delete_row(
         order_db_table,
         "databases/trading.sqlite3",
         where_filter,
