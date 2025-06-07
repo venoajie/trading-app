@@ -227,13 +227,12 @@ async def handle_user_message(
     elif "changes" in message_channel:
         log.info(f"Account changes: {message_channel} {data}")
         
-        for result in subaccounts_details_result:
-            if "open_orders" in result:
-                log.info(f"open_orders {result}")
-            if "positions" in result:
-                log.info(f"positions {result}")
-            if "trade" in result:
-                log.info(f"trade {result}")
+        if "open_orders" in data["orders"]:
+            log.info(data["orders"])
+        if "positions" in data["positions"]:
+            log.info(data["positions"])
+        if "trade" in data["trades"]:
+            log.info(data["trades"])
     else:
         if "trades" in message_channel:
             await trades_in_message_channel(
