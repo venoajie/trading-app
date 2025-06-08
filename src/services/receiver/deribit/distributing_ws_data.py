@@ -121,11 +121,13 @@ async def caching_distributing_data(
                 try:
                     for message_id, fields in message_list:
                         # Extract and process message
-                        message_data = orjson.loads(fields[b'data'])
-                        log.info(f"Message data: {message_data}")
-                        message_channel = message_data["channel"]
+                        json_str = fields['data']  # Use string key
+                        message_data = orjson.loads(json_str)  # Parse JSON string
+                        channel = message_data["channel"]
+                        data = message_data.get("data", {})  # Get inner data
                         
-                        log.info(f"Processing message from channel: {message_channel}")
+                        log.info(f"Processing message from channel: {channel}")
+                        log.info(f"Message data: {data}")
                         
                         if "user." in message_channel:
                             await handle_user_message(
