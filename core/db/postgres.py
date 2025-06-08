@@ -156,7 +156,7 @@ class PostgresClient:
         """
         Get column details for a table
         """
-        query = """
+        query = f"""
             SELECT column_name, data_type 
             FROM information_schema.columns 
             WHERE table_name = $1
@@ -176,7 +176,7 @@ class PostgresClient:
 
 # Singleton instance
 postgres_client = PostgresClient()
-schema = (postgres_client. get_table_schema) 
+schema = postgres_client. get_table_schema
 
 # Add to module-level aliases
 delete_row = postgres_client.delete_row
