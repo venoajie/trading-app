@@ -100,10 +100,10 @@ async def caching_distributing_data(
         ticker_lock = asyncio.Lock()
 
         while True:
-                # Clear queue to prevent backpressure during maintenance                
-                await client_redis.xtrim("stream:market_data", maxlen=1000)
-                await asyncio.sleep(0.1)
-                continue
+            # Clear queue to prevent backpressure during maintenance                
+            await client_redis.xtrim("stream:market_data", maxlen=1000)
+            await asyncio.sleep(0.1)
+            continue
 
             messages = await client_redis.xreadgroup(
                 group_name="dispatcher_group",
