@@ -229,9 +229,8 @@ async def trading_main() -> None:
             stream.manage_connection(
                 client_redis,
                 exchange,
-                data_queue,
                 futures_instruments,
-                resolutions
+                resolutions,
             )
         )
         
