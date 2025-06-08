@@ -107,7 +107,7 @@ async def caching_distributing_data(
             messages = await client_redis.xreadgroup(
                 groupname="dispatcher_group",
                 consumername="dispatcher_consumer",
-    streams={"stream:market_data": ">"},  
+    streams={"streamname:market_data": ">"},  
                 count=50,
                 block=100            )
             
