@@ -187,13 +187,15 @@ fetch = postgres_client.fetch_active_trades
 
 
 # View orders table schema
-schema = postgres_client. get_table_schema("orders")
-print(schema)
-for col in schema:
+schema = postgres_client. get_table_schema 
+schema1 = schema("orders")
+print(schema1)
+for col in schema1:
     print(f"{col['column_name']}: {col['data_type']}")
 
 # View first 10 rows
-rows = postgres_client. query_table_data("orders")
+rows1 = postgres_client. query_table_data 
+rows = rows1("orders")
 print(rows)
 for row in rows:
     print(row)
