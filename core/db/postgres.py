@@ -187,10 +187,9 @@ fetch = postgres_client.fetch_active_trades
 
 
 # View orders table schema
-schema = asyncio.run(postgres_client. get_table_schema) 
-schema1 = schema("orders")
-print(schema1)
-for col in schema1:
+schema = asyncio.run(postgres_client. get_table_schema("orders")) 
+print(schema)
+for col in schema:
     print(f"{col['column_name']}: {col['data_type']}")
 
 # View first 10 rows
