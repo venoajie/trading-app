@@ -100,9 +100,7 @@ async def caching_distributing_data(
         ticker_lock = asyncio.Lock()
 
         while True:
-            if maintenance_active.is_set():
-                # Clear queue to prevent backpressure during maintenance
-                
+                # Clear queue to prevent backpressure during maintenance                
                 await client_redis.xtrim("stream:market_data", maxlen=1000)
                 await asyncio.sleep(0.1)
                 continue
