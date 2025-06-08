@@ -133,7 +133,6 @@ async def caching_distributing_data(
                             await handle_user_message(
                                 channel,
                                 data,
-                                pipe,
                                 portfolio_lock,
                                 portfolio,  # Pass portfolio storage
                                 redis_channels,
@@ -148,7 +147,6 @@ async def caching_distributing_data(
                             
                             instrument_name_future = channel[len("incremental_ticker."):]
                             await handle_incremental_ticker(
-                                pipe,
                                 currency,
                                 data,
                                 instrument_name_future,
@@ -162,7 +160,6 @@ async def caching_distributing_data(
                         # Handle chart data
                         elif "chart.trades" in channel:
                             await handle_chart_trades(
-                                pipe,
                                 redis_channels["chart_low_high_tick"],
                                 channel,
                                 pub_message,
@@ -191,7 +188,6 @@ async def caching_distributing_data(
 async def handle_user_message(
     message_channel: str,
     data: Dict,
-    pipe: aioredis.Redis,
     portfolio_lock: asyncio.Lock,
     portfolio: List[Dict],  # Portfolio storage
     redis_channels: Dict,
@@ -204,7 +200,6 @@ async def handle_user_message(
     if "portfolio" in message_channel:
         async with portfolio_lock:
             await updating_portfolio(
-                pipe,
                 portfolio,  # Pass portfolio storage
                 redis_channels["portfolio"],
                 result_template,
@@ -222,7 +217,6 @@ async def handle_user_message(
     else:
         if "trades" in message_channel:
             await trades_in_message_channel(
-                pipe,
                 data,
                 redis_channels["my_trade_receiving"],
                 orders_cached,
@@ -230,7 +224,6 @@ async def handle_user_message(
             )
         if "order" in message_channel:
             await order_in_message_channel(
-                pipe,
                 data,
                 redis_channels["order_cache_updating"],
                 orders_cached,
@@ -242,12 +235,10 @@ async def handle_user_message(
             
             my_trades_active_all = await fetch(query_trades)
         
-            await redis_publish.publishing_result(pipe, result_template)
         except Exception as e:
             log.error(f"Error updating trades cache: {str(e)}")
 
 async def handle_incremental_ticker(
-    pipe: aioredis.Redis,
     currency: str,
     data: Dict,
     instrument_name_future: str,
@@ -296,7 +287,6 @@ async def handle_incremental_ticker(
             error_handling.parse_error_message(e)
 
 async def handle_chart_trades(
-    pipe: aioredis.Redis,
     chart_channel: str,
     message_channel: str,
     pub_message: Dict,
@@ -312,7 +302,6 @@ async def handle_chart_trades(
         instrument_name = message_channel.split(".")[2]
 
 async def updating_portfolio(
-    pipe: aioredis.Redis,
     portfolio: List[Dict],  # Portfolio storage
     portfolio_channel: str,
     result_template: Dict,
@@ -339,7 +328,6 @@ async def updating_portfolio(
     data_to_publish = {"cached_portfolio": portfolio}
     
 async def updating_sub_account(
-    pipe: aioredis.Redis,
     orders_cached: List,
     positions_cached: List,
     query_trades: str,
@@ -379,15 +367,12 @@ async def updating_sub_account(
         log.error(f"Error updating sub-account: {str(e)}")
 
 async def trades_in_message_channel(
-    pipe: aioredis.Redis,
     data: List,
     my_trade_receiving_channel: str,
     orders_cached: List,
     result_template: Dict,
 ) -> None:
     """Process trade messages and update cache"""
-    result_template["params"].update({"channel": my_trade_receiving_channel})
-    await redis_publish.publishing_result(pipe, result_template)
 
     for trade in data:
         try:
@@ -397,7 +382,6 @@ async def trades_in_message_channel(
             log.error(f"Error updating trade cache: {str(e)}")
 
 async def order_in_message_channel(
-    pipe: aioredis.Redis,
     data: Dict,
     order_update_channel: str,
     orders_cached: List,
