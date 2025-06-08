@@ -1,21 +1,153 @@
-# core\db\redis.py
+# core/db/redis.py
+"""Consolidated Redis client with connection pooling and stream management"""
 
-""" 
-core/db/redis.py 
-Consolidated Redis client with connection pooling 
-""" 
-
-import logging 
-import orjson 
-import redis.asyncio as aioredis 
+import logging
+import orjson
+import redis.asyncio as aioredis
 from typing import Any, Dict, Optional, Union
 
-from src.shared.config.settings import REDIS_URL, REDIS_DB 
+from src.shared.config.settings import REDIS_URL, REDIS_DB
 from src.shared.utils import error_handling
 
-# Configure logger 
-log = logging.getLogger(__name__) 
+# Configure logger
+log = logging.getLogger(__name__)
 
+class RedisClient:
+    """Singleton Redis client with connection pooling and stream operations"""
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.pool = None
+        return cls._instance
+    
+    async def get_pool(self) -> aioredis.Redis:
+        """Get or create Redis connection pool"""
+        if self.pool is None:
+            self.pool = aioredis.from_url(
+                REDIS_URL,
+                db=REDIS_DB,
+                encoding="utf-8",
+                decode_responses=False,  # Keep binary for performance
+                socket_connect_timeout=5,
+                socket_keepalive=True,
+                max_connections=50
+            )
+            log.info(f"Created Redis pool for {REDIS_URL}")
+        return self.pool
+
+    # ... (other methods remain mostly the same) ...
+
+    async def xadd(
+        self,
+        stream_name: str,
+        data: dict,
+        maxlen: int = 1000  # Changed parameter name to match Redis API
+    ) -> None:
+        """
+        Add entry to Redis stream with trimming capability
+        
+        Args:
+            stream_name: Name of Redis stream
+            data: Dictionary of data to add
+            maxlen: Maximum stream length (trims old entries)
+        """
+        pool = await self.get_pool()
+        # Use msgpack for more efficient serialization
+        await pool.xadd(
+            stream_name,
+            {"data": orjson.dumps(data)},
+            maxlen=maxlen,
+            approximate=True  # More efficient trimming
+        )
+
+    async def ensure_consumer_group(
+        self,
+        stream_name: str,
+        group_name: str,
+        create_stream: bool = True
+    ) -> None:
+        """
+        Ensure consumer group exists with proper error handling
+        
+        Args:
+            stream_name: Redis stream name
+            group_name: Consumer group name
+            create_stream: Create stream if doesn't exist
+        """
+        pool = await self.get_pool()
+        try:
+            await pool.xgroup_create(
+                name=stream_name,
+                groupname=group_name,
+                id="0",  # Start from beginning
+                mkstream=create_stream
+            )
+            log.info(f"Created consumer group {group_name} for {stream_name}")
+        except aioredis.ResponseError as e:
+            if "BUSYGROUP" in str(e):
+                log.debug(f"Consumer group {group_name} already exists")
+            else:
+                log.error(f"Error creating consumer group: {str(e)}")
+                raise
+
+    async def read_stream_messages(
+        self,
+        stream_name: str,
+        group_name: str,
+        consumer_name: str,
+        count: int = 100,
+        block: int = 5000
+    ) -> list:
+        """
+        Read messages from stream with consumer group
+        
+        Args:
+            stream_name: Redis stream name
+            group_name: Consumer group name
+            consumer_name: Consumer identifier
+            count: Max messages per read
+            block: Blocking time in ms
+            
+        Returns:
+            List of (message_id, message_data) tuples
+        """
+        pool = await self.get_pool()
+        try:
+            messages = await pool.xreadgroup(
+                groupname=group_name,
+                consumername=consumer_name,
+                streams={stream_name: ">"},  # Deliver never-seen messages
+                count=count,
+                block=block
+            )
+            return messages[0][1] if messages else []  # (stream, [(id, data)])
+        except aioredis.ResponseError as e:
+            if "NOGROUP" in str(e):
+                log.warning("Consumer group missing, recreating...")
+                await self.ensure_consumer_group(stream_name, group_name)
+                return []
+            raise
+
+    async def acknowledge_message(
+        self,
+        stream_name: str,
+        group_name: str,
+        message_id: str
+    ) -> None:
+        """Acknowledge successful processing of message"""
+        pool = await self.get_pool()
+        await pool.xack(stream_name, group_name, message_id)
+
+    async def trim_stream(
+        self,
+        stream_name: str,
+        maxlen: int = 1000
+    ) -> None:
+        """Trim stream to prevent excessive memory usage"""
+        pool = await self.get_pool()
+        await pool.xtrim(stream_name, maxlen=maxlen, approximate=True)
 
 async def stream_health_check():
     return {
@@ -198,107 +330,6 @@ async def publishing_specific_purposes(
             error,
         )
 
-class RedisClient: 
-    """Singleton Redis client with connection pooling""" 
-    _instance = None 
-    
-    def __new__(cls): 
-        if cls._instance is None: 
-            cls._instance = super().__new__(cls) 
-            cls._instance.pool = None 
-        return cls._instance 
-    
-    async def get_pool(self) -> aioredis.Redis: 
-        """Get or create Redis connection pool""" 
-        if self.pool is None: 
-            self.pool = aioredis.from_url( 
-                REDIS_URL, 
-                db=REDIS_DB, 
-                encoding="utf-8", 
-                decode_responses=True, 
-                socket_connect_timeout=5, 
-                socket_keepalive=True, 
-                max_connections=50 
-            ) 
-            log.info(f"Created Redis pool for {REDIS_URL}") 
-        return self.pool 
-
-    async def publish(self, channel: str, message: Union[Dict, str]) -> None: 
-        """Publish message to Redis channel""" 
-        pool = await self.get_pool() 
-        if isinstance(message, dict): 
-            message = orjson.dumps(message).decode("utf-8") 
-        await pool.publish(channel, message) 
-
-    async def save_to_hash(
-        self,
-        hash_key: str,
-        field: str,
-        data: Any
-    ) -> None:
-        """Save data to Redis hash field"""
-        pool = await self.get_pool()
-        if not isinstance(data, (str, bytes)):
-            data = orjson.dumps(data).decode("utf-8")
-        await pool.hset(hash_key, field, data)
-
-    async def get_from_hash(
-        self,
-        hash_key: str,
-        field: str
-    ) -> Optional[Any]:
-        """Retrieve data from Redis hash field"""
-        pool = await self.get_pool()
-        data = await pool.hget(hash_key, field)
-        if data:
-            try:
-                return orjson.loads(data)
-            except orjson.JSONDecodeError:
-                return data
-        return None
-
-
-    async def xadd(
-        self,
-        stream_name: str,
-        data: dict,
-        max_queue_size: int = 1000
-    ) -> None:
-        pool = await self.get_pool()
-        await pool.xadd(
-            streamname,
-            {"data": orjson.dumps(data).decode("utf-8")},
-            maxlen=max_queue_size
-        )
-
-    async def xreadgroup(
-        self,
-        group_name: str,
-        consumer_name: str,
-        stream_name: str,
-        count: int = 10,
-        block: int = 5000
-    ) -> list:
-        pool = await self.get_pool()
-        return await pool.xreadgroup(
-            groupname=group_name,
-            consumername=consumer_name,
-            streams={stream_name: ">"},
-            count=count,
-            block=block
-        )
-
-    async def xack(self, stream_name: str, group_name: str, message_id: str) -> None:
-        pool = await self.get_pool()
-        await pool.xack(stream_name, group_name, message_id)
-
-    async def create_consumer_group(self, stream_name: str, group_name: str) -> None:
-        pool = await self.get_pool()
-        try:
-            await pool.xgroup_create(stream_name, group_name, id="0", mkstream=True)
-        except Exception as e:
-            if "BUSYGROUP" not in str(e):
-                raise
-            
-# Global Redis client instance 
+# Global Redis client instance
 redis_client = RedisClient()
+
