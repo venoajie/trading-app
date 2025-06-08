@@ -197,6 +197,9 @@ class StreamingAccountData:
                     except Exception as e:
                         log.error(f"Failed to add to stream: {e}")    
 
+            except Exception as e:
+                log.error(f"Failed to add to stream: {e}")    
+
     def handle_auth_response(self, message: Dict) -> None:
         """Handle authentication responses"""
         try:
