@@ -67,8 +67,6 @@ async def caching_distributing_data(
             id="$",  # Start from new messages
             mkstream=True  # Create stream if missing
         )
-        # Add consumer tracking
-        await client_redis.xinfo_consumers("stream:market_data", "dispatcher_group")
         
          # Create consumer group
         await client_redis.create_consumer_group(
