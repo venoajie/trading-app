@@ -98,8 +98,8 @@ services:
 
 volumes:
   redis-data:
-  pgdata:  # ADD THIS VOLUME DEFINITION
-
+  pgdata:  
+  
 secrets:
   deribit_client_id:
     file: ./secrets/client_id.txt
