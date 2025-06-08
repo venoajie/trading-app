@@ -112,8 +112,8 @@ async def caching_distributing_data(
         orders_cached = sub_account_cached["orders_cached"]
         positions_cached = sub_account_cached["positions_cached"]
 
-        query_trades = "SELECT * FROM v_trading_all_active"
-        result_template = template.redis_message_template()
+        query_trades = "SELECT * FROM v_trading_active"
+        result_template = template.trade_template()
 
         # Shared resources with locks
         portfolio_lock = asyncio.Lock()
@@ -262,9 +262,6 @@ async def handle_user_message(
         # Update trades cache
         try:
             
-
-            query_trades = f"SELECT * FROM  v_trading_active"
-
             my_trades_active_all = await fetch(query_trades)
         
             await redis_publish.publishing_result(pipe, result_template)
@@ -290,6 +287,8 @@ async def handle_incremental_ticker(
         "instrument_name": instrument_name_future,
         "currency_upper": currency.upper()
     })
+    
+    log.info(f"Processing ticker update for {data} at {instrument_name_future}")
     
     async with ticker_lock:
         for ticker in ticker_all_cached:
@@ -415,8 +414,6 @@ async def updating_sub_account(
     # Update trades
     try:
         my_trades_active_all = await fetch(query_trades)
-        
-        query_trades = f"SELECT * FROM  v_trading_active"
         
         data = {
             "positions": positions_cached,

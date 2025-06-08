@@ -8,6 +8,52 @@ CREATE TABLE ohlc15_btc_perp_json (
     tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
 );
 
+CREATE TABLE ohlc1_btc_perp_json (
+    id SERIAL PRIMARY KEY,
+    data JSONB NOT NULL,
+    open_interest REAL,
+    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
+);
+
+
+CREATE TABLE ohlc1_eth_perp_json (
+    id SERIAL PRIMARY KEY,
+    data JSONB NOT NULL,
+    open_interest REAL,
+    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
+);
+
+CREATE OR REPLACE FUNCTION get_arithmetic_value(
+    p_item TEXT,
+    p_operator TEXT DEFAULT 'MAX',
+    p_table TEXT DEFAULT 'ohlc1_eth_perp_json'
+) RETURNS FLOAT AS $$
+DECLARE
+    result_value FLOAT;
+    query_text TEXT;
+BEGIN
+    -- Sanitize inputs to prevent SQL injection
+    IF p_operator NOT IN ('MAX', 'MIN', 'AVG', 'SUM', 'COUNT') THEN
+        RAISE EXCEPTION 'Invalid operator: %', p_operator;
+    END IF;
+    
+    IF p_table !~ '^[a-z0-9_]+$' THEN
+        RAISE EXCEPTION 'Invalid table name: %', p_table;
+    END IF;
+    
+    IF p_item !~ '^[a-z0-9_]+$' THEN
+        RAISE EXCEPTION 'Invalid item name: %', p_item;
+    END IF;
+    
+    query_text := format('SELECT %s(%I) FROM %I', p_operator, p_item, p_table);
+    
+    EXECUTE query_text INTO result_value;
+    
+    RETURN result_value;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
 -- Main partitioned orders table
 CREATE TABLE orders (
     user_id TEXT,

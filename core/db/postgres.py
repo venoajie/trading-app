@@ -102,7 +102,20 @@ class PostgresClient:
         
         # Publish update to Redis
         await self.publish_table_update(table,data)
-
+        
+async def querying_arithmetic_operator(
+    self,
+    item: str,
+    operator: str = "MAX",
+    table: str = "ohlc1_btc_perp_json",
+) -> float:
+    """Safe PostgreSQL version using function"""
+    query = "SELECT get_arithmetic_value($1, $2, $3)"
+    
+    await self.start_pool()
+    async with self._pool.acquire() as as conn:
+        return await conn.fetchval(query, item, operator, table)
+    
     async def update_status_data(
         self,
         table: str,
@@ -156,7 +169,7 @@ class PostgresClient:
         """
         Get column details for a table
         """
-        query = f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = {table_name}"
+        query = f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = $1"
         
         return await self.fetch_active_trades(query)
 
