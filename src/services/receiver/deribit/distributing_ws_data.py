@@ -80,22 +80,22 @@ async def process_message_batch(
     for message_id, message_data in messages:
         try:
             # Parse message payload
-            message = orjson.loads(message_data[b'data'])
-            channel = message.get("channel", "")
+            
+            payload = orjson.loads(message_data[b'data'])
+            channel = payload["channel"]
+            data = payload["data"]
+            timestamp = payload["timestamp"]
             
             # Extract processing parameters
             currency = str_mod.extract_currency_from_text(channel)
             currency_upper = currency.upper()
             instrument_name = channel.split('.')[-1] if '.' in channel else ""
-            
-            timestamp = message.get("timestamp")
                                 
             current_server_time = (timestamp + server_time if server_time == 0 else timestamp)
             # updating current server time
             server_time = (
                 current_server_time if server_time < current_server_time else server_time
             )
-
 
             pub_message = dict(
                 data=data,
@@ -169,7 +169,7 @@ async def stream_consumer(
     """
     # Ensure consumer group exists
     await client_redis.ensure_consumer_group(
-        stream_name="stream:market_data",
+        stream="stream:market_data",
         group_name="dispatcher_group"
     )
     

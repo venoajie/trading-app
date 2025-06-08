@@ -182,18 +182,11 @@ class StreamingAccountData:
                         
                     try:
                         # Fixed: use positional arguments for xadd
-                        await client_redis.xadd(
-                            "stream:market_data",  # Stream name (positional)
-                            {  # Fields dictionary (positional)
-                                "data": orjson.dumps({
-                                    "channel": message_dict["params"]["channel"],
-                                    "data": message_dict["params"]["data"],
-                                    "timestamp": time.time()
-                                }).decode('utf-8')
-                            },
-                            maxlen=10000  # Keyword argument
-                        )
-                        
+                        await client_redis.xadd("stream:market_data", {
+                            "channel": message_dict["params"]["channel"],
+                            "data": message_dict["params"]["data"],
+                            "timestamp": time.time()
+                        })
                     except Exception as e:
                         log.error(f"XADD failed: {e}", exc_info=True)
 

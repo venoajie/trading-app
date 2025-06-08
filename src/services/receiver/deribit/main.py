@@ -203,15 +203,11 @@ async def trading_main() -> None:
     
     try:
         client_redis = await setup_redis()
-                
+                    
         if not await client_redis.ping():
             log.error("Redis connection failed")
             return
         
-        await start_stream_services(
-            client_redis, stream, 
-            # ... other params ...
-        )
         
         alert_monitor_task = asyncio.create_task(monitor_system_alerts())
     except ConnectionError:
@@ -248,6 +244,11 @@ async def trading_main() -> None:
             maintenance_threshold=DERIBIT_MAINTENANCE_THRESHOLD,
             websocket_timeout=900,
             heartbeat_interval=DERIBIT_HEARTBEAT_INTERVAL
+        )
+        
+        await start_stream_services(
+            client_redis, stream, 
+            # ... other params ...
         )
         
         config_app = system_tools.get_config_tomli(config_path)
