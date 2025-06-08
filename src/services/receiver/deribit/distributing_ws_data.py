@@ -112,20 +112,20 @@ async def caching_distributing_data(
                 count=50,
                 block=100            )
             
-            log.info(f"messages: {messages}")
             
             if not messages:
                 continue
             
+            log.info(f"messages: {messages}")
             for stream, message_list in messages:
                 try:
                     for message_id, fields in message_list:
                         # Extract and process message
                         message_data = orjson.loads(fields[b'data'])
+                        log.info(f"Message data: {message_data}")
                         message_channel = message_data["channel"]
                         
                         log.info(f"Processing message from channel: {message_channel}")
-                        log.info(f"Message data: {message_data}")
                         
                         if "user." in message_channel:
                             await handle_user_message(
