@@ -161,7 +161,7 @@ class PostgresClient:
             FROM information_schema.columns 
             WHERE table_name = $1
         """
-        return await fetch(query)
+        return await self.fetch_active_trades(query)
 
     async def query_table_data(self,
         table_name: str, 
@@ -171,7 +171,7 @@ class PostgresClient:
         Query data from a table
         """
         query = f"SELECT * FROM {table_name} LIMIT $1"
-        return await fetch(query)
+        return await self.fetch_active_trades(query)
 
 
 # Singleton instance
