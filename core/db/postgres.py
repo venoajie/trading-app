@@ -178,20 +178,6 @@ class PostgresClient:
 postgres_client = PostgresClient()
 schema = (postgres_client. get_table_schema) 
 
-
-# View orders table schema
-schema1 = asyncio.run(schema("orders")) 
-print(schema1)
-for col in schema1:
-    print(f"{col['column_name']}: {col['data_type']}")
-
-# View first 10 rows
-rows1 = postgres_client. query_table_data 
-rows = rows1("orders")
-print(rows)
-for row in rows:
-    print(row)
-
 # Add to module-level aliases
 delete_row = postgres_client.delete_row
 update_status_data = postgres_client.update_status_data
