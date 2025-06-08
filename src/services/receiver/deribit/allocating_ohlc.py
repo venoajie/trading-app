@@ -143,6 +143,7 @@ async def updating_ohlc(
                                     high_from_ws > high_from_db
                                     or low_from_ws < low_from_db
                                 ):
+                                    pass
 
                         else:
 
@@ -163,6 +164,12 @@ async def updating_ohlc(
 
                             result_all = str_mod.transform_nested_dict_to_list_ohlc(
                                 ohlc
+                            )
+
+                            await publishing_result(
+                                client_redis,
+                                chart_low_high_tick_channel,
+                                pub_message,
                             )
 
                             for result in result_all:
@@ -187,7 +194,7 @@ async def updating_ohlc(
 
     except Exception as error:
 
-        await error_handling.parse_error_message_with_redis(
+        await error_handling.parse_error_message(
             error,
         )
 
