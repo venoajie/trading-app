@@ -191,8 +191,6 @@ async def trading_main() -> None:
             currencies, ["perpetual"]
         )
         
-        data_queue = Queue(maxsize=1000)
-        
         stream = deribit_ws.StreamingAccountData(
             sub_account_id=DERIBIT_SUBACCOUNT,
             client_id=client_id,
@@ -229,7 +227,6 @@ async def trading_main() -> None:
         
         producer_task = asyncio.create_task(
             stream.manage_connection(
-                client_redis,
                 exchange,
                 data_queue,
                 futures_instruments,
@@ -245,7 +242,6 @@ async def trading_main() -> None:
                 redis_channels,
                 redis_keys,
                 strategy_config,
-                data_queue
             )
         )
         

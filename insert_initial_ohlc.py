@@ -11,8 +11,7 @@ from datetime import datetime, timedelta
 from loguru import logger as log
 
 # user defined formula
-from core.db.postgres import fetch, schema
-from strategies.config_strategies import preferred_spot_currencies
+from core.db.postgres import insert_ohlc
 from src.shared.utils import error_handling
 from src.shared.utils.string_modification import transform_nested_dict_to_list
 from src.shared.utils.time_modification import convert_time_to_unix

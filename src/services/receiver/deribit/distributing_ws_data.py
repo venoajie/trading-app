@@ -54,40 +54,17 @@ async def caching_distributing_data(
     redis_channels: Dict,
     redis_keys: Dict,
     strategy_attributes: List,
-    queue_general: asyncio.Queue,
 ) -> None:
     """Distributes WebSocket data with maintenance handling"""
     state_task = None
+    
     try:
-
-        #schema1 = await schema("orders")
-        #print (schema1)
-        #for col in schema1:
-        #    print(f"{col['column_name']}: {col['data_type']}")
-
-        pubsub = client_redis.pubsub()
-        await pubsub.subscribe("system_status")
         
-        maintenance_active = asyncio.Event()
-        
-        async def state_listener():
-            """React to centralized state changes"""
-            try:
-                async for message in pubsub.listen():
-                    if message["type"] == "message" and message["channel"] == b"system_status":
-                        status = message["data"].decode()
-                        if status == "maintenance":
-                            log.warning("System entering maintenance mode")
-                            maintenance_active.set()
-                        else:
-                            maintenance_active.clear()
-            except asyncio.CancelledError:
-                log.info("State listener cancelled")
-            except Exception as e:
-                log.error(f"State listener failed: {str(e)}")
-                await error_handling.parse_error_message_with_redis(client_redis, e)
-                
-        state_task = asyncio.create_task(state_listener())
+         # Create consumer group
+        await client_redis.create_consumer_group(
+            "stream:market_data",
+            "dispatcher_group"
+        )
 
         # Extract settlement periods safely
         settlement_periods = []
@@ -123,34 +100,28 @@ async def caching_distributing_data(
         while True:
             if maintenance_active.is_set():
                 # Clear queue to prevent backpressure during maintenance
-                cleared = 0
-                while not queue_general.empty():
-                    try:
-                        queue_general.get_nowait()
-                        cleared += 1
-                    except asyncio.QueueEmpty:
-                        break
-                if cleared:
-                    log.info(f"Cleared {cleared} messages during maintenance")
+                
+                await client_redis.xtrim("stream:market_data", maxlen=1000)
                 await asyncio.sleep(0.1)
                 continue
 
-            message_params: Dict = await queue_general.get()
-
-            async with client_redis.pipeline() as pipe:
+            messages = await client_redis.xreadgroup(
+                group_name="dispatcher_group",
+                consumer_name="dispatcher_consumer",
+                stream_name="stream:market_data",
+                count=50,
+                block=100
+            )
+            
+            if not messages:
+                continue
+            
+            for stream, message_id, fields in messages:
                 try:
-                    data: Dict = message_params["data"]
-                    message_channel: str = message_params["channel"]
-                    currency: str = str_mod.extract_currency_from_text(message_channel)
-                    currency_upper = currency.upper()
+                    # Extract and process message
+                    message_data = orjson.loads(fields[b'data'])
+                    message_channel = message_data["channel"]
                     
-                    pub_message = {
-                        "data": data,
-                        "server_time": 0,
-                        "currency_upper": currency_upper,
-                        "currency": currency,
-                    }
-
                     if "user." in message_channel:
                         await handle_user_message(
                             message_channel,
@@ -191,23 +162,20 @@ async def caching_distributing_data(
                             result_template
                         )
 
-                except Exception as error:
-                    error_handling.parse_error_message(error)
-                    log.error(f"Error processing message: {error}")
-                    await error_handling.parse_error_message_with_redis(client_redis, error)
+        
+                    await client_redis.xack(
+                        "stream:market_data",
+                        "dispatcher_group",
+                        message_id
+                    )
 
-                await pipe.execute()
+                except Exception as error:
+                    log.error(f"Stream processing failed: {error}")
+                    # Don't ACK to allow reprocessing
 
     except Exception as error:
-        await error_handling.parse_error_message_with_redis(client_redis, error)
-    finally:
-        # Clean up state listener
-        if state_task and not state_task.done():
-            state_task.cancel()
-            try:
-                await state_task
-            except asyncio.CancelledError:
-                log.info("State listener task cancelled")
+        log.error(f"Stream read error: {error}")
+        await asyncio.sleep(1)
             
 # 4. Keep other functions below
 async def handle_user_message(

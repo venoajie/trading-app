@@ -184,20 +184,20 @@ class StreamingAccountData:
                 
                 # Process market data messages
                 if "params" in message_dict and message_dict["method"] != "heartbeat":
-                    message_params = message_dict["params"]
-                    if message_params:
-                        message_params.update({
-                            "exchange": exchange,
-                            "account_id": self.sub_account_id
-                        })
+                    # Validate message structure
+                    if "channel" not in message_dict["params"]:
+                        log.error(f"Invalid message format: {message_dict}")
+                        continue
                         
-                        await queue_general.put(message_params)
+                    try:
+                        await client_redis.xadd(
+                            "stream:market_data",
+                            message_dict["params"],  # Send only the params
+                            maxlen=10_000
+                        )
                         
-            except orjson.JSONDecodeError as e:
-                log.error(f"JSON decode error: {e}")
-            except Exception as e:
-                log.error(f"Error processing message: {e}")
-                await error_handling.parse_error_message_with_redis(client_redis, e)
+                    except Exception as e:
+                        log.error(f"Failed to add to stream: {e}")    
 
     def handle_auth_response(self, message: Dict) -> None:
         """Handle authentication responses"""
