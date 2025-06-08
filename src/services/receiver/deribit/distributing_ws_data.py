@@ -112,7 +112,7 @@ async def caching_distributing_data(
                 count=50,
                 block=100            )
             
-            print(f"messages: {messages}")
+            log.info(f"messages: {messages}")
             
             if not messages:
                 continue
@@ -124,6 +124,7 @@ async def caching_distributing_data(
                         message_data = orjson.loads(fields[b'data'])
                         message_channel = message_data["channel"]
                         
+                        log.info(f"Processing message from channel: {message_channel}")
                         log.info(f"Message data: {message_data}")
                         
                         if "user." in message_channel:
