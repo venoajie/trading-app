@@ -227,6 +227,7 @@ async def trading_main() -> None:
         
         producer_task = asyncio.create_task(
             stream.manage_connection(
+                client_redis,
                 exchange,
                 data_queue,
                 futures_instruments,

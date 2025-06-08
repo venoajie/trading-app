@@ -64,26 +64,30 @@ docker compose up -d --build  # Builds receiver, executor, Redis, PostgreSQL
 
 latest folder structure:
 
-[opc@instance-20250523-1627 trading-app]$ tree
 .
 ├── config
 │   ├── __init__.py
-│   ├── settings.py
 │   └── strategies.toml
 ├── core
 │   ├── db
 │   │   ├── __init__.py
 │   │   ├── postgres.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-39.pyc
+│   │   │   └── postgres.cpython-39.pyc
 │   │   ├── redis.py
 │   │   └── sqlite.py
 │   ├── error_handler.py
 │   ├── __init__.py
+│   ├── __pycache__
+│   │   └── __init__.cpython-39.pyc
 │   ├── security.py
 │   └── service_manager.py
 ├── data
 │   ├── databases
 │   │   └── general
 │   │       ├── btc-13jun25
+│   │       ├── btc-20jun25
 │   │       ├── btc-25jul25
 │   │       ├── btc-26dec25
 │   │       ├── btc-26sep25
@@ -91,6 +95,7 @@ latest folder structure:
 │   │       ├── btc-27mar26
 │   │       ├── btc-6jun25
 │   │       ├── btc-fs-13jun25_perp
+│   │       ├── btc-fs-20jun25_perp
 │   │       ├── btc-fs-25jul25_perp
 │   │       ├── btc-fs-26dec25_perp
 │   │       ├── btc-fs-26sep25_perp
@@ -99,6 +104,7 @@ latest folder structure:
 │   │       ├── btc-fs-6jun25_perp
 │   │       ├── btc-perpetual
 │   │       ├── eth-13jun25
+│   │       ├── eth-20jun25
 │   │       ├── eth-25jul25
 │   │       ├── eth-26dec25
 │   │       ├── eth-26sep25
@@ -106,6 +112,7 @@ latest folder structure:
 │   │       ├── eth-27mar26
 │   │       ├── eth-6jun25
 │   │       ├── eth-fs-13jun25_perp
+│   │       ├── eth-fs-20jun25_perp
 │   │       ├── eth-fs-25jul25_perp
 │   │       ├── eth-fs-26dec25_perp
 │   │       ├── eth-fs-26sep25_perp
@@ -117,6 +124,8 @@ latest folder structure:
 ├── deploy.sh
 ├── docker-compose.yml
 ├── init.sql
+├── insert_initial_ohlc.py
+├── MakeFile
 ├── PROJECT_BLUEPRINT.md
 ├── README.md
 ├── secrets -> /home/opc/.app_secrets
@@ -212,6 +221,22 @@ latest folder structure:
     ├── integration
     │   └── __init__.py
     └── unit
-        └── conftest.py
+        ├── conftest.py
+        ├── __init__.py
+        ├── services
+        │   └── receiver
+        │       ├── deribit
+        │       │   ├── __init__.py
+        │       │   ├── test_allocating_ohlc.py
+        │       │   ├── test_deribit_ws.py
+        │       │   ├── test_distributing_ws_data.py
+        │       │   └── test_main.py
+        │       └── __init__.py
+        └── shared
+            └── utils
+                ├── __init__.py
+                ├── test_string_modification.py
+                ├── test_system_tools.py
+                └── test_template.py
 
-61 directories, 86 files
+72 directories, 101 files

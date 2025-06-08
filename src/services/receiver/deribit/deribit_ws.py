@@ -57,7 +57,6 @@ class StreamingAccountData:
         self,
         client_redis: Any,
         exchange: str,
-        queue_general: asyncio.Queue,
         futures_instruments: Dict[str, Any],
         resolutions: List[str],
     ) -> None:
@@ -88,12 +87,12 @@ class StreamingAccountData:
 
                     # Setup subscriptions
                     await self.authenticate_and_setup(
-                        client_redis, exchange, queue_general, 
+                        client_redis, exchange,  
                         futures_instruments, resolutions
                     )
                     
                     # Process incoming messages
-                    await self.process_messages(client_redis, exchange, queue_general)
+                    await self.process_messages(client_redis, exchange)
                     
             except (websockets.ConnectionClosed, ConnectionError) as e:
                 log.warning(f"Connection closed: {e}")
@@ -142,7 +141,6 @@ class StreamingAccountData:
                     await self.websocket_client.close()
                 break
 
-
     async def handle_reconnect(self) -> None:
         """Handle reconnection with exponential backoff"""
         self.reconnect_attempts += 1
@@ -154,7 +152,7 @@ class StreamingAccountData:
         log.info(f"Reconnecting attempt {self.reconnect_attempts} in {delay} seconds...")
         await asyncio.sleep(delay)
 
-    async def process_messages(self, client_redis, exchange, queue_general):
+    async def process_messages(self, client_redis, exchange):
         """Process incoming messages with state recovery"""
         async for message in self.websocket_client:
             current_time = time.time()
@@ -297,7 +295,6 @@ class StreamingAccountData:
         self,
         client_redis: Any,
         exchange: str,
-        queue_general: asyncio.Queue,
         futures_instruments: Dict[str, Any],
         resolutions: List[str],
     ) -> None:
