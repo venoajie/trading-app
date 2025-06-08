@@ -195,7 +195,7 @@ class StreamingAccountData:
                             {"data": orjson.dumps(message_dict["params"]).decode()},
                             maxlen=10000
                             )
-                        log.debug(f"""Sent to stream: {message_dict['params']['channel']}""")
+                        print(f"""Sent to stream: {message_dict['params']['channel']}""")
                         
                     except Exception as e:
                         log.error(f"XADD failed: {e}")  
