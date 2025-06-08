@@ -141,9 +141,14 @@ async def caching_distributing_data(
                         )
 
 
+                        pub_message = dict(
+                            data=data,
+                            server_time=server_time,
+                            currency_upper=currency_upper,
+                            currency=currency,
+                        )
+
                         log.info(f"Processing message from channel: {channel} {currency}")
-                        log.info(f"Message data: {data}")
-                        
                         if "user." in channel:
                             await handle_user_message(
                                 channel,
