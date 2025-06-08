@@ -11,7 +11,8 @@ import redis.asyncio as aioredis
 
 # Application imports
 from core.db import redis as redis_publish
-from core.db.postgres import fetch
+from core.db.postgres import fetch, schema
+
 from src.scripts.deribit.restful_api import end_point_params_template as end_point
 from src.scripts.deribit import caching, get_instrument_summary
 from src.services.receiver.deribit import allocating_ohlc
@@ -23,6 +24,11 @@ from loguru import logger as log
 
 async def combining_ticker_data(instruments_name: List) -> List:
     """Combine ticker data from cache or API with error handling"""
+
+    schema1 = await(schema("orders")) (schema1)
+    for col in schema1:
+        print(f"{col['column_name']}: {col['data_type']}")
+
     result = []
     for instrument_name in instruments_name:
         try:
