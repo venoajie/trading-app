@@ -25,7 +25,8 @@ from loguru import logger as log
 async def combining_ticker_data(instruments_name: List) -> List:
     """Combine ticker data from cache or API with error handling"""
 
-    schema1 = await(schema("orders"))
+    schema1 = await schema("orders")
+    print (schema1)
     for col in schema1:
         print(f"{col['column_name']}: {col['data_type']}")
 

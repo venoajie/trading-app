@@ -156,11 +156,8 @@ class PostgresClient:
         """
         Get column details for a table
         """
-        query = f"""
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_name = $1
-        """
+        query = f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = $1"
+        
         return await self.fetch_active_trades(query)
 
     async def query_table_data(self,
