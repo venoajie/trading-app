@@ -178,14 +178,6 @@ class PostgresClient:
 postgres_client = PostgresClient()
 
 
-# Add to module-level aliases
-delete_row = postgres_client.delete_row
-update_status_data = postgres_client.update_status_data
-insert_trade_or_order = postgres_client.insert_trade_or_order
-fetch = postgres_client.fetch_active_trades
-
-
-
 # View orders table schema
 schema = asyncio.run(postgres_client. get_table_schema("orders")) 
 print(schema)
@@ -198,3 +190,10 @@ rows = rows1("orders")
 print(rows)
 for row in rows:
     print(row)
+
+# Add to module-level aliases
+delete_row = postgres_client.delete_row
+update_status_data = postgres_client.update_status_data
+insert_trade_or_order = postgres_client.insert_trade_or_order
+fetch = postgres_client.fetch_active_trades
+
