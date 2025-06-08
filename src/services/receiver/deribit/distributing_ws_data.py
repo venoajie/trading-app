@@ -114,6 +114,8 @@ async def caching_distributing_data(
                 noack=False
             )
             
+            log.info(f"messages: {messages}")
+            
             if not messages:
                 continue
             
