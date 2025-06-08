@@ -17,6 +17,13 @@ from src.shared.utils import error_handling
 log = logging.getLogger(__name__) 
 
 
+async def stream_health_check():
+    return {
+        "length": await client_redis.xlen("stream:market_data"),
+        "pending": await client_redis.xpending("stream:market_data", "dispatcher_group"),
+        "consumers": await client_redis.xinfo_consumers("stream:market_data", "dispatcher_group")
+    }
+    
 async def saving_and_publishing_result(
     client_redis: object,
     keys: str,

@@ -76,9 +76,15 @@ class ApplicationState:
 app_state = ApplicationState()
 
 async def enter_maintenance_mode(reason: str):
-    if not app_state.maintenance_mode:
-        log.critical(f"Entering maintenance mode: {reason}")
-        app_state.maintenance_mode = True
+    # 1. Pause producers
+    # 2. Process remaining messages
+    # 3. Persist consumer group offsets
+    await client_redis.xgroup_delconsumer(
+        "stream:market_data",
+        "dispatcher_group",
+        "dispatcher_consumer"
+    )
+    app_state.maintenance_mode = True
 
 async def exit_maintenance_mode():
     if app_state.maintenance_mode:

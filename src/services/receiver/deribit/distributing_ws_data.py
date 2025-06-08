@@ -60,6 +60,16 @@ async def caching_distributing_data(
     
     try:
         
+        # Create consumer group with proper API
+        await client_redis.xgroup_create(
+            name="stream:market_data",
+            groupname="dispatcher_group",
+            id="$",  # Start from new messages
+            mkstream=True  # Create stream if missing
+        )
+        # Add consumer tracking
+        await client_redis.xinfo_consumers("stream:market_data", "dispatcher_group")
+        
          # Create consumer group
         await client_redis.create_consumer_group(
             "stream:market_data",
@@ -110,7 +120,8 @@ async def caching_distributing_data(
                 consumer_name="dispatcher_consumer",
                 stream_name="stream:market_data",
                 count=50,
-                block=100
+                block=100,
+                noack=False
             )
             
             if not messages:
@@ -167,7 +178,7 @@ async def caching_distributing_data(
                         "stream:market_data",
                         "dispatcher_group",
                         message_id
-                    )
+                       )
 
                 except Exception as error:
                     log.error(f"Stream processing failed: {error}")
@@ -175,7 +186,10 @@ async def caching_distributing_data(
 
     except Exception as error:
         log.error(f"Stream read error: {error}")
-        await asyncio.sleep(1)
+        
+        if "BUSYGROUP" not in str(e):
+            log.error(f"Consumer group creation failed: {e}")
+            raise
             
 # 4. Keep other functions below
 async def handle_user_message(

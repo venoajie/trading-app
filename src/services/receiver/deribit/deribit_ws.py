@@ -190,9 +190,10 @@ class StreamingAccountData:
                     try:
                         await client_redis.xadd(
                             "stream:market_data",
-                            message_dict["params"],  # Send only the params
-                            maxlen=10_000
-                        )
+                            {"data": orjson.dumps(message_dict["params"]).decode()},
+                            maxlen=10000,
+                            approximate=True  # Better performance
+                            )
                         
                     except Exception as e:
                         log.error(f"Failed to add to stream: {e}")    
