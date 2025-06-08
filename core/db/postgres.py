@@ -176,10 +176,11 @@ class PostgresClient:
 
 # Singleton instance
 postgres_client = PostgresClient()
+schema = (postgres_client. get_table_schema) 
 
 
 # View orders table schema
-schema = asyncio.run(postgres_client. get_table_schema("orders")) 
+schema = asyncio.run(schema("orders")) 
 print(schema)
 for col in schema:
     print(f"{col['column_name']}: {col['data_type']}")
