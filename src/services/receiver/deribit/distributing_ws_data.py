@@ -131,7 +131,10 @@ async def caching_distributing_data(
                         currency: str = str_mod.extract_currency_from_text(channel)
 
                         currency_upper = currency.upper()
-                        
+                                            
+                        current_server_time = (
+                            data["timestamp"] + server_time if server_time == 0 else data["timestamp"]
+                        )
                         # updating current server time
                         server_time = (
                             current_server_time if server_time < current_server_time else server_time
