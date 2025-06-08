@@ -34,6 +34,6 @@ for col in schema:
     print(f"{col['column_name']}: {col['data_type']}")
 
 # View first 10 rows
-rows = await query_table_data("orders")
+rows = asyncio.run(query_table_data("orders"))
 for row in rows:
     print(row)
