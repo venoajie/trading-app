@@ -149,7 +149,6 @@ async def caching_distributing_data(
                         )
 
                         log.info(f"Processing message from channel: {channel} {currency}")
-                        log.info(f"Message data: {data}")
                         
                         if "user." in channel:
                             await handle_user_message(
