@@ -113,7 +113,7 @@ async def querying_arithmetic_operator(
     query = "SELECT get_arithmetic_value($1, $2, $3)"
     
     await self.start_pool()
-    async with self._pool.acquire() as as conn:
+    async with self._pool.acquire() as conn:
         return await conn.fetchval(query, item, operator, table)
     
     async def update_status_data(
