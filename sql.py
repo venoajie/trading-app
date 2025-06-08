@@ -29,7 +29,7 @@ async def query_table_data(
     return await fetch(query, limit)
 
 # View orders table schema
-schema = await get_table_schema("orders")
+schema = async.run(get_table_schema("orders"))
 for col in schema:
     print(f"{col['column_name']}: {col['data_type']}")
 
