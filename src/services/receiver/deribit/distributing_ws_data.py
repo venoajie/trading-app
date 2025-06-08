@@ -68,12 +68,6 @@ async def caching_distributing_data(
             mkstream=True  # Create stream if missing
         )
         
-         # Create consumer group
-        await client_redis.create_consumer_group(
-            "stream:market_data",
-            "dispatcher_group"
-        )
-
         # Extract settlement periods safely
         settlement_periods = []
         if strategy_attributes:
