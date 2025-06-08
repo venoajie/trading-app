@@ -8,7 +8,7 @@ from loguru import logger as log
 
 # user defined formula
 from core.db import redis as redis_client
-from core.db.postgres import fetch, insert_json, delete_row, update_status_data
+from core.db.postgres import fetch, insert_trade_or_order, delete_row, update_status_data
 from src.scripts.deribit import get_published_messages, caching, subscribing_to_channels
 from src.scripts.deribit.restful_api import end_point_params_template
 from src.scripts.deribit.strategies import basic_strategy
@@ -225,10 +225,7 @@ async def processing_orders(
                                         order_db_table = "orders_json"
 
                                         # log.error (f"order {order}")
-                                        await insert_json(
-                                            order_db_table,
-                                            data,
-                                        )
+                                        await insert_trade_or_order(data)
 
                     for currency in currencies:
 
@@ -366,10 +363,7 @@ async def cancelling_and_relabelling(
                 order_db_table = "orders_json"
 
                 # log.error (f"order {order}")
-                await insert_json(
-                    order_db_table,
-                    order,
-                )
+                await insert_trade_or_order(order)
 
                 await cancel_order.cancel_by_order_id(
                     api_request,
@@ -560,10 +554,7 @@ async def saving_order_based_on_state(
         order_table = "orders_json"
 
         # log.error (f"order {order}")
-        await insert_json(
-            order_table,
-            order,
-        )
+        await insert_trade_or_order(order)
 
 
 async def saving_traded_orders(
@@ -652,10 +643,7 @@ async def saving_traded_orders(
     
     trade_table = "orders_json"
 
-    await insert_json(
-        trade_table,
-        trade_to_db,
-    )
+    await insert_trade_or_order(trade_to_db)
 
 
 async def saving_oto_order(
@@ -696,10 +684,7 @@ async def saving_oto_order(
 
                 # log.error (f"transaction_main {transaction_main}")
                 order_table = "orders_json"
-                await insert_json(
-                    order_db_table,
-                    transaction_main,
-                )
+                await insert_trade_or_order(transaction_main)
 
                 order_attributes = labelling_unlabelled_order_oto(
                     transaction_main, transaction_secondary
@@ -721,10 +706,7 @@ async def saving_oto_order(
                 # log.error (f"transaction_main {transaction_main}")
                 
                 order_table = "orders_json"
-                await insert_json(
-                    order_db_table,
-                    transaction_main,
-                )
+                await insert_trade_or_order(transaction_main)
 
 
 async def updating_sub_account(

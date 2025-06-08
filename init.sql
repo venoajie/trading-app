@@ -10,6 +10,7 @@ CREATE TABLE ohlc15_btc_perp_json (
 
 -- Main partitioned orders table
 CREATE TABLE orders (
+    user_id TEXT,
     currency VARCHAR(5) NOT NULL,
     instrument_name TEXT NOT NULL,
     label TEXT,
