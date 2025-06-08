@@ -333,17 +333,6 @@ async def handle_chart_trades(
         resolution = 1
         instrument_name = message_channel.split(".")[2]
 
-    pub_message.update({
-        "instrument_name": instrument_name,
-        "resolution": resolution
-    })
-
-    result_template["params"].update({
-        "channel": chart_channel,
-        "data": pub_message
-    })
-    await redis_publish.publishing_result(pipe, result_template)
-
 async def updating_portfolio(
     pipe: aioredis.Redis,
     portfolio: List[Dict],  # Portfolio storage
@@ -371,12 +360,6 @@ async def updating_portfolio(
     # Prepare data to publish
     data_to_publish = {"cached_portfolio": portfolio}
     
-    result_template["params"].update({
-        "channel": portfolio_channel,
-        "data": data_to_publish
-    })
-    await redis_publish.publishing_result(pipe, result_template)
-
 async def updating_sub_account(
     pipe: aioredis.Redis,
     orders_cached: List,
@@ -413,12 +396,7 @@ async def updating_sub_account(
             "open_orders": orders_cached,
             "my_trades": my_trades_active_all,
         }
-        
-        result_template["params"].update({
-            "channel": sub_account_channel,
-            "data": data
-        })
-        await redis_publish.publishing_result(pipe, result_template)
+    
     except Exception as e:
         log.error(f"Error updating sub-account: {str(e)}")
 
@@ -459,10 +437,5 @@ async def order_in_message_channel(
             "currency_upper": currency.upper(),
         }
 
-        result_template["params"].update({
-            "channel": order_update_channel,
-            "data": order_data
-        })
-        await redis_publish.publishing_result(pipe, result_template)
     except Exception as e:
         log.error(f"Error processing order: {str(e)}")
