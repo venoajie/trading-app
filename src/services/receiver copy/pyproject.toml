@@ -1,0 +1,12 @@
+# src\services\receiver\pyproject.toml
+
+[project]
+name = "receiver"
+version = "1.0.0"
+dependencies = [
+    "websockets>=12.0",
+    "uvloop>=0.21.0"
+]
+
+
+
