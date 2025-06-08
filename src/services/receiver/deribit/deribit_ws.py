@@ -188,7 +188,8 @@ class StreamingAccountData:
                         continue
                         
                     try:
-                        print(message_dict)
+
+                        print(orjson.dumps(message_dict["params"]))
                         await client_redis.xadd(
                             "stream:market_data",
                             {"data": orjson.dumps(message_dict["params"]).decode()},
