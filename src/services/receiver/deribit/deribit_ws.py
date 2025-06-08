@@ -189,13 +189,13 @@ class StreamingAccountData:
                         
                     try:
 
-                        print(orjson.dumps(message_dict["params"]).decode())
+
                         await client_redis.xadd(
                             "stream:market_data",
                             {"data": orjson.dumps(message_dict["params"]).decode()},
                             maxlen=10000
                             )
-                        log.debug(f"Sent to stream: {message_dict['params']['channel']}")
+                        log.debug(f"""Sent to stream: {message_dict['params']['channel']}""")
                         
                     except Exception as e:
                         log.error(f"XADD failed: {e}")  
