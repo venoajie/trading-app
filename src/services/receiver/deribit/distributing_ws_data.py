@@ -238,7 +238,7 @@ async def caching_distributing_data(
 # 4. Keep other functions below
 async def handle_user_message(
     message_channel: str,
-    data: Di    ct,
+    data: Dict,
     portfolio_lock: asyncio.Lock,
     portfolio: List[Dict],  # Portfolio storage
     redis_channels: Dict,
