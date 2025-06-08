@@ -123,18 +123,18 @@ async def caching_distributing_data(
                 try:
                     for message_id, fields in message_list:
                         # Extract and process message
-                        json_str = fields['data']  # Use string key
-                        message_data = orjson.loads(json_str)  # Parse JSON string
+                        json_data = fields[b'data']  # Use string key
+                        message_data = orjson.loads(json_data)  # Parse JSON string
                         channel = message_data["channel"]
                         data = message_data.get("data", {})  # Get inner data
                         
                         currency: str = str_mod.extract_currency_from_text(channel)
 
                         currency_upper = currency.upper()
+                        
+                        timestamp = message.get("timestamp", time.time())
                                             
-                        current_server_time = (
-                            data["timestamp"] + server_time if server_time == 0 else data["timestamp"]
-                        )
+                        current_server_time = (timestamp + server_time if server_time == 0 else timestamp)
                         # updating current server time
                         server_time = (
                             current_server_time if server_time < current_server_time else server_time
