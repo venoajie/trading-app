@@ -10,18 +10,16 @@ from loguru import logger as log
 # user defined formula
 from core.db.redis import publishing_result
 from core.db.sqlite import (
-    executing_query_with_return,
     insert_tables,
-    querying_arithmetic_operator,
-    update_status_data,
 )
+from core.db.postgres import fetch, insert_trade_or_order, delete_row, update_status_data, querying_by_arithmetic
 from src.scripts.deribit.restful_api import end_point_params_template as end_point, connector
 from src.shared.utils import error_handling, string_modification as str_mod
 
 
 async def last_tick_fr_sqlite(last_tick_query_ohlc1: str) -> int:
     """ """
-    last_tick = await executing_query_with_return(last_tick_query_ohlc1)
+    last_tick = await fetch(last_tick_query_ohlc1)
 
     return last_tick[0]["MAX (tick)"]
 
@@ -127,7 +125,7 @@ async def updating_ohlc(
 
                                 ohlc_query = f"SELECT data FROM {table_ohlc} WHERE tick = {end_timestamp}"
 
-                                result_from_sqlite = await executing_query_with_return(
+                                result_from_sqlite = await fetch(
                                     ohlc_query
                                 )
 
@@ -180,6 +178,8 @@ async def updating_ohlc(
                             )
 
                             for result in result_all:
+                                
+                                log.info(f"result {result}")
 
                                 await insert_tables(
                                     table_ohlc,
@@ -221,7 +221,7 @@ async def inserting_open_interest(
 
         open_interest = data_orders["open_interest"]
 
-        last_tick_query_ohlc1: str = querying_arithmetic_operator(
+        last_tick_query_ohlc1: str = querying_by_arithmetic(
             "tick", "MAX", TABLE_OHLC1
         )
 

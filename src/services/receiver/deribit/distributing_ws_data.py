@@ -304,13 +304,6 @@ async def handle_incremental_ticker(
                     for stat_key in data["stats"]:
                         ticker_stats[stat_key] = data["stats"][stat_key]
 
-    pub_message["data"] = ticker_all_cached
-    result_template["params"].update({
-        "channel": ticker_channel,
-        "data": pub_message
-    })
-    await redis_publish.publishing_result(pipe, result_template)
-
     # Handle perpetual instruments
     if "PERPETUAL" in instrument_name_future:
         try:

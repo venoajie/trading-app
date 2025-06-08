@@ -189,6 +189,7 @@ postgres_client = PostgresClient()
 schema = postgres_client.get_table_schema
 
 # Add to module-level aliases
+querying_by_arithmetic = postgres_client.querying_arithmetic_operator
 delete_row = postgres_client.delete_row
 update_status_data = postgres_client.update_status_data
 insert_trade_or_order = postgres_client.insert_trade_or_order
