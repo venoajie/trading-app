@@ -264,5 +264,47 @@ class RedisClient:
             maxlen=max_queue_size
         )
 
+# Add to RedisClient class
+async def xadd(self, stream_name: str, data: dict, max_queue_size: int = 1000) -> None:
+    """Add to Redis stream with queue size limit"""
+    pool = await self.get_pool()
+    await pool.xadd(
+        stream_name,
+        {"data": orjson.dumps(data).decode("utf-8")},
+        maxlen=max_queue_size
+    )
+
+async def xreadgroup(
+    self,
+    group_name: str,
+    consumer_name: str,
+    stream_name: str,
+    count: int = 10,
+    block: int = 5000
+) -> list:
+    """Read from stream with consumer group"""
+    pool = await self.get_pool()
+    return await pool.xreadgroup(
+        groupname=group_name,
+        consumername=consumer_name,
+        streams={stream_name: ">"},
+        count=count,
+        block=block
+    )
+
+async def xack(self, stream_name: str, group_name: str, message_id: str) -> None:
+    """Acknowledge message processing"""
+    pool = await self.get_pool()
+    await pool.xack(stream_name, group_name, message_id)
+
+async def create_consumer_group(self, stream_name: str, group_name: str) -> None:
+    """Create consumer group if not exists"""
+    pool = await self.get_pool()
+    try:
+        await pool.xgroup_create(stream_name, group_name, id="0", mkstream=True)
+    except Exception as e:
+        if "BUSYGROUP" not in str(e):
+            raise
+
 # Global Redis client instance 
 redis_client = RedisClient()

@@ -1,7 +1,21 @@
 -- init.sql
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
+CREATE TABLE ohlc60_btc_perp_json (
+    id SERIAL PRIMARY KEY,
+    data JSONB NOT NULL,
+    open_interest REAL,
+    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
+);
+
 CREATE TABLE ohlc15_btc_perp_json (
+    id SERIAL PRIMARY KEY,
+    data JSONB NOT NULL,
+    open_interest REAL,
+    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
+);
+
+CREATE TABLE ohlc5_btc_perp_json (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
     open_interest REAL,
@@ -15,6 +29,26 @@ CREATE TABLE ohlc1_btc_perp_json (
     tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
 );
 
+
+CREATE TABLE ohlc60_eth_perp_json (
+    id SERIAL PRIMARY KEY,
+    data JSONB NOT NULL,
+    open_interest REAL,
+    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
+);
+CREATE TABLE ohlc15_eth_perp_json (
+    id SERIAL PRIMARY KEY,
+    data JSONB NOT NULL,
+    open_interest REAL,
+    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
+);
+
+CREATE TABLE ohlc5_eth_perp_json (
+    id SERIAL PRIMARY KEY,
+    data JSONB NOT NULL,
+    open_interest REAL,
+    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
+);
 
 CREATE TABLE ohlc1_eth_perp_json (
     id SERIAL PRIMARY KEY,

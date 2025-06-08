@@ -13,3 +13,13 @@ dependencies = [
     "tomli==2.0.0",
     "asyncpg==0.30.0"
 ]
+
+[tool.pytest.optional-dependencies]
+test = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.20.0",
+    "pytest-mock>=3.0",
+    "asynctest>=0.13",
+    "httpx>=0.24.0",
+    "freezegun>=1.0"  # For time-based tests
+]

@@ -144,12 +144,6 @@ async def updating_ohlc(
                                     or low_from_ws < low_from_db
                                 ):
 
-                                    await publishing_result(
-                                        client_redis,
-                                        chart_low_high_tick_channel,
-                                        pub_message,
-                                    )
-
                         else:
 
                             endpoint_ohlc = end_point.get_ohlc_end_point(
@@ -171,12 +165,6 @@ async def updating_ohlc(
                                 ohlc
                             )
 
-                            await publishing_result(
-                                client_redis,
-                                chart_low_high_tick_channel,
-                                pub_message,
-                            )
-
                             for result in result_all:
                                 
                                 log.info(f"result {result}")
@@ -188,8 +176,7 @@ async def updating_ohlc(
 
             except Exception as error:
 
-                await error_handling.parse_error_message_with_redis(
-                    client_redis,
+                await error_handling.parse_error_message(
                     error,
                 )
 
@@ -201,7 +188,6 @@ async def updating_ohlc(
     except Exception as error:
 
         await error_handling.parse_error_message_with_redis(
-            client_redis,
             error,
         )
 

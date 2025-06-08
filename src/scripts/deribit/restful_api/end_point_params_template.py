@@ -19,6 +19,14 @@ def get_basic_https() -> str:
 def get_currencies_end_point() -> str:
     return f"public/get_currencies?"
 
+async def get_currencies() -> dict:
+
+    result = await connector.get_connected(
+        get_basic_https(),
+        get_currencies_end_point(),
+    )
+
+    return result["result"]
 
 def get_server_time_end_point() -> str:
     return f"public/get_time?"
@@ -28,7 +36,7 @@ def get_instruments_end_point(currency) -> str:
     return f"public/get_instruments?currency={currency.upper()}"
 
 
-async def get_instruments(currency) -> str:
+async def get_instruments(currency) -> dict:
 
     result = await connector.get_connected(
         get_basic_https(),
@@ -58,7 +66,6 @@ def get_tradingview_chart_data_end_point() -> str:
 
 
 def get_ohlc_end_point(
-    endpoint_tradingview: str,
     instrument_name: str,
     resolution: int,
     qty_or_start_time_stamp: int,
@@ -68,6 +75,9 @@ def get_ohlc_end_point(
 
     now_unix = time_mod.get_now_unix_time()
 
+    if resolution == "1D":
+        resolution = 60 * 24
+        
     # start timestamp is provided
     start_timestamp = qty_or_start_time_stamp
 
@@ -80,7 +90,28 @@ def get_ohlc_end_point(
     else:
         end_timestamp = now_unix
 
-    return f"{endpoint_tradingview}end_timestamp={end_timestamp}&instrument_name={instrument_name}&resolution={resolution}&start_timestamp={start_timestamp}"
+    return f"end_timestamp={end_timestamp}&instrument_name={instrument_name}&resolution={resolution}&start_timestamp={start_timestamp}"
+
+
+async def get_ohlc(
+    instrument_name: str,
+    resolution: int,
+    qty_or_start_time_stamp: int,
+    provided_end_timestamp: int = None,
+    qty_as_start_time_stamp: bool = False,) -> dict:
+
+    result = await connector.get_connected(
+        get_basic_https(),
+        get_ohlc_end_point(
+            instrument_name,
+            resolution,
+            qty_or_start_time_stamp,
+            provided_end_timestamp,
+            qty_as_start_time_stamp,
+        )
+        )
+
+    return result["result"]
 
 
 def get_json_payload(
