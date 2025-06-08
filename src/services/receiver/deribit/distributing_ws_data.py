@@ -48,6 +48,145 @@ def reading_from_pkl_data(
     path: str = system_tools.provide_path_for_file(end_point, currency, status)
     return pickling.read_data(path)  
 
+
+async def process_message_batch(
+    client_redis: aioredis.Redis,
+    messages: List,
+    processing_state: Dict[str, Any]
+) -> None:
+    """
+    Process batch of messages from Redis stream
+    
+    Args:
+        client_redis: Redis connection
+        messages: Batch of (message_id, message_data) tuples
+        processing_state: Shared processing context
+    """
+    for message_id, message_data in messages:
+        try:
+            # Parse message payload
+            message = orjson.loads(message_data[b'data'])
+            channel = message.get("channel", "")
+            
+            # Extract processing parameters
+            currency = str_mod.extract_currency_from_text(channel)
+            currency_upper = currency.upper()
+            instrument_name = channel.split('.')[-1] if '.' in channel else ""
+            
+            timestamp = message.get("timestamp")
+                                
+            current_server_time = (timestamp + server_time if server_time == 0 else timestamp)
+            # updating current server time
+            server_time = (
+                current_server_time if server_time < current_server_time else server_time
+            )
+
+
+            pub_message = dict(
+                data=data,
+                server_time=server_time,
+                currency_upper=currency_upper,
+                currency=currency,
+            )
+
+            log.info(f"Processing message from channel: {channel} {currency}")
+            
+            if "user." in channel:
+                await handle_user_message(
+                    channel,
+                    data,
+                    portfolio_lock,
+                    portfolio,  # Pass portfolio storage
+                    redis_channels,
+                    result_template,
+                    query_trades,
+                    orders_cached,
+                    positions_cached
+                )
+
+            # Handle ticker data
+            elif "incremental_ticker" in channel:
+                
+                instrument_name_future = channel[len("incremental_ticker."):]
+                await handle_incremental_ticker(
+                    currency,
+                    data,
+                    instrument_name_future,
+                    result_template,
+                    pub_message,
+                    ticker_all_cached,
+                    redis_channels["ticker_cache_updating"],
+                    ticker_lock
+                )
+
+            # Handle chart data
+            elif "chart.trades" in channel:
+                await handle_chart_trades(
+                    redis_channels["chart_low_high_tick"],
+                    channel,
+                    pub_message,
+                    result_template
+                )
+
+            
+            # Acknowledge successful processing
+            await client_redis.acknowledge_message(
+                stream_name="stream:market_data",
+                group_name="dispatcher_group",
+                message_id=message_id
+            )
+            
+        except Exception as error:
+            log.error(f"Message processing failed: {error}", exc_info=True)
+            # Consider dead-letter queue for failed messages
+            
+
+async def stream_consumer(
+    client_redis: aioredis.Redis,
+    processing_state: Dict[str, Any]
+) -> None:
+    """
+    Main stream consumer loop with backpressure management
+    
+    Args:
+        client_redis: Redis connection
+        processing_state: Shared processing context
+    """
+    # Ensure consumer group exists
+    await client_redis.ensure_consumer_group(
+        stream_name="stream:market_data",
+        group_name="dispatcher_group"
+    )
+    
+    while True:
+        try:
+            # Trim stream periodically to prevent memory issues
+            await client_redis.trim_stream("stream:market_data", maxlen=10000)
+            
+            # Fetch message batch
+            messages = await client_redis.read_stream_messages(
+                stream_name="stream:market_data",
+                group_name="dispatcher_group",
+                consumer_name="dispatcher_consumer",
+                count=50,  # Optimal batch size
+                block=100   # 100ms block
+            )
+            
+            if not messages:
+                await asyncio.sleep(0.1)
+                continue
+                
+            # Process batch asynchronously
+            await process_message_batch(client_redis, messages, processing_state)
+            
+        except aioredis.ConnectionError:
+            log.error("Redis connection lost, reconnecting...")
+            await asyncio.sleep(5)
+        except Exception as error:
+            log.error(f"Consumer loop error: {error}", exc_info=True)
+            await asyncio.sleep(1)
+            
+            
 async def caching_distributing_data(
     client_redis: aioredis.Redis,
     currencies: List[str],
@@ -58,154 +197,29 @@ async def caching_distributing_data(
 ) -> None:
     """Distributes WebSocket data with maintenance handling"""
     state_task = None
+        # Initialize processing state
+    
+    processing_state = {
+        'currencies': currencies,
+        'redis_channels': redis_channels,
+        # ... other state ...,
+        'str_mod': string_modification  # Utility instance
+    }
+    
+    # Start stream consumer
+    consumer_task = asyncio.create_task(
+        stream_consumer(client_redis, processing_state)
+    )
+        
     
     try:
-        
-        # Create consumer group with proper API
-        await client_redis.xgroup_create(
-            name="stream:market_data",
-            groupname="dispatcher_group",
-            id=0,  # Start from new messages
-            mkstream=True  # Create stream if missing
-        )
-        
-        # Extract settlement periods safely
-        settlement_periods = []
-        if strategy_attributes:
-            settlement_periods = [
-                attr["settlement_period"] 
-                for attr in strategy_attributes
-                if "settlement_period" in attr
-            ]
-            settlement_periods = str_mod.remove_double_brackets_in_list(settlement_periods)
-            settlement_periods = str_mod.remove_redundant_elements(settlement_periods)
-
-        # Get futures instruments
-        futures_instruments = await get_instrument_summary.get_futures_instruments(
-            currencies, settlement_periods or ["perpetual"]
-        )
-        instruments_name = futures_instruments["instruments_name"]
-        ticker_all_cached = await combining_ticker_data(instruments_name)
-
-        # Initialize account data
-        sub_account_cached = initial_data_subaccount["params"]["data"]
-        orders_cached = sub_account_cached["orders_cached"]
-        positions_cached = sub_account_cached["positions_cached"]
-
-        query_trades = "SELECT * FROM v_trading_active"
-        result_template = template.trade_template()
-
-        # Shared resources with locks
-        portfolio_lock = asyncio.Lock()
-        portfolio: List[Dict] = []  # Portfolio storage
-        ticker_lock = asyncio.Lock()
-
-        server_time = 0
-
-        while True:
-            # Clear queue to prevent backpressure during maintenance                
-            await client_redis.xtrim("stream:market_data", maxlen=1000)
-            await asyncio.sleep(0.1)
-
-            messages = await client_redis.xreadgroup(
-                groupname="dispatcher_group",
-                consumername="dispatcher_consumer",
-                streams={"stream:market_data": ">"},  
-                count=50,
-                block=100            )
-            
-            
-            if not messages:
-                continue
-            
-            for stream, message_list in messages:
-                try:
-                    for message_id, fields in message_list:
-                        # Extract and process message
-                        json_data = fields[b'data']  # Use string key
-                        message_data = orjson.loads(json_data)  # Parse JSON string
-                        channel = message_data["channel"]
-                        data = message_data.get("data", {})  # Get inner data
-                        
-                        currency: str = str_mod.extract_currency_from_text(channel)
-
-                        currency_upper = currency.upper()
-                        
-                        log.info(f"message_data {message_data}")
-                        
-                        timestamp = message_data.get("timestamp")
-                                            
-                        current_server_time = (timestamp + server_time if server_time == 0 else timestamp)
-                        # updating current server time
-                        server_time = (
-                            current_server_time if server_time < current_server_time else server_time
-                        )
-
-
-                        pub_message = dict(
-                            data=data,
-                            server_time=server_time,
-                            currency_upper=currency_upper,
-                            currency=currency,
-                        )
-
-                        log.info(f"Processing message from channel: {channel} {currency}")
-                        
-                        if "user." in channel:
-                            await handle_user_message(
-                                channel,
-                                data,
-                                portfolio_lock,
-                                portfolio,  # Pass portfolio storage
-                                redis_channels,
-                                result_template,
-                                query_trades,
-                                orders_cached,
-                                positions_cached
-                            )
-
-                        # Handle ticker data
-                        elif channel.startswith("incremental_ticker."):
-                            
-                            instrument_name_future = channel[len("incremental_ticker."):]
-                            await handle_incremental_ticker(
-                                currency,
-                                data,
-                                instrument_name_future,
-                                result_template,
-                                pub_message,
-                                ticker_all_cached,
-                                redis_channels["ticker_cache_updating"],
-                                ticker_lock
-                            )
-
-                        # Handle chart data
-                        elif "chart.trades" in channel:
-                            await handle_chart_trades(
-                                redis_channels["chart_low_high_tick"],
-                                channel,
-                                pub_message,
-                                result_template
-                            )
-
-        
-                    await client_redis.xack(
-                        "stream:market_data",
-                        "dispatcher_group",
-                        message_id
-                        )
-
-                except Exception as error:
-                    log.error(f"Stream processing failed: {error}")
-                    # Don't ACK to allow reprocessing
-
-    except redis.exceptions.ResponseError as e:
-        if "BUSYGROUP" in str(e):
-            pass
-        elif "NOGROUP" in str(e):  # Missing handling
-            await client_redis.xgroup_create(...)  # Recreate group
-        else:
-            raise                               
+        await asyncio.gather(consumer_task)
+    except asyncio.CancelledError:
+        log.info("Data distribution stopped")
+    except Exception as error:
+        log.error(f"Distribution failed: {error}", exc_info=True)
+        raise
+    
 # 4. Keep other functions below
 async def handle_user_message(
     message_channel: str,
