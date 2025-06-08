@@ -11,6 +11,7 @@ from typing import Any, Optional, Union, List, Dict
 import os
 import aiosqlite
 from loguru import logger as log
+from typing import Any, Dict, List, Optional, cast
 
 # user defined formulas
 from core.db.redis import publishing_specific_purposes
