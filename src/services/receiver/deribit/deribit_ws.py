@@ -175,39 +175,31 @@ class StreamingAccountData:
                 message_dict = orjson.loads(message)
                 
                 # Handle authentication responses
-                if "id" in message_dict and message_dict["id"] == 9929:
-                    self.handle_auth_response(message_dict)
-                
-                # Handle heartbeat requests
-                elif message_dict.get("method") == "heartbeat":
-                    await self.heartbeat_response(client_redis)
-                
-                # Process market data messages
-                if "params" in message_dict and message_dict["method"] != "heartbeat":
-                    # Validate message structure
-                    if "channel" not in message_dict["params"]:
-                        log.error(f"Invalid message format: {message_dict}")
-                        continue
-                        
-                    try:
-
-                        # Add to Redis stream with backpressure control
-                        await client_redis.xadd(
-                            stream_name="stream:market_data",
-                            data={
+            if "params" in message_dict and message_dict["method"] != "heartbeat":
+                if "channel" not in message_dict["params"]:
+                    log.error(f"Invalid message format: {message_dict}")
+                    continue
+                    
+                try:
+                    # Fixed: use positional arguments for xadd
+                    await client_redis.xadd(
+                        "stream:market_data",  # Stream name (positional)
+                        {  # Fields dictionary (positional)
+                            "data": orjson.dumps({
                                 "channel": message_dict["params"]["channel"],
                                 "data": message_dict["params"]["data"],
                                 "timestamp": time.time()
-                            },
-                            maxlen=10000  # Stream size limit
-                        )
-                        
-                    except Exception as e:
-                        log.error(f"Message processing error: {e}", exc_info=True)
+                            }).decode('utf-8')
+                        },
+                        maxlen=10000  # Keyword argument
+                    )
+                    
+                except Exception as e:
+                    log.error(f"XADD failed: {e}", exc_info=True)
 
-            except Exception as e:
-                log.error(f"Failed to add to stream: {e}")    
-
+        except Exception as e:
+            log.error(f"Message processing failed: {e}")
+            
     def handle_auth_response(self, message: Dict) -> None:
         """Handle authentication responses"""
         try:
