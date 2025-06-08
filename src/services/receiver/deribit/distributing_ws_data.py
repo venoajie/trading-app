@@ -118,7 +118,6 @@ async def caching_distributing_data(
             if not messages:
                 continue
             
-            log.info(f"messages: {messages}")
             for stream, message_list in messages:
                 try:
                     for message_id, fields in message_list:
@@ -132,7 +131,9 @@ async def caching_distributing_data(
 
                         currency_upper = currency.upper()
                         
-                        timestamp = message.get("timestamp", time.time())
+                        log.info(f"message_data {message_data}")
+                        
+                        timestamp = message_data.get("timestamp", time.time())
                                             
                         current_server_time = (timestamp + server_time if server_time == 0 else timestamp)
                         # updating current server time
