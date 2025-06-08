@@ -25,11 +25,6 @@ from loguru import logger as log
 async def combining_ticker_data(instruments_name: List) -> List:
     """Combine ticker data from cache or API with error handling"""
 
-    schema1 = await schema("orders")
-    print (schema1)
-    for col in schema1:
-        print(f"{col['column_name']}: {col['data_type']}")
-
     result = []
     for instrument_name in instruments_name:
         try:
@@ -64,6 +59,12 @@ async def caching_distributing_data(
     """Distributes WebSocket data with maintenance handling"""
     state_task = None
     try:
+
+        schema1 = await schema("orders")
+        print (schema1)
+        for col in schema1:
+            print(f"{col['column_name']}: {col['data_type']}")
+
         pubsub = client_redis.pubsub()
         await pubsub.subscribe("system_status")
         
