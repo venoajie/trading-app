@@ -129,9 +129,9 @@ async def caching_distributing_data(
                         log.info(f"Processing message from channel: {channel}")
                         log.info(f"Message data: {data}")
                         
-                        if "user." in message_channel:
+                        if "user." in channel:
                             await handle_user_message(
-                                message_channel,
+                                channel,
                                 data,
                                 pipe,
                                 portfolio_lock,
@@ -144,9 +144,9 @@ async def caching_distributing_data(
                             )
 
                         # Handle ticker data
-                        elif message_channel.startswith("incremental_ticker."):
+                        elif channel.startswith("incremental_ticker."):
                             
-                            instrument_name_future = message_channel[len("incremental_ticker."):]
+                            instrument_name_future = channel[len("incremental_ticker."):]
                             await handle_incremental_ticker(
                                 pipe,
                                 currency,
@@ -160,11 +160,11 @@ async def caching_distributing_data(
                             )
 
                         # Handle chart data
-                        elif "chart.trades" in message_channel:
+                        elif "chart.trades" in channel:
                             await handle_chart_trades(
                                 pipe,
                                 redis_channels["chart_low_high_tick"],
-                                message_channel,
+                                channel,
                                 pub_message,
                                 result_template
                             )
