@@ -72,7 +72,7 @@ class PostgresClient:
             await conn.execute(query, *params)
         
         # Publish update to Redis
-        await self.publish_table_update(table)
+        await self.publish_table_update(table, data)
 
 
     async def fetch_active_trades(self, query):
@@ -101,7 +101,7 @@ class PostgresClient:
             await conn.execute(query, filter_value)
         
         # Publish update to Redis
-        await self.publish_table_update(table)
+        await self.publish_table_update(table,data)
 
     async def update_status_data(
         self,
@@ -139,7 +139,7 @@ class PostgresClient:
         # Publish update to Redis
         await self.publish_table_update(table)
 
-    async def publish_table_update(self, table: str) -> None:
+    async def publish_table_update(self, table: str, data: dict) -> None:
         """
         Publish table updates to Redis
         """
@@ -173,7 +173,7 @@ class PostgresClient:
 
 # Singleton instance
 postgres_client = PostgresClient()
-schema = postgres_client. get_table_schema
+schema = postgres_client.get_table_schema
 
 # Add to module-level aliases
 delete_row = postgres_client.delete_row
