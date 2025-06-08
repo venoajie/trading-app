@@ -1,5 +1,6 @@
 # core/db/postgres.py
-import json
+import orjson
+from typing import Any, Optional, Union, List, Dict
 import asyncpg
 from loguru import logger as log
 
@@ -63,7 +64,7 @@ class PostgresClient:
             data.get('trade_id'),
             data.get('order_id'),
             is_trade,  # Mark as open if it's a trade
-            json.dumps(data)
+            orjson.dumps(data)
         )
 
         await self.start_pool()
@@ -121,7 +122,7 @@ class PostgresClient:
                 SET data = jsonb_set(data, '{{{json_path}}}', $1::jsonb)
                 WHERE {filter_col} = $2
             """
-            params = (json.dumps(new_value), filter_value)
+            params = (orjson.dumps(new_value), filter_value)
         # Update top-level column
         else:
             query = f"""
