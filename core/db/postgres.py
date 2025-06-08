@@ -180,9 +180,9 @@ schema = (postgres_client. get_table_schema)
 
 
 # View orders table schema
-schema = asyncio.run(schema("orders")) 
-print(schema)
-for col in schema:
+schema1 = asyncio.run(schema("orders")) 
+print(schema1)
+for col in schema1:
     print(f"{col['column_name']}: {col['data_type']}")
 
 # View first 10 rows
