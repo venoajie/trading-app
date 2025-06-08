@@ -173,7 +173,7 @@ async def get_table_schema(table_name: str) -> list:
         FROM information_schema.columns 
         WHERE table_name = $1
     """
-    return await fetch(query, table_name)
+    return await fetch(query)
 
 async def query_table_data(
     table_name: str, 
@@ -183,7 +183,7 @@ async def query_table_data(
     Query data from a table
     """
     query = f"SELECT * FROM {table_name} LIMIT $1"
-    return await fetch(query, limit)
+    return await fetch(query)
 
 # View orders table schema
 schema = asyncio.run(get_table_schema("orders"))
