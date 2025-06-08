@@ -1,7 +1,7 @@
 # core/db/postgres.py
 import orjson
 from typing import Any, Optional, Union, List, Dict
-import asyncpg
+import asyncpg, asyncio
 from loguru import logger as log
 
 # user defined formulas
