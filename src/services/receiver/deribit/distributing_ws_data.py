@@ -166,12 +166,12 @@ async def caching_distributing_data(
                                 result_template
                             )
 
-    
-                await client_redis.xack(
-                    "stream:market_data",
-                    "dispatcher_group",
-                    message_id
-                    )
+        
+                    await client_redis.xack(
+                        "stream:market_data",
+                        "dispatcher_group",
+                        message_id
+                        )
 
                 except Exception as error:
                     log.error(f"Stream processing failed: {error}")
