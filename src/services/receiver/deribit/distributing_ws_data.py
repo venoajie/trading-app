@@ -64,7 +64,7 @@ async def caching_distributing_data(
         await client_redis.xgroup_create(
             name="stream:market_data",
             groupname="dispatcher_group",
-            id="$",  # Start from new messages
+            id=0,  # Start from new messages
             mkstream=True  # Create stream if missing
         )
         
@@ -103,77 +103,75 @@ async def caching_distributing_data(
             # Clear queue to prevent backpressure during maintenance                
             await client_redis.xtrim("stream:market_data", maxlen=1000)
             await asyncio.sleep(0.1)
-            continue
 
             messages = await client_redis.xreadgroup(
                 group_name="dispatcher_group",
                 consumer_name="dispatcher_consumer",
-                stream_name="stream:market_data",
+    streams={"stream:market_data": ">"},  
                 count=50,
-                block=100,
-                noack=False
-            )
+                block=100            )
             
             print(f"messages: {messages}")
             
             if not messages:
                 continue
             
-            for stream, message_id, fields in messages:
+            for stream, message_list in messages:
                 try:
-                    # Extract and process message
-                    message_data = orjson.loads(fields[b'data'])
-                    message_channel = message_data["channel"]
-                    
-                    log.info(f"Processing message from channel: {message_channel}")
-                    log.info(f"Message data: {message_data}")
-                    
-                    if "user." in message_channel:
-                        await handle_user_message(
-                            message_channel,
-                            data,
-                            pipe,
-                            portfolio_lock,
-                            portfolio,  # Pass portfolio storage
-                            redis_channels,
-                            result_template,
-                            query_trades,
-                            orders_cached,
-                            positions_cached
-                        )
-
-                    # Handle ticker data
-                    elif message_channel.startswith("incremental_ticker."):
+                    for message_id, fields in message_list:
+                        # Extract and process message
+                        message_data = orjson.loads(fields[b'data'])
+                        message_channel = message_data["channel"]
                         
-                        instrument_name_future = message_channel[len("incremental_ticker."):]
-                        await handle_incremental_ticker(
-                            pipe,
-                            currency,
-                            data,
-                            instrument_name_future,
-                            result_template,
-                            pub_message,
-                            ticker_all_cached,
-                            redis_channels["ticker_cache_updating"],
-                            ticker_lock
-                        )
+                        log.info(f"Processing message from channel: {message_channel}")
+                        log.info(f"Message data: {message_data}")
+                        
+                        if "user." in message_channel:
+                            await handle_user_message(
+                                message_channel,
+                                data,
+                                pipe,
+                                portfolio_lock,
+                                portfolio,  # Pass portfolio storage
+                                redis_channels,
+                                result_template,
+                                query_trades,
+                                orders_cached,
+                                positions_cached
+                            )
 
-                    # Handle chart data
-                    elif "chart.trades" in message_channel:
-                        await handle_chart_trades(
-                            pipe,
-                            redis_channels["chart_low_high_tick"],
-                            message_channel,
-                            pub_message,
-                            result_template
-                        )
+                        # Handle ticker data
+                        elif message_channel.startswith("incremental_ticker."):
+                            
+                            instrument_name_future = message_channel[len("incremental_ticker."):]
+                            await handle_incremental_ticker(
+                                pipe,
+                                currency,
+                                data,
+                                instrument_name_future,
+                                result_template,
+                                pub_message,
+                                ticker_all_cached,
+                                redis_channels["ticker_cache_updating"],
+                                ticker_lock
+                            )
 
-        
-                    await client_redis.xack(
-                        "stream:market_data",
-                        "dispatcher_group",
-                        message_id
-                       )
+                        # Handle chart data
+                        elif "chart.trades" in message_channel:
+                            await handle_chart_trades(
+                                pipe,
+                                redis_channels["chart_low_high_tick"],
+                                message_channel,
+                                pub_message,
+                                result_template
+                            )
+
+    
+                await client_redis.xack(
+                    "stream:market_data",
+                    "dispatcher_group",
+                    message_id
+                    )
 
                 except Exception as error:
                     log.error(f"Stream processing failed: {error}")

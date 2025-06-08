@@ -171,6 +171,11 @@ async def trading_main() -> None:
     
     try:
         client_redis = await setup_redis()
+                
+        if not await client_redis.ping():
+            log.error("Redis connection failed")
+            return
+        
         alert_monitor_task = asyncio.create_task(monitor_system_alerts())
     except ConnectionError:
         await enter_maintenance_mode("Redis connection failed")

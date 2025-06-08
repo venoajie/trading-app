@@ -191,8 +191,7 @@ class StreamingAccountData:
                         await client_redis.xadd(
                             "stream:market_data",
                             {"data": orjson.dumps(message_dict["params"]).decode()},
-                            maxlen=10000,
-                            approximate=True  # Better performance
+                            maxlen=(10000, True)
                             )
                         
                     except Exception as e:
