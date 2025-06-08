@@ -126,7 +126,11 @@ async def caching_distributing_data(
                         channel = message_data["channel"]
                         data = message_data.get("data", {})  # Get inner data
                         
-                        log.info(f"Processing message from channel: {channel}")
+                        currency: str = str_mod.extract_currency_from_text(channel)
+
+                        currency_upper = currency.upper()
+                        
+                        log.info(f"Processing message from channel: {channel} {currency}")
                         log.info(f"Message data: {data}")
                         
                         if "user." in channel:
