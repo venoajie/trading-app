@@ -173,33 +173,33 @@ class StreamingAccountData:
             
             try:
                 message_dict = orjson.loads(message)
-                
-                # Handle authentication responses
-            if "params" in message_dict and message_dict["method"] != "heartbeat":
-                if "channel" not in message_dict["params"]:
-                    log.error(f"Invalid message format: {message_dict}")
-                    continue
                     
-                try:
-                    # Fixed: use positional arguments for xadd
-                    await client_redis.xadd(
-                        "stream:market_data",  # Stream name (positional)
-                        {  # Fields dictionary (positional)
-                            "data": orjson.dumps({
-                                "channel": message_dict["params"]["channel"],
-                                "data": message_dict["params"]["data"],
-                                "timestamp": time.time()
-                            }).decode('utf-8')
-                        },
-                        maxlen=10000  # Keyword argument
-                    )
-                    
-                except Exception as e:
-                    log.error(f"XADD failed: {e}", exc_info=True)
+                    # Handle authentication responses
+                if "params" in message_dict and message_dict["method"] != "heartbeat":
+                    if "channel" not in message_dict["params"]:
+                        log.error(f"Invalid message format: {message_dict}")
+                        continue
+                        
+                    try:
+                        # Fixed: use positional arguments for xadd
+                        await client_redis.xadd(
+                            "stream:market_data",  # Stream name (positional)
+                            {  # Fields dictionary (positional)
+                                "data": orjson.dumps({
+                                    "channel": message_dict["params"]["channel"],
+                                    "data": message_dict["params"]["data"],
+                                    "timestamp": time.time()
+                                }).decode('utf-8')
+                            },
+                            maxlen=10000  # Keyword argument
+                        )
+                        
+                    except Exception as e:
+                        log.error(f"XADD failed: {e}", exc_info=True)
 
-        except Exception as e:
-            log.error(f"Message processing failed: {e}")
-            
+            except Exception as e:
+                log.error(f"Message processing failed: {e}")
+                
     def handle_auth_response(self, message: Dict) -> None:
         """Handle authentication responses"""
         try:
