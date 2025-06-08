@@ -41,6 +41,9 @@ services:
         target: deribit_client_secret
       - source: db_password  # Add DB password secret
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "from core.db.redis import redis_client; await redis_client.get_pool().ping()"]
+      interval: 30s
 
   executor:
     build:
