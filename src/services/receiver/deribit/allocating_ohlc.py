@@ -85,7 +85,7 @@ async def updating_ohlc(
                         table_ohlc = f"ohlc{resolution}_{currency.lower()}_perp_json"
 
                         last_tick_query_ohlc_resolution: str = (
-                            querying_arithmetic_operator(
+                            await querying_arithmetic_operator(
                                 WHERE_FILTER_TICK,
                                 "MAX",
                                 table_ohlc,
@@ -221,7 +221,7 @@ async def inserting_open_interest(
 
         open_interest = data_orders["open_interest"]
 
-        last_tick_query_ohlc1: str = querying_by_arithmetic(
+        last_tick_query_ohlc1: str = await querying_by_arithmetic(
             "tick", "MAX", TABLE_OHLC1
         )
 
