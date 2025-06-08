@@ -155,6 +155,8 @@ class StreamingAccountData:
     async def process_messages(self, client_redis, exchange):
         """Process incoming messages with state recovery"""
         async for message in self.websocket_client:
+                
+            # Check for maintenance mode
             current_time = time.time()
             time_since_last = current_time - self.last_message_time
             
@@ -189,14 +191,19 @@ class StreamingAccountData:
                         
                     try:
 
+                        # Add to Redis stream with backpressure control
                         await client_redis.xadd(
-                            "stream:market_data",
-                            {"data": orjson.dumps(message_dict["params"]).decode()},
-                            maxlen=10000
-                            )
+                            stream_name="stream:market_data",
+                            data={
+                                "channel": message_dict["params"]["channel"],
+                                "data": message_dict["params"]["data"],
+                                "timestamp": time.time()
+                            },
+                            maxlen=10000  # Stream size limit
+                        )
                         
                     except Exception as e:
-                        log.error(f"XADD failed: {e}")  
+                        log.error(f"Message processing error: {e}", exc_info=True)
 
             except Exception as e:
                 log.error(f"Failed to add to stream: {e}")    
