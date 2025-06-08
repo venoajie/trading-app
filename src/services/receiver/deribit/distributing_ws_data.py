@@ -62,6 +62,21 @@ async def process_message_batch(
         messages: Batch of (message_id, message_data) tuples
         processing_state: Shared processing context
     """
+        
+    pending = await client_redis.xpending_range(
+        "stream:market_data",
+        "dispatcher_group",
+        min_idle_time=30000  # 30 seconds
+    )
+    if pending:
+        await client_redis.xclaim(
+            "stream:market_data",
+            "dispatcher_group",
+            "dispatcher_consumer",
+            30000,
+            [msg.id for msg in pending]
+        )
+        
     for message_id, message_data in messages:
         try:
             # Parse message payload
@@ -161,20 +176,20 @@ async def stream_consumer(
     while True:
         try:
             # Trim stream periodically to prevent memory issues
-            await client_redis.trim_stream("stream:market_data", maxlen=10000)
+            stream_length = await client_redis.xlen("stream:market_data")
+            if stream_length > 15000:  # Trim when 50% over maxlen
+                await client_redis.trim_stream("stream:market_data", maxlen=10000)
             
             # Fetch message batch
-            messages = await client_redis.read_stream_messages(
-                stream_name="stream:market_data",
-                group_name="dispatcher_group",
-                consumer_name="dispatcher_consumer",
-                count=50,  # Optimal batch size
-                block=100   # 100ms block
+            messages = await client_redis.xreadgroup(
+                group_name=group_name,
+                consumername=consumer_name,
+                streams={stream_name: "0-0"},
+                count=50,
+                block=0  # Non-blocking
             )
-            
             if not messages:
-                await asyncio.sleep(0.1)
-                continue
+                await asyncio.sleep(0.05)  # Cooperative yield
                 
             # Process batch asynchronously
             await process_message_batch(client_redis, messages, processing_state)
@@ -223,7 +238,7 @@ async def caching_distributing_data(
 # 4. Keep other functions below
 async def handle_user_message(
     message_channel: str,
-    data: Dict,
+    data: Di    ct,
     portfolio_lock: asyncio.Lock,
     portfolio: List[Dict],  # Portfolio storage
     redis_channels: Dict,
@@ -241,6 +256,7 @@ async def handle_user_message(
                 result_template,
                 data
             )
+            
     elif "changes" in message_channel:
         log.info(f"Account changes: {message_channel} {data}")
         

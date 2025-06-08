@@ -26,6 +26,37 @@ from src.shared.config.settings import (
 from src.shared.utils import error_handling, system_tools, template
 
 
+async def start_stream_services(
+    client_redis: aioredis.Redis,
+    stream: deribit_ws.StreamingAccountData,
+    # ... other params ...
+) -> None:
+    """Start producer and consumer services with lifecycle management"""
+    # Producer task (WebSocket client)
+    producer_task = asyncio.create_task(
+        stream.manage_connection(
+            client_redis, exchange, futures_instruments, resolutions
+        )
+    )
+    
+    # Consumer task (Stream processor)
+    consumer_task = asyncio.create_task(
+        distributing_ws_data.caching_distributing_data(
+            client_redis, currencies, initial_data_subaccount, 
+            redis_channels, redis_keys, strategy_config
+        )
+    )
+    
+    # Service monitoring
+    while True:
+        await asyncio.sleep(5)
+        if app_state.maintenance_mode:
+            # Graceful shutdown
+            producer_task.cancel()
+            consumer_task.cancel()
+            await asyncio.gather(producer_task, consumer_task, return_exceptions=True)
+            break
+
 
 async def run_services() -> None:
     log.info("Starting service orchestration")
@@ -176,10 +207,15 @@ async def trading_main() -> None:
             log.error("Redis connection failed")
             return
         
+        await start_stream_services(
+            client_redis, stream, 
+            # ... other params ...
+        )
+        
         alert_monitor_task = asyncio.create_task(monitor_system_alerts())
     except ConnectionError:
-        await enter_maintenance_mode("Redis connection failed")
-        return
+        log.exception("Stream service failure")
+        await enter_maintenance_mode(f"Service error: {str(error)}")
     
     exchange = "deribit"
     config_path = "/app/config/strategies.toml"
