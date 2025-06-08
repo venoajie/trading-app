@@ -62,7 +62,7 @@ async def caching_distributing_data(
         
         # Create consumer group with proper API
         await client_redis.xgroup_create(
-            stream="stream:market_data",
+            name="stream:market_data",
             groupname="dispatcher_group",
             id=0,  # Start from new messages
             mkstream=True  # Create stream if missing
@@ -107,7 +107,7 @@ async def caching_distributing_data(
             messages = await client_redis.xreadgroup(
                 groupname="dispatcher_group",
                 consumername="dispatcher_consumer",
-    streams={"streamname:market_data": ">"},  
+                streams={"stream:market_data": ">"},  
                 count=50,
                 block=100            )
             
@@ -179,10 +179,11 @@ async def caching_distributing_data(
 
     except redis.exceptions.ResponseError as e:
         if "BUSYGROUP" in str(e):
-            pass  # Group already exists
+            pass
+        elif "NOGROUP" in str(e):  # Missing handling
+            await client_redis.xgroup_create(...)  # Recreate group
         else:
-            raise
-                               
+            raise                               
 # 4. Keep other functions below
 async def handle_user_message(
     message_channel: str,
