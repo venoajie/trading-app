@@ -266,7 +266,7 @@ class RedisClient:
     ) -> None:
         pool = await self.get_pool()
         await pool.xadd(
-            stream_name,
+            streamname=stream_name,
             {"data": orjson.dumps(data).decode("utf-8")},
             maxlen=max_queue_size
         )
