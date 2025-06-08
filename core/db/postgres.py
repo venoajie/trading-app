@@ -1,7 +1,7 @@
 # core/db/postgres.py
 import orjson
 from typing import Any, Optional, Union, List, Dict
-import asyncpg, asyncio
+import asyncpg
 from loguru import logger as log
 
 # user defined formulas
@@ -186,11 +186,11 @@ async def query_table_data(
     return await fetch(query)
 
 # View orders table schema
-schema = asyncio.run(get_table_schema("orders"))
+schema = await (get_table_schema("orders"))
 for col in schema:
     print(f"{col['column_name']}: {col['data_type']}")
 
 # View first 10 rows
-rows = asyncio.run(query_table_data("orders"))
+rows = await (query_table_data("orders"))
 for row in rows:
     print(row)
