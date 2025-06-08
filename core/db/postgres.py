@@ -1,7 +1,7 @@
 # core/db/postgres.py
 import orjson
 from typing import Any, Optional, Union, List, Dict
-import asyncpg
+import asyncpg, asyncio
 from loguru import logger as log
 
 # user defined formulas
@@ -187,7 +187,7 @@ fetch = postgres_client.fetch_active_trades
 
 
 # View orders table schema
-schema = postgres_client. get_table_schema 
+schema = asyncio.run(postgres_client. get_table_schema) 
 schema1 = schema("orders")
 print(schema1)
 for col in schema1:
