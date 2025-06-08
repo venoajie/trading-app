@@ -100,6 +100,8 @@ async def caching_distributing_data(
         portfolio: List[Dict] = []  # Portfolio storage
         ticker_lock = asyncio.Lock()
 
+        server_time = 0
+
         while True:
             # Clear queue to prevent backpressure during maintenance                
             await client_redis.xtrim("stream:market_data", maxlen=1000)
@@ -130,6 +132,12 @@ async def caching_distributing_data(
 
                         currency_upper = currency.upper()
                         
+                        # updating current server time
+                        server_time = (
+                            current_server_time if server_time < current_server_time else server_time
+                        )
+
+
                         log.info(f"Processing message from channel: {channel} {currency}")
                         log.info(f"Message data: {data}")
                         
