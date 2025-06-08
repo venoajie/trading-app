@@ -3,7 +3,6 @@
 """Optimized core application entry point with enhanced maintenance handling"""
 import os
 import asyncio
-from asyncio import Queue
 
 # Third-party imports
 import uvloop
@@ -11,6 +10,8 @@ import orjson
 import logging
 from loguru import logger as log
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+import redis.asyncio as aioredis
+
 
 # Application imports
 from core.db.redis import redis_client as global_redis_client
