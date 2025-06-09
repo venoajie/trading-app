@@ -119,10 +119,6 @@ async def stream_consumer(
                 count=BATCH_SIZE,
                 block=5000
             )
-            log.info(f"output from xreadgroup {messages}")
-            payload = {k.decode(): v.decode() for k, v in messages.items()}
-            log.info(f"output from dict compr {payload}")
-            
             
             # Process messages in parallel
             if messages:
@@ -132,6 +128,11 @@ async def stream_consumer(
                         tasks.append(
                             process_message(message_id, message_data, state)
                         )
+                
+                        log.info(f"output from xreadgroup {messages}")
+                        log.info(f"xreadgroup on for i message_data {message_data}")
+                        payload = {k.decode(): v.decode() for k, v in message_data.items()}
+                        log.info(f"output from dict compr {payload}")
                 
                 results = await asyncio.gather(*tasks)
                 
