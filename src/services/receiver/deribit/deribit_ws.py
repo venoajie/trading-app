@@ -178,15 +178,17 @@ class StreamingAccountData:
                         # Serialize data to JSON string
                         serialized_data = orjson.dumps(data).decode('utf-8')
                         
+                        timestamp= str(intcurrent_time * 1000)  # Convert to milliseconds
+                        
                         # Add to batch
                         batch.append({
                             "channel": channel,
                             "data": serialized_data,
-                            "timestamp": str(int(current_time)),
+                            "timestamp": timestamp,
                             "exchange": exchange
                         })
                         
-                        log.debug(f"Received message on {current_time} {channel}: {data}")
+                        log.debug(f"Received message on {timestamp} {channel}: {data}")
                         
                         # Send batch when full
                         if len(batch) >= BATCH_SIZE:
