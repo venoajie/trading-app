@@ -101,7 +101,7 @@ async def stream_consumer(
             pending = await redis.xpending_range(
                 STREAM_NAME,
                 GROUP_NAME,
-                idle-time=30000  # 30 seconds
+                idletime=30000  # 30 seconds
             )
             if pending:
                 await redis.xclaim(
