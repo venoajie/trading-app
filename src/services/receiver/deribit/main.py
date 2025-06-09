@@ -76,12 +76,13 @@ async def run_receiver():
         )
 
         # Start WebSocket connection
-        await stream.manage_connection(
-            client_redis,
-            "deribit",
-            futures_instruments,
-            resolutions
-        )
+        async with global_redis_client.get_pool() as client_redis:
+            await stream.manage_connection(
+                client_redis,  # Use connection from pool
+                "deribit",
+                futures_instruments,
+                resolutions
+            )
         
     except Exception as error:
         log.exception(f"Receiver service failed: {error}")

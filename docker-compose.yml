@@ -8,9 +8,9 @@ services:
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
+      test: ["CMD", "redis-cli", "-h", "redis", "ping"]
+      interval: 30s
+      timeout: 5s
       retries: 3
     command: 
       - --maxmemory 2gb

@@ -298,6 +298,18 @@ class RedisClient:
             block=block
         )
 
+    async def xadd_bulk(
+        self,
+        stream_name: str,
+        messages: List[dict],
+        maxlen: int = 1000
+    ) -> None:
+        pool = await self.get_pool()
+        async with pool.pipeline(transaction=False) as pipe:
+            for message in messages:
+                pipe.xadd(stream_name, message, maxlen=maxlen, approximate=True)
+            await pipe.execute()
+
     async def xack(self, stream_name: str, group_name: str, message_id: str) -> None:
         pool = await self.get_pool()
         await pool.xack(stream_name, group_name, message_id)

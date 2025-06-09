@@ -23,6 +23,9 @@ from loguru import logger as log
 from src.scripts.deribit.restful_api import end_point_params_template
 from src.shared.utils import string_modification as str_mod
 
+BATCH_SIZE = 50
+batch = []
+
 @dataclass(unsafe_hash=True, slots=True)
 class StreamingAccountData:
     """Enhanced WebSocket manager with maintenance detection and recovery"""
@@ -169,17 +172,18 @@ class StreamingAccountData:
                     data = message_dict["params"]["data"]
                     
                     # Push to Redis Stream
-                    await client_redis.xadd(
-                        "stream:market_data:deribit",
-                        {
-                            "channel": channel,
-                            "data": orjson.dumps(data).decode(),
-                            "timestamp": str(current_time),
-                            "exchange": exchange
-                        },
-                        maxlen=10000
-                    )
+                                
+                    batch.append({
+                        "channel": channel,
+                        "data": data,  # Keep as dict, not serialized
+                        "timestamp": current_time,
+                        "exchange": exchange
+                    })
                     
+                    if len(batch) >= BATCH_SIZE:
+                        await client_redis.xadd_bulk(STREAM_NAME, batch)
+                        batch = []
+                                    
             except Exception as e:
                 log.error(f"Message processing failed: {e}")
                 
