@@ -4,9 +4,7 @@
 name = "distributor"
 version = "1.0.0"
 dependencies = [
-    "uvloop>=0.21.0",
-    "shared @ file:///app/src/shared"
-
+    "uvloop>=0.21.0"
 ]
 
 
