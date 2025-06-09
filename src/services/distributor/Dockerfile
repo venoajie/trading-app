@@ -1,22 +1,19 @@
-# src\services\distributor\Dockerfile
-
-# Stage 1: Base with UV - common for all stages
+# Stage 1: Base with UV
 FROM python:3.13-slim AS base
 ENV UV_VENV=/opt/venv
 RUN python -m pip install --no-cache-dir uv && \
     python -m uv venv ${UV_VENV}
 ENV PATH="${UV_VENV}/bin:$PATH"
 
-# Stage 2: Builder for dependencies
+# Stage 2: Builder
 FROM base AS builder
 WORKDIR /build
 
-# Copy dependency files using actual project structure
-COPY src/shared/ src/shared/
-COPY src/services/distributor/ src/services/distributor/
+# Copy ONLY dependency files
+COPY src/shared/pyproject.toml src/shared/
+COPY src/services/distributor/pyproject.toml src/services/distributor/
 
-
-# Install dependencies with UV
+# Install with relative paths
 RUN uv pip install \
     --no-cache \
     --strict \
@@ -24,7 +21,7 @@ RUN uv pip install \
     -e ./src/shared \
     -e ./src/services/distributor
 
-# Stage 3: Runtime image
+# Stage 3: Runtime
 FROM base AS runtime
 
 # Create non-root user
@@ -52,5 +49,5 @@ ENV DB_BASE_PATH=/app/data \
 # Switch to non-root user
 USER 1000
 
-# Run receiver service
+# Run  service
 CMD ["python", "src/services/distributor/deribit/main.py"]

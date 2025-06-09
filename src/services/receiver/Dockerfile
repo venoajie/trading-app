@@ -51,5 +51,5 @@ ENV DB_BASE_PATH=/app/data \
 # Switch to non-root user
 USER 1000
 
-# Run receiver service
+# Run  service
 CMD ["python", "src/services/receiver/deribit/main.py"]
