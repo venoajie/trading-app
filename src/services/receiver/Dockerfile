@@ -12,7 +12,7 @@ WORKDIR /build
 
 # Copy application files
 COPY src/shared/ src/shared/
-RUN uv pip install --no-cache --strict ./src/shared ./src/services/receiver
+COPY src/services/receiver/ src/services/receiver/
 
 # Install Python dependencies
 RUN uv pip install \
