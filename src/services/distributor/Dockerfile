@@ -20,8 +20,8 @@ RUN uv pip install \
     --no-cache \
     --strict \
     --resolution=lowest-direct \
-    -e ./src/shared \
-    -e ./src/services/distributor   
+    ./src/shared \
+    ./src/services/distributor   
 
 # Stage 3: Runtime
 FROM base AS runtime

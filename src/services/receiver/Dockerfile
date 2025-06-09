@@ -21,8 +21,8 @@ RUN uv pip install \
     --no-cache \
     --strict \
     --resolution=lowest-direct \
-    -e ./src/shared \
-    -e ./src/services/receiver
+    ./src/shared \
+    ./src/services/receiver
 # Stage 3: Runtime image
 FROM base AS runtime
 
