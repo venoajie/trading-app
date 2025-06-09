@@ -32,6 +32,8 @@ async def process_message(
         data = orjson.loads(payload["data"])  # Deserialize JSON data
         currency = str_mod.extract_currency_from_text(channel)
         
+        print(f"AAAAAAAAAAAA Processing message {message_id} for channel {channel} and currency {currency}")
+        
         # Get currency-specific lock
         async with state['locks'][currency]:
             # Route message to appropriate handler
