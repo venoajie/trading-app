@@ -9,6 +9,7 @@ WebSocket client for Deribit exchange with enhanced maintenance handling
 import asyncio
 import json
 import time
+from datetime import datetime, timedelta, timezone
 
 # Third-party imports
 import orjson
