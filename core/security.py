@@ -1,4 +1,6 @@
 # src/core/security.py
+import os
+
 def get_secret(secret_name: str) -> str:
     """Load Docker secrets securely"""
     try:
