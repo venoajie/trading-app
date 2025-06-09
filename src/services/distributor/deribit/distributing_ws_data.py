@@ -98,18 +98,18 @@ async def stream_consumer(
     while True:
         try:
             # Claim pending messages first
-            pending = await redis.xpending_range(
-                STREAM_NAME,
-                GROUP_NAME
-                )
-            if pending:
-                await redis.xclaim(
-                    STREAM_NAME,
-                    GROUP_NAME,
-                    CONSUMER_NAME,
-                    30000,
-                    [msg.id for msg in pending]
-                )
+            #pending = await redis.xpending_range(
+            #    STREAM_NAME,
+            #    GROUP_NAME
+            #    )
+            #if pending:
+            #    await redis.xclaim(
+            #        STREAM_NAME,
+            #        GROUP_NAME,
+            #        CONSUMER_NAME,
+            #        30000,
+            #        [msg.id for msg in pending]
+            #    )
             
             # Read new messages
             messages = await redis.xreadgroup(
