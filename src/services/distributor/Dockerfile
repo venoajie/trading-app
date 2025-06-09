@@ -7,13 +7,15 @@ RUN python -m pip install --no-cache-dir uv && \
     python -m uv venv ${UV_VENV}
 ENV PATH="${UV_VENV}/bin:$PATH"
 
-# Stage 2: Builder
+# Stage 2: Builder for dependencies
 FROM base AS builder
 WORKDIR /build
 
 # Copy ONLY dependency files
-COPY src/shared/ src/shared/  
-COPY src/services/distributor/ src/services/distributor/
+COPY src/shared/pyproject.toml src/shared/
+COPY src/shared/src/ src/shared/src/
+COPY src/services/distributor/pyproject.toml src/services/distributor/
+COPY src/services/distributor/src/ src/services/distributor/src/
 
 # Install dependencies
 RUN uv pip install \
@@ -21,7 +23,7 @@ RUN uv pip install \
     --strict \
     --resolution=lowest-direct \
     ./src/shared \
-    ./src/services/distributor   
+    ./src/services/distributor
 
 # Stage 3: Runtime
 FROM base AS runtime

@@ -1,6 +1,6 @@
 # src\services\receiver\Dockerfile
 
-# Stage 1: Base with UV - common for all stages
+# Stage 1: Base with UV 
 FROM python:3.13-slim AS base
 ENV UV_VENV=/opt/venv
 RUN python -m pip install --no-cache-dir uv \
@@ -11,10 +11,11 @@ ENV PATH="${UV_VENV}/bin:$PATH"
 FROM base AS builder
 WORKDIR /build
 
-
 # Copy ONLY dependency files
-COPY src/shared/ src/shared/  
+COPY src/shared/pyproject.toml src/shared/
+COPY src/shared/src/ src/shared/src/
 COPY src/services/receiver/pyproject.toml src/services/receiver/
+COPY src/services/receiver/src/ src/services/receiver/src/
 
 # Install dependencies
 RUN uv pip install \
@@ -23,6 +24,7 @@ RUN uv pip install \
     --resolution=lowest-direct \
     ./src/shared \
     ./src/services/receiver
+    
 # Stage 3: Runtime image
 FROM base AS runtime
 
