@@ -180,6 +180,8 @@ class StreamingAccountData:
                         "exchange": exchange
                     })
                     
+                    log.info(f"Received message on {channel}: {data}")
+                    
                     if len(batch) >= BATCH_SIZE:
                         await client_redis.xadd_bulk(STREAM_NAME, batch)
                         batch = []

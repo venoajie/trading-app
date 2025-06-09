@@ -8,7 +8,7 @@ Consolidated Redis client with connection pooling
 import logging 
 import orjson 
 import redis.asyncio as aioredis 
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from src.shared.config.settings import REDIS_URL, REDIS_DB 
 from src.shared.utils import error_handling
