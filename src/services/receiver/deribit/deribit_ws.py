@@ -188,8 +188,6 @@ class StreamingAccountData:
                             "exchange": exchange
                         })
                         
-                        log.debug(f"Received message on {timestamp} {channel}: {data}")
-                        
                         # Send batch when full
                         if len(batch) >= BATCH_SIZE:
                             # Use the wrapper's xadd_bulk method

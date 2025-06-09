@@ -40,6 +40,7 @@ async def stream_consumer():
             )
             
             if messages:
+                print(f"Received BBBBBBBBBBBBBBB {(messages)} messages from stream")
                 await distributing_ws_data.process_batch(messages[0][1])
                 
         except aioredis.ConnectionError:
