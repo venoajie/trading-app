@@ -85,7 +85,7 @@ async def handle_chart(
 ) -> None:
     """Handle chart data updates"""
     # Process chart data
-    await pg.insert_chart_data(currency, data)
+    await pg.insert_ohlc(currency, data)
 
 async def stream_consumer(
     redis: Any,
@@ -119,6 +119,10 @@ async def stream_consumer(
                 count=BATCH_SIZE,
                 block=5000
             )
+            payload = {k.decode(): v.decode() for k, v in message_data.items()}
+            log.info(f"output from xreadgroup {messages}")
+            log.info(f"output from dict compr {payload}")
+            
             
             # Process messages in parallel
             if messages:

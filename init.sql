@@ -1,28 +1,42 @@
 -- init.sql
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
-CREATE TABLE ohlc60_btc_perp_json (
+CREATE TABLE instruments (
+    id SERIAL PRIMARY KEY,
+    data JSONB NOT NULL,
+    kind TEXT GENERATED ALWAYS AS ((data->>'kind')::TEXT) STORED
+    instrument_name TEXT GENERATED ALWAYS AS ((data->>'instrument_name')::TEXT) STORED
+    kind TEXT GENERATED ALWAYS AS ((data->>'kind')::TEXT) STORED
+    base_currency TEXT GENERATED ALWAYS AS ((data->>'base_currency')::TEXT) STORED
+    settlement_period TEXT GENERATED ALWAYS AS ((data->>'settlement_period')::TEXT) STORED
+    tick_size FLOAT GENERATED ALWAYS AS ((data->>'tick_size')::FLOAT) STORED
+    expiration_timestamp INTEGER GENERATED ALWAYS AS ((data->>'expiration_timestamp')::INTEGER) STORED
+    contract_size INTEGER GENERATED ALWAYS AS ((data->>'contract_size')::INTEGER) STORED
+);
+
+
+CREATE TABLE ohlc60_btc_perp (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
     open_interest REAL,
     tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
 );
 
-CREATE TABLE ohlc15_btc_perp_json (
+CREATE TABLE ohlc15_btc_perp (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
     open_interest REAL,
     tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
 );
 
-CREATE TABLE ohlc5_btc_perp_json (
+CREATE TABLE ohlc5_btc_perp (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
     open_interest REAL,
     tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
 );
 
-CREATE TABLE ohlc1_btc_perp_json (
+CREATE TABLE ohlc1_btc_perp (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
     open_interest REAL,
@@ -30,27 +44,27 @@ CREATE TABLE ohlc1_btc_perp_json (
 );
 
 
-CREATE TABLE ohlc60_eth_perp_json (
+CREATE TABLE ohlc60_eth_perp (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
     open_interest REAL,
     tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
 );
-CREATE TABLE ohlc15_eth_perp_json (
-    id SERIAL PRIMARY KEY,
-    data JSONB NOT NULL,
-    open_interest REAL,
-    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
-);
-
-CREATE TABLE ohlc5_eth_perp_json (
+CREATE TABLE ohlc15_eth_perp (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
     open_interest REAL,
     tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
 );
 
-CREATE TABLE ohlc1_eth_perp_json (
+CREATE TABLE ohlc5_eth_perp (
+    id SERIAL PRIMARY KEY,
+    data JSONB NOT NULL,
+    open_interest REAL,
+    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
+);
+
+CREATE TABLE ohlc1_eth_perp (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
     open_interest REAL,

@@ -9,6 +9,39 @@ from core.db.redis import publishing_specific_purposes
 from src.shared.config.settings import POSTGRES_DSN
 
 
+def query_insert_trade_or_order(data: dict):
+    currency = data.get('fee_currency') or data['instrument_name'].split('-')[0].upper()
+    is_trade = 'trade_id' in data
+    
+    query = """
+        INSERT INTO orders (
+            currency, instrument_name, label, amount_dir, price, 
+            side, timestamp, trade_id, order_id, is_open, data
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ON CONFLICT (currency, instrument_name, COALESCE(trade_id, order_id)) 
+        DO UPDATE SET 
+            label = EXCLUDED.label,
+            amount_dir = EXCLUDED.amount_dir,
+            price = EXCLUDED.price,
+            side = EXCLUDED.side,
+            timestamp = EXCLUDED.timestamp,
+            is_open = EXCLUDED.is_open,
+            data = EXCLUDED.data
+    """
+    params = (
+        currency,
+        data['instrument_name'],
+        data.get('label'),
+        data.get('amount'),
+        data.get('price'),
+        data.get('side') or data.get('direction'),
+        data.get('timestamp'),
+        data.get('trade_id'),
+        data.get('order_id'),
+        is_trade,  # Mark as open if it's a trade
+        orjson.dumps(data)
+    )
+
 class PostgresClient:
     def __init__(self):
         self._pool = None
