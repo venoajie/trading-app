@@ -1,10 +1,9 @@
-# src\services\receiver\pyproject.toml
+# src\services\distributor\pyproject.toml
 
 [project]
-name = "receiver"
+name = "distributor"
 version = "1.0.0"
 dependencies = [
-    "websockets>=12.0",
     "uvloop>=0.21.0"
 ]
 

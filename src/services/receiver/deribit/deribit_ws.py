@@ -178,7 +178,7 @@ class StreamingAccountData:
                         # Serialize data to JSON string
                         serialized_data = orjson.dumps(data).decode('utf-8')
                         
-                        timestamp= str(intcurrent_time * 1000)  # Convert to milliseconds
+                        timestamp= str(int(current_time * 1000))  # Convert to milliseconds
                         
                         # Add to batch
                         batch.append({

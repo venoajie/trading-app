@@ -1,4 +1,4 @@
-# src\services\receiver\Dockerfile
+# src\services\distributor\Dockerfile
 
 # Stage 1: Base with UV - common for all stages
 FROM python:3.13-slim AS base
@@ -13,7 +13,7 @@ WORKDIR /build
 
 # Copy dependency files using actual project structure
 COPY src/shared/pyproject.toml src/shared/
-COPY src/services/receiver/pyproject.toml src/services/receiver/
+COPY src/services/receiver/pyproject.toml src/services/distributor/
 
 # Install dependencies with UV
 RUN uv pip install \
@@ -21,7 +21,7 @@ RUN uv pip install \
     --strict \
     --resolution=lowest-direct \
     -e ./src/shared \
-    -e ./src/services/receiver
+    -e ./src/services/distributor
 
 # Stage 3: Runtime image
 FROM base AS runtime
@@ -52,4 +52,4 @@ ENV DB_BASE_PATH=/app/data \
 USER 1000
 
 # Run receiver service
-CMD ["python", "src/services/receiver/deribit/main.py"]
+CMD ["python", "src/services/distributor/deribit/main.py"]
