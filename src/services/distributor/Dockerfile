@@ -10,8 +10,8 @@ FROM base AS builder
 WORKDIR /build
 
 # Copy ONLY dependency files
-COPY src/shared/pyproject.toml src/shared/
-COPY src/services/distributor/pyproject.toml src/services/distributor/
+COPY src/shared/ src/shared/ 
+COPY src/services/distributor/ src/services/distributor/
 
 # Install with relative paths
 RUN uv pip install \
