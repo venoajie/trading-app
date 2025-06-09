@@ -75,14 +75,12 @@ async def run_receiver():
             heartbeat_interval=DERIBIT_HEARTBEAT_INTERVAL
         )
 
-        # Start WebSocket connection
-        async with global_redis_client.get_pool() as client_redis:
-            await stream.manage_connection(
-                client_redis,  # Use connection from pool
-                "deribit",
-                futures_instruments,
-                resolutions
-            )
+        await stream.manage_connection(
+            client_redis,  # Directly use the connection pool
+            "deribit",
+            futures_instruments,
+            resolutions
+        )
         
     except Exception as error:
         log.exception(f"Receiver service failed: {error}")

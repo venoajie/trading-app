@@ -304,12 +304,20 @@ class RedisClient:
         messages: List[dict],
         maxlen: int = 1000
     ) -> None:
-        pool = await self.get_pool()
+    pool = await self.get_pool()
+    
+    try:
         async with pool.pipeline(transaction=False) as pipe:
             for message in messages:
                 pipe.xadd(stream_name, message, maxlen=maxlen, approximate=True)
             await pipe.execute()
-
+        log.debug(f"Sent {len(messages)} messages to {stream_name}")
+    
+    except Exception as e:
+        log.error(f"Bulk xadd failed: {e}")
+        # Implement retry logic or dead-letter queue here
+        
+        
     async def xack(self, stream_name: str, group_name: str, message_id: str) -> None:
         pool = await self.get_pool()
         await pool.xack(stream_name, group_name, message_id)

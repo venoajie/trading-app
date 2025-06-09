@@ -42,7 +42,7 @@ services:
       - source: db_password  # Add DB password secret
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "from core.db.redis import redis_client; await redis_client.get_pool().ping()"]
+      test: ["CMD", "redis-cli", "-h", "redis", "ping"]
       interval: 30s
 
   executor:
