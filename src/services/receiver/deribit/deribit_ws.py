@@ -24,6 +24,7 @@ from src.scripts.deribit.restful_api import end_point_params_template
 from src.shared.utils import string_modification as str_mod
 
 BATCH_SIZE = 50
+STREAM_NAME = "market_data:deribit"
 batch = []
 
 @dataclass(unsafe_hash=True, slots=True)
@@ -154,67 +155,49 @@ class StreamingAccountData:
 
     async def process_messages(self, client_redis, exchange):
         """Process incoming messages with state recovery"""
-        async for message in self.websocket_client:
-            
-            current_time = time.time()
-            
-            time_since_last = current_time - self.last_message_time
-            
-            self.last_message_time = current_time
-            
-            batch = []  # Local batch per connection
-            
-            try:
-                    
-                async for message in self.websocket_client:
-                    current_time = time.time()
-                    self.last_message_time = current_time
-                    
-                    try:
-                        message_dict = orjson.loads(message)
 
-                        if message_dict.get("method") == "heartbeat":
-                            await self.heartbeat_response(client_redis)
-                            continue
+        batch = []  # Local batch per connection
+        
+        try:
+            async for message in self.websocket_client:
+                current_time = time.time()
+                self.last_message_time = current_time
+                
+                try:
+                    message_dict = orjson.loads(message)
+
+                    if message_dict.get("method") == "heartbeat":
+                        await self.heartbeat_response(client_redis)
+                        continue
+                    
+                    # Only process data messages
+                    if "params" in message_dict and "channel" in message_dict["params"]:
+                        channel = message_dict["params"]["channel"]
+                        data = message_dict["params"]["data"]
                         
-                        # Only process data messages
-                        if "params" in message_dict and "channel" in message_dict["params"]:
-                            channel = message_dict["params"]["channel"]
-                            data = message_dict["params"]["data"]
-                            
-                            # Add to batch
-                            batch.append({
-                                "channel": channel,
-                                "data": data,
-                                "timestamp": current_time,
-                                "exchange": exchange
-                            })
-                            
-                            # Send batch when full
-                            if len(batch) >= BATCH_SIZE:
-                                await client_redis.xadd_bulk(STREAM_NAME, batch)
-                                batch = []
-                    except Exception as e:
-                        log.error(f"Message processing failed: {e}")
-            
-            finally:
-                # Send any remaining messages on disconnect
-                if batch:
-                    try:
-                        log.debug(f"Sending final batch of {len(batch)} messages")
-                        await client_redis.xadd_bulk(STREAM_NAME, batch)
-                    except Exception as e:
-                        log.error(f"Failed to send final batch: {e}")
-                
-                
-                
-                
-                
-                message_dict = orjson.loads(message)
-
-                if message_dict.get("method") == "heartbeat":
-                    await self.heartbeat_response(client_redis)
-                    continue
+                        # Add to batch
+                        batch.append({
+                            "channel": channel,
+                            "data": data,
+                            "timestamp": current_time,
+                            "exchange": exchange
+                        })
+                        
+                        # Send batch when full
+                        if len(batch) >= BATCH_SIZE:
+                            # Use the wrapper's xadd_bulk method
+                            await client_redis.xadd_bulk(STREAM_NAME, batch)
+                            batch = []
+                except Exception as e:
+                    log.error(f"Message processing failed: {e}")
+        finally:
+            # Send any remaining messages on disconnect
+            if batch:
+                try:
+                    log.debug(f"Sending final batch of {len(batch)} messages")
+                    await client_redis.xadd_bulk(STREAM_NAME, batch)
+                except Exception as e:
+                    log.error(f"Failed to send final batch: {e}")
                 
     def handle_auth_response(self, message: Dict) -> None:
         """Handle authentication responses"""
