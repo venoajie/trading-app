@@ -10,17 +10,9 @@ FROM base AS builder
 WORKDIR /build
 
 
-# Install RedisJSON dependencies
-RUN apt-get update && \
-    apt-get install -y curl build-essential && \
-    curl -sL https://github.com/RedisJSON/RedisJSON/archive/refs/tags/v2.8.4.tar.gz | tar xz && \
-    cd RedisJSON-2.8.4 && \
-    make && \
-    cp bin/linux-x64-release/rejson.so /usr/lib/redis/modules/
-
 # Copy application files
 COPY src/shared/ src/shared/
-COPY src/services/receiver/ src/services/receiver/
+RUN uv pip install --no-cache --strict ./src/shared ./src/services/receiver
 
 # Install Python dependencies
 RUN uv pip install \
@@ -32,9 +24,6 @@ RUN uv pip install \
     
 # Stage 3: Runtime
 FROM base AS runtime
-
-# Copy RedisJSON module
-COPY --from=builder /usr/lib/redis/modules/rejson.so /usr/lib/redis/modules/
 
 RUN groupadd -r appuser --gid=1000 && \
     useradd -r -g appuser --uid=1000 appuser && \
