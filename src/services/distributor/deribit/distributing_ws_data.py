@@ -119,8 +119,8 @@ async def stream_consumer(
                 count=BATCH_SIZE,
                 block=5000
             )
-            payload = {k.decode(): v.decode() for k, v in message_data.items()}
             log.info(f"output from xreadgroup {messages}")
+            payload = {k.decode(): v.decode() for k, v in messages.items()}
             log.info(f"output from dict compr {payload}")
             
             
