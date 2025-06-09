@@ -13,7 +13,6 @@ WORKDIR /build
 
 # Copy dependency files using actual project structure
 COPY src/shared/pyproject.toml src/shared/
-COPY src/services/distributor/pyproject.toml src/services/distributor/
 RUN uv pip install --no-cache -e ./src/shared -e ./src/services/distributor
 
 
