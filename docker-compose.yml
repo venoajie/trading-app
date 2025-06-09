@@ -2,7 +2,7 @@
 
 services:
   redis:
-    image: redislabs/rejson:2.8.9
+    image: redis:7-alpine
     ports:
       - "6379:6379"
     volumes:
@@ -13,7 +13,6 @@ services:
       timeout: 5s
       retries: 3
     command: 
-      - --loadmodule /usr/lib/redis/modules/rejson.so
       - --maxmemory 2gb
       - --maxmemory-policy volatile-lfu # Better for streams
       - --save ""  # Disable disk persistence
