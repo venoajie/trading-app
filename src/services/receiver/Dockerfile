@@ -11,19 +11,18 @@ ENV PATH="${UV_VENV}/bin:$PATH"
 FROM base AS builder
 WORKDIR /build
 
-# Copy dependency files using actual project structure
-COPY src/shared/ src/shared/ 
-COPY src/services/receiver/ src/services/receiver/
 
+# Copy ONLY dependency files
+COPY src/shared/ src/shared/  
+COPY src/services/receiver/pyproject.toml src/services/receiver/
 
-# Install dependencies with UV
+# Install dependencies
 RUN uv pip install \
     --no-cache \
     --strict \
     --resolution=lowest-direct \
     -e ./src/shared \
     -e ./src/services/receiver
-
 # Stage 3: Runtime image
 FROM base AS runtime
 

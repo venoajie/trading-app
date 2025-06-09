@@ -1,3 +1,5 @@
+# src\services\distributor\Dockerfile
+
 # Stage 1: Base with UV
 FROM python:3.13-slim AS base
 ENV UV_VENV=/opt/venv
@@ -10,16 +12,16 @@ FROM base AS builder
 WORKDIR /build
 
 # Copy ONLY dependency files
-COPY src/shared/ src/shared/ 
+COPY src/shared/ src/shared/  
 COPY src/services/distributor/ src/services/distributor/
 
-# Install with relative paths
+# Install dependencies
 RUN uv pip install \
     --no-cache \
     --strict \
     --resolution=lowest-direct \
     -e ./src/shared \
-    -e ./src/services/distributor
+    -e ./src/services/distributor   
 
 # Stage 3: Runtime
 FROM base AS runtime
