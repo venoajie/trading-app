@@ -12,8 +12,8 @@ FROM base AS builder
 WORKDIR /build
 
 # Copy dependency files using actual project structure
-COPY src/shared/pyproject.toml src/shared/
-COPY src/services/distributor/pyproject.toml src/services/distributor/
+COPY src/shared/ src/shared/
+COPY src/services/distributor/ src/services/distributor/
 
 
 # Install dependencies with UV

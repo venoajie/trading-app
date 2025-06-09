@@ -5,7 +5,6 @@ import logging
 from loguru import logger as log
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-import aioredis
 
 # Application imports
 from core.db.redis import redis_client
