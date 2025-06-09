@@ -38,38 +38,38 @@ def get_instruments_end_point(currency) -> str:
 
 async def get_instruments(currency) -> dict:
 
-        """
-        result_example = {
-            "id": 5,
-            "result": {           
-            "price_index":"eth_usd"
-            "rfq":false
-            "kind":"future" 
-            "min_trade_amount":1
-            "instrument_name":"ETH-20JUN25"
-            "maker_commission":-0.0001
-            "taker_commission":0.0005
-            "instrument_type":"reversed"
-            "expiration_timestamp":1750406400000
-            "creation_timestamp":1749196812000
-            "is_active":true
-            "tick_size":0.25
-            "contract_size":1
-            "instrument_id":472680
-            "settlement_period":"week"
-            "future_type":"reversed"
-            "max_leverage":25
-            "max_liquidation_commission":0.009
-            "block_trade_commission":0.00025
-            "block_trade_min_trade_amount":100000
-            "block_trade_tick_size":0.01
-            "settlement_currency":"ETH"
-            "base_currency":"ETH"
-            "counter_currency":"USD"
-            "quote_currency":"USD"
-            }
+    """
+    result_example = {
+        "id": 5,
+        "result": {           
+        "price_index":"eth_usd"
+        "rfq":false
+        "kind":"future" 
+        "min_trade_amount":1
+        "instrument_name":"ETH-20JUN25"
+        "maker_commission":-0.0001
+        "taker_commission":0.0005
+        "instrument_type":"reversed"
+        "expiration_timestamp":1750406400000
+        "creation_timestamp":1749196812000
+        "is_active":true
+        "tick_size":0.25
+        "contract_size":1
+        "instrument_id":472680
+        "settlement_period":"week"
+        "future_type":"reversed"
+        "max_leverage":25
+        "max_liquidation_commission":0.009
+        "block_trade_commission":0.00025
+        "block_trade_min_trade_amount":100000
+        "block_trade_tick_size":0.01
+        "settlement_currency":"ETH"
+        "base_currency":"ETH"
+        "counter_currency":"USD"
+        "quote_currency":"USD"
+        }
 
-        """
+    """
 
 
     result = await connector.get_connected(
