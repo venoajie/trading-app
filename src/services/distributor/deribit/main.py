@@ -1,3 +1,5 @@
+# src\services\distributor\deribit\main.py
+
 """Distributor service consuming from Redis Stream"""
 import asyncio
 import uvloop
@@ -18,30 +20,50 @@ async def stream_consumer():
     # Ensure consumer group exists
     try:
         await redis.xgroup_create(
-            "stream:market_data:deribit", 
-            "dispatcher_group", 
+            distributing_ws_data.STREAM_NAME,  # Use constant from module
+            distributing_ws_data.GROUP_NAME, 
             id="0", 
             mkstream=True
         )
-    except aioredis.ResponseError as e:
+        log.info(f"Created consumer group '{distributing_ws_data.GROUP_NAME}' for stream '{distributing_ws_data.STREAM_NAME}'")
+    except Exception as e:
         if "BUSYGROUP" not in str(e):
             log.error(f"Error creating consumer group: {e}")
             raise
+        else:
+            log.info(f"Consumer group '{distributing_ws_data.GROUP_NAME}' already exists")
 
+    log.info("Starting stream processing...")
+    
     while True:
         try:
             # Read messages from stream
             messages = await redis.xreadgroup(
-                groupname="dispatcher_group",
-                consumername="dispatcher_consumer",
-                streams={"stream:market_data:deribit": ">"},
-                count=100,
+                groupname=distributing_ws_data.GROUP_NAME,
+                consumername=distributing_ws_data.CONSUMER_NAME,
+                streams={distributing_ws_data.STREAM_NAME: ">"},
+                count=distributing_ws_data.BATCH_SIZE,
                 block=5000
             )
             
             if messages:
-                print(f"Received BBBBBBBBBBBBBBB {(messages)} messages from stream")
-                await distributing_ws_data.process_batch(messages[0][1])
+                stream_name, message_list = messages[0]
+                log.info(f"Received {len(message_list)} messages from stream '{stream_name}'")
+                
+                # Log first message details
+                if message_list:
+                    first_msg_id, first_msg_data = message_list[0]
+                    payload = {k.decode(): v.decode() for k, v in first_msg_data.items()}
+                    log.info(f"First message ID: {first_msg_id} | Channel: {payload.get('channel')}")
+                
+                # Process messages
+                await distributing_ws_data.stream_consumer(redis, {
+                    'locks': defaultdict(asyncio.Lock),
+                    'caches': {
+                        'portfolio': {},
+                        'ticker': {}
+                    }
+                })
                 
         except aioredis.ConnectionError:
             log.error("Redis connection lost, reconnecting...")

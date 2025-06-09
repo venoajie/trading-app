@@ -1,3 +1,5 @@
+# src\services\distributor\deribit\distributing_ws_data.py
+
 """Data distribution service with enhanced stream processing"""
 import asyncio
 import orjson
@@ -32,7 +34,9 @@ async def process_message(
         data = orjson.loads(payload["data"])  # Deserialize JSON data
         currency = str_mod.extract_currency_from_text(channel)
         
-        print(f"AAAAAAAAAAAA Processing message {message_id} for channel {channel} and currency {currency}")
+        # Add detailed logging
+        log.info(f"Processing message {message_id} | Channel: {channel} | Currency: {currency}")
+        log.debug(f"Message payload: {payload}")
         
         # Get currency-specific lock
         async with state['locks'][currency]:
