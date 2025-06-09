@@ -5,12 +5,10 @@ receiver/deribit/deribit_ws.py
 WebSocket client for Deribit exchange with enhanced maintenance handling
 """
 
+
 import asyncio
 import json
-import logging
 import time
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, cast
 
 # Third-party imports
 import orjson
@@ -20,11 +18,7 @@ from websockets import WebSocketClientProtocol
 
 # Application imports
 from src.scripts.deribit.restful_api import end_point_params_template
-from src.shared.utils import error_handling, string_modification as str_mod
-from src.shared.config.settings import REDIS_URL, DERIBIT_CURRENCIES
-
-# Configure logger
-log = logging.getLogger(__name__)
+from src.shared.utils import string_modification as str_mod
 
 @dataclass(unsafe_hash=True, slots=True)
 class StreamingAccountData:
@@ -155,43 +149,33 @@ class StreamingAccountData:
     async def process_messages(self, client_redis, exchange):
         """Process incoming messages with state recovery"""
         async for message in self.websocket_client:
-                
-            # Check for maintenance mode
             current_time = time.time()
             time_since_last = current_time - self.last_message_time
-            
-            # Detect recovery from silence
-            if time_since_last > self.maintenance_threshold:
-                alert = {
-                    "component": "deribit_ws",
-                    "event": "heartbeat_resumed",
-                    "reason": "Message flow restored"
-                }
-                await client_redis.publish("system_alerts", json.dumps(alert))
-                
             self.last_message_time = current_time
             
             try:
                 message_dict = orjson.loads(message)
+                
+                # Only process data messages
+                if "params" in message_dict and "channel" in message_dict["params"]:
+                    channel = message_dict["params"]["channel"]
+                    data = message_dict["params"]["data"]
                     
-                    # Handle authentication responses
-                if "params" in message_dict and message_dict["method"] != "heartbeat":
-                    if "channel" not in message_dict["params"]:
-                        log.error(f"Invalid message format: {message_dict}")
-                        continue
-                        
-                    try:
-                        # Fixed: use positional arguments for xadd
-                        await client_redis.xadd("stream:market_data", {
-                            "channel": message_dict["params"]["channel"],
-                            "data": message_dict["params"]["data"],
-                            "timestamp": time.time()
-                        })
-                    except Exception as e:
-                        log.error(f"XADD failed: {e}", exc_info=True)
-
+                    # Push to Redis Stream
+                    await client_redis.xadd(
+                        "stream:market_data:deribit",
+                        {
+                            "channel": channel,
+                            "data": orjson.dumps(data).decode(),
+                            "timestamp": str(current_time),
+                            "exchange": exchange
+                        },
+                        maxlen=10000
+                    )
+                    
             except Exception as e:
                 log.error(f"Message processing failed: {e}")
+                
                 
     def handle_auth_response(self, message: Dict) -> None:
         """Handle authentication responses"""

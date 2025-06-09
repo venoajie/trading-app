@@ -1,151 +1,31 @@
 # src\services\receiver\deribit\main.py
 
-"""Optimized core application entry point with enhanced maintenance handling"""
+"""Decoupled receiver service focused on Redis Stream production"""
 import os
 import asyncio
-
-# Third-party imports
 import uvloop
-import orjson
 import logging
 from loguru import logger as log
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-import redis.asyncio as aioredis
 
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 # Application imports
 from core.db.redis import redis_client as global_redis_client
 from core.security import get_secret
-from src.scripts.deribit import get_instrument_summary, starter
+from src.scripts.deribit import get_instrument_summary
 from src.scripts.deribit.restful_api import end_point_params_template
-from src.services.receiver.deribit import deribit_ws, distributing_ws_data
+from src.services.receiver.deribit import deribit_ws
 from src.shared.config.settings import (
     REDIS_URL, REDIS_DB,
     DERIBIT_SUBACCOUNT, DERIBIT_CURRENCIES,
     DERIBIT_MAINTENANCE_THRESHOLD, DERIBIT_HEARTBEAT_INTERVAL
 )
-from src.shared.utils import error_handling, system_tools, template
-
-
-async def start_stream_services(
-    client_redis: aioredis.Redis,
-    stream: deribit_ws.StreamingAccountData,
-    # ... other params ...
-) -> None:
-    """Start producer and consumer services with lifecycle management"""
-    # Producer task (WebSocket client)
-    producer_task = asyncio.create_task(
-        stream.manage_connection(
-            client_redis, exchange, futures_instruments, resolutions
-        )
-    )
-    
-    # Consumer task (Stream processor)
-    consumer_task = asyncio.create_task(
-        distributing_ws_data.caching_distributing_data(
-            client_redis, currencies, initial_data_subaccount, 
-            redis_channels, redis_keys, strategy_config
-        )
-    )
-    
-    # Service monitoring
-    while True:
-        await asyncio.sleep(5)
-        if app_state.maintenance_mode:
-            # Graceful shutdown
-            producer_task.cancel()
-            consumer_task.cancel()
-            await asyncio.gather(producer_task, consumer_task, return_exceptions=True)
-            break
-
-
-async def run_services() -> None:
-    log.info("Starting service orchestration")
-    
-    try:
-        while True:
-            if app_state.maintenance_mode:
-                log.warning("Application in maintenance mode - waiting")
-                await asyncio.sleep(60)
-                continue
-                
-            await trading_main()
-            await asyncio.sleep(5)  # Brief pause before restarting
-            
-    except (KeyboardInterrupt, SystemExit):
-        log.info("Service shutdown requested")
-    except Exception as error:
-        log.exception("Unhandled error in service orchestration")
-        await enter_maintenance_mode("Unhandled error in service orchestration")
-
-            
-class ApplicationState:
-    """Centralized state management with Redis synchronization"""
-    def __init__(self):
-        self._maintenance_mode = False
-        self.connection_active = False
-        self.last_successful_connection = 0
-
-    @property
-    def maintenance_mode(self):
-        return self._maintenance_mode
-
-    @maintenance_mode.setter
-    def maintenance_mode(self, value):
-        if self._maintenance_mode != value:
-            self._maintenance_mode = value
-            asyncio.create_task(self.publish_state())
-
-    async def publish_state(self):
-        try:
-            redis = await global_redis_client.get_pool()
-            status = "maintenance" if self._maintenance_mode else "operational"
-            await redis.publish("system_status", status)
-            log.info(f"Published system status: {status}")
-        except Exception as e:
-            log.error(f"Failed to publish state: {str(e)}")
-
-app_state = ApplicationState()
-
-async def enter_maintenance_mode(reason: str):
-    # 1. Pause producers
-    # 2. Process remaining messages
-    # 3. Persist consumer group offsets
-    await client_redis.xgroup_delconsumer(
-        "stream:market_data",
-        "dispatcher_group",
-        "dispatcher_consumer"
-    )
-    app_state.maintenance_mode = True
-
-async def exit_maintenance_mode():
-    if app_state.maintenance_mode:
-        log.info("Exiting maintenance mode")
-        app_state.maintenance_mode = False
-
-async def monitor_system_alerts():
-    try:
-        redis = await global_redis_client.get_pool()
-        pubsub = redis.pubsub()
-        await pubsub.subscribe("system_alerts")
-        
-        async for message in pubsub.listen():
-            if message["type"] == "message":
-                try:
-                    alert = orjson.loads(message["data"])
-                    if alert["event"] == "heartbeat_timeout":
-                        await enter_maintenance_mode(alert["reason"])
-                    elif alert["event"] == "heartbeat_resumed":
-                        await exit_maintenance_mode()
-                except orjson.JSONDecodeError:
-                    log.error("Invalid alert format")
-    except Exception as e:
-        log.error(f"Alert monitoring failed: {str(e)}")
-        await enter_maintenance_mode("Alert system failure")
+from src.shared.utils import system_tools, template
 
 async def setup_redis():
-    max_retries = 3
-    retry_delay = 5
+    """Robust Redis connection setup with health checks"""
+    max_retries = 5
+    retry_delay = 3
     
     for attempt in range(max_retries):
         try:
@@ -154,87 +34,36 @@ async def setup_redis():
                 log.info("Redis connection validated")
                 return pool
         except Exception as e:
-            log.warning(f"Redis connection attempt {attempt + 1} failed: {str(e)}")
+            log.warning(f"Redis connection attempt {attempt+1} failed: {str(e)}")
             if attempt < max_retries - 1:
                 await asyncio.sleep(retry_delay)
     
     log.critical("All Redis connection attempts failed")
     raise ConnectionError("Redis connection failed after retries")
 
-
-async def verify_permissions():
-    """Verify critical paths have correct permissions"""
-    from src.shared.config.settings import DB_BASE_PATH
-    from pathlib import Path
-    import sqlite3
-    
-    required_paths = [
-        Path(DB_BASE_PATH),
-    ]
-    
-    for path in required_paths:
-        path.mkdir(parents=True, exist_ok=True)
-        
-        if not os.access(path, os.W_OK):
-            log.critical(f"Permission denied: {path}")
-            await enter_maintenance_mode(f"Permission issue: {path}")
-            return False
-    
-    # Test database write
-    try:
-        db_path = Path(DB_BASE_PATH) / 'trading.sqlite3'
-        conn = sqlite3.connect(db_path)
-        conn.execute("CREATE TABLE IF NOT EXISTS permission_test (id INTEGER);")
-        conn.execute("INSERT INTO permission_test VALUES (1);")
-        conn.commit()
-        conn.execute("DROP TABLE permission_test;")
-        conn.close()
-        return True
-    except Exception as e:
-        log.critical(f"Database write test failed: {str(e)}")
-        await enter_maintenance_mode("Database write failure")
-        return False
-
-async def trading_main() -> None:
-    log.info("Initializing trading system")
-    
-    if not await verify_permissions():
-        return
+async def run_receiver():
+    """Core receiver workflow with isolated error handling"""
+    log.info("Starting Deribit receiver service")
     
     try:
+        # Setup Redis
         client_redis = await setup_redis()
-                    
-        if not await client_redis.ping():
-            log.error("Redis connection failed")
-            return
         
-        
-        alert_monitor_task = asyncio.create_task(monitor_system_alerts())
-    except ConnectionError:
-        log.exception("Stream service failure")
-        await enter_maintenance_mode(f"Service error: {str(error)}")
-    
-    exchange = "deribit"
-    config_path = "/app/config/strategies.toml"
-    
-    try:
-            
-        # Load secrets securely
+        # Load configuration
         client_id = get_secret("deribit_client_id")
         client_secret = get_secret("deribit_client_secret")
-        
         if not client_id or not client_secret:
-            await enter_maintenance_mode("Deribit credentials not configured")
+            log.error("Deribit credentials not configured")
             return
-        
-        api_request = end_point_params_template.SendApiRequest(client_id, client_secret)
+
+        # Get instruments
         currencies = DERIBIT_CURRENCIES
         resolutions = [1, 5, 15, 60]
-        
         futures_instruments = await get_instrument_summary.get_futures_instruments(
             currencies, ["perpetual"]
         )
-        
+
+        # Initialize WebSocket client
         stream = deribit_ws.StreamingAccountData(
             sub_account_id=DERIBIT_SUBACCOUNT,
             client_id=client_id,
@@ -245,106 +74,33 @@ async def trading_main() -> None:
             websocket_timeout=900,
             heartbeat_interval=DERIBIT_HEARTBEAT_INTERVAL
         )
-        
-        await start_stream_services(
-            client_redis, stream, 
-            # ... other params ...
-        )
-        
-        config_app = system_tools.get_config_tomli(config_path)
-        redis_channels = config_app.get("redis_channels", [{}])[0]
-        redis_keys = config_app.get("redis_keys", [{}])[0]
-        strategy_config = config_app.get("strategies", [])
 
-        sub_account_cached_channel = redis_channels.get("sub_account_cache_updating", "default_channel")
-        
-        sub_accounts = []
-        for currency in currencies:
-            try:
-                account_data = await api_request.get_subaccounts_details(currency)
-                sub_accounts.append(account_data)
-            except Exception as e:
-                log.error(f"Failed to get subaccount for {currency}: {str(e)}")
-                continue
-        
-        result_template = template.redis_message_template()
-        initial_data_subaccount = starter.sub_account_combining(
-            sub_accounts,
-            sub_account_cached_channel,
-            result_template,
+        # Start WebSocket connection
+        await stream.manage_connection(
+            client_redis,
+            "deribit",
+            futures_instruments,
+            resolutions
         )
         
-        producer_task = asyncio.create_task(
-            stream.manage_connection(
-                client_redis,
-                exchange,
-                futures_instruments,
-                resolutions,
-            )
-        )
-        
-        distributor_task = asyncio.create_task(
-            distributing_ws_data.caching_distributing_data(
-                client_redis,
-                currencies,
-                initial_data_subaccount,
-                redis_channels,
-                redis_keys,
-                strategy_config,
-            )
-        )
-        
-        # Main monitoring loop
-        while True:
-            if app_state.maintenance_mode:
-                # Pause all processing during maintenance
-                await asyncio.sleep(60)
-            else:
-                await asyncio.sleep(5)
-                
     except Exception as error:
-        log.exception("Critical error in trading system")
-        await enter_maintenance_mode(f"Critical error: {str(error)}")
-        
-    finally:
-        # Clean up tasks
-        if 'alert_monitor_task' in locals():
-            alert_monitor_task.cancel()
-            try:
-                await alert_monitor_task
-            except asyncio.CancelledError:
-                log.info("Alert monitoring task cancelled")
-
-        # Cancel producer and distributor tasks
-        for task in [producer_task, distributor_task]:
-            if task and not task.done():
-                task.cancel()
-                try:
-                    await task
-                except asyncio.CancelledError:
-                    log.info("Background task cancelled")
-
+        log.exception(f"Receiver service failed: {error}")
+        raise
 
 async def main():
-    register_services()
-    await service_manager.start_all()
-    
-    # Keep main running until shutdown
+    """Service entry point with graceful shutdown"""
     try:
-        await asyncio.Future()
+        await run_receiver()
     except (KeyboardInterrupt, SystemExit):
-        await service_manager.stop_all()
-        
+        log.info("Receiver service shutdown requested")
+    except Exception as error:
+        log.exception(f"Fatal error in receiver service: {error}")
+        raise SystemExit(1)
+
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
-    
-    try:
-        log.info("Starting application")
-        uvloop.run(run_services())
-    except Exception as error:
-        log.exception("Fatal error during application startup")
-        raise SystemExit(1)
+    uvloop.run(main())
