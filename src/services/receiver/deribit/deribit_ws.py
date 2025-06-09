@@ -17,7 +17,7 @@ import websockets
 from dataclassy import dataclass
 from websockets import WebSocketClientProtocol
 from typing import Any, Dict, List, Optional, Union, cast
-
+from loguru import logger as log
 
 # Application imports
 from src.scripts.deribit.restful_api import end_point_params_template
