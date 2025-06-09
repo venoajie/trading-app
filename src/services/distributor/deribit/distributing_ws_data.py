@@ -125,14 +125,15 @@ async def stream_consumer(
                 tasks = []
                 for stream, message_list in messages:
                     for message_id, message_data in message_list:
-                        tasks.append(
-                            process_message(message_id, message_data, state)
-                        )
                 
                         log.info(f"output from xreadgroup {messages}")
                         log.info(f"xreadgroup on for i message_data {message_data}")
                         payload = {k.decode(): v.decode() for k, v in message_data.items()}
                         log.info(f"output from dict compr {payload}")
+                
+                        tasks.append(
+                            process_message(message_id, message_data, state)
+                        )
                 
                 results = await asyncio.gather(*tasks)
                 
