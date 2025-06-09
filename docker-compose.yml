@@ -13,9 +13,9 @@ services:
       timeout: 3s
       retries: 3
     command: 
-      - --maxmemory 1gb
-      - --maxmemory-policy allkeys-lru
-      - --save ""
+      - --maxmemory 2gb
+      - --maxmemory-policy volatile-lfu # Better for streams
+      - --save ""  # Disable disk persistence
 
   receiver:
     build:

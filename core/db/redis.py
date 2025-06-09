@@ -276,7 +276,7 @@ class RedisClient:
         # Use msgpack for more efficient serialization
         await pool.xadd(
             stream_name,
-            {"data": orjson.dumps(data)},
+            data,  # Pass directly as field-value pairs
             maxlen=maxlen,
             approximate=True  # More efficient trimming
         )

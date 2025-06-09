@@ -158,6 +158,10 @@ class StreamingAccountData:
             
             try:
                 message_dict = orjson.loads(message)
+
+                if message_dict.get("method") == "heartbeat":
+                    await self.heartbeat_response(client_redis)
+                    continue
                 
                 # Only process data messages
                 if "params" in message_dict and "channel" in message_dict["params"]:
