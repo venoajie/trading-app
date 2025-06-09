@@ -175,11 +175,14 @@ class StreamingAccountData:
                         channel = message_dict["params"]["channel"]
                         data = message_dict["params"]["data"]
                         
+                        # Serialize data to JSON string
+                        serialized_data = orjson.dumps(data).decode('utf-8')
+                        
                         # Add to batch
                         batch.append({
                             "channel": channel,
-                            "data": data,
-                            "timestamp": current_time,
+                            "data": serialized_data,
+                            "timestamp": str(int(current_time)),
                             "exchange": exchange
                         })
                         
