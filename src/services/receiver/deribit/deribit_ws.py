@@ -16,7 +16,7 @@ import orjson
 import websockets
 from dataclassy import dataclass
 from websockets import WebSocketClientProtocol
-from typing import Any, Dict, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 
 # Application imports
