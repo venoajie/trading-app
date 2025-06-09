@@ -14,10 +14,10 @@ services:
       timeout: 5s
       retries: 3
     command: 
+      - redis-server
       - --maxmemory 2gb
       - --maxmemory-policy volatile-lfu # Better for streams
       - --save ""  # Disable disk persistence
-      - --loadmodule /usr/lib/redis/modules/rejson.so
 
   receiver:
     build:
