@@ -31,7 +31,7 @@ class StreamingAccountData:
     maintenance_threshold: int = 900
     websocket_timeout: int = 900
     heartbeat_interval: int = 30
-    loop: asyncio.AbstractEventLoop = #cast(asyncio.AbstractEventLoop, None)
+    loop: asyncio.AbstractEventLoop #= cast(asyncio.AbstractEventLoop, None)
     ws_connection_url: str = "wss://www.deribit.com/ws/api/v2"
     websocket_client: Optional[WebSocketClientProtocol] = None
     refresh_token: Optional[str] = None
