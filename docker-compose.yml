@@ -44,6 +44,7 @@ services:
       interval: 30s
 
   distributor:
+    profiles: ["distributor"]
     build:
       context: .
       dockerfile: src/services/distributor/Dockerfile

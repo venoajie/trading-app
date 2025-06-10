@@ -24,8 +24,6 @@ MAX_RETRIES = 3
 def parse_redis_message(message_data: dict) -> dict:
     """Efficient parser for Redis stream messages"""
     result = {}
-
-    log.info(f"output from xreadgroup {message_data}")
                 
     for key, value in message_data.items():
         
@@ -55,7 +53,7 @@ async def process_message(
     """Process single message with error handling and retries"""
     try:
         # Deserialize message
-        payload = parse_redis_message(message_data)
+        payload = redis_client.parse_stream_message(message_data)
         channel = payload["channel"]
         data = payload["data"]
         currency = str_mod.extract_currency_from_text(channel)
