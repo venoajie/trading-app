@@ -28,18 +28,23 @@ def parse_redis_message(message_data: dict) -> dict:
     log.info(f"output from xreadgroup {message_data}")
                 
     for key, value in message_data.items():
+        
         k = key.decode('utf-8')
+        
         try:
-            log.info(f"for i message_data {k}")
-            # Special handling for JSON data field
+            # Handle 'data' field differently
             if k == 'data':
-                result[k] = orjson.loads(value)
+                # Check if it's already a string before parsing
+                if isinstance(value, bytes):
+                    result[k] = orjson.loads(value)
+                else:
+                    result[k] = value
             else:
                 result[k] = value.decode('utf-8')
-            log.info(f"result {result}")
-        except (orjson.JSONDecodeError, UnicodeDecodeError):
-            # Fallback to raw value
+        except Exception as e:
+            log.warning(f"Error parsing field {k}: {e}")
             result[k] = value
+            
     return result
 
 async def process_message(
@@ -52,7 +57,7 @@ async def process_message(
         # Deserialize message
         payload = parse_redis_message(message_data)
         channel = payload["channel"]
-        data = orjson.loads(payload["data"])  # Deserialize JSON data
+        data = payload["data"]
         currency = str_mod.extract_currency_from_text(channel)
         
         # Add detailed logging
