@@ -1,4 +1,5 @@
 # src\shared\utils\template.py
+from typing import Dict, Any
 
 
 def redis_message_template() -> str:
