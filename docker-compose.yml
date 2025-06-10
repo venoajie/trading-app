@@ -2,7 +2,7 @@
 
 services:
   redis:
-    image: redis:7-alpine
+    image: redis:7.2-bookworm
     ports:
       - "6379:6379"
     volumes:
@@ -12,7 +12,9 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-    command: 
+    command:     
+      - redis-server
+      - --loadmodule /usr/lib/redis/modules/rejson.so
       - --maxmemory 2gb
       - --maxmemory-policy volatile-lfu # Better for streams
       - --save ""  # Disable disk persistence
