@@ -347,10 +347,10 @@ class CustomRedisClient:
         try:
             async with pool.pipeline(transaction=False) as pipe:
                 for message in messages:
-                # Encode all values to string/bytes
-                encoded_msg = self.encode_stream_message(message)
-                pipe.xadd(stream_name, encoded_msg, maxlen=maxlen, approximate=True)
-            await pipe.execute()
+                    # Encode all values to string/bytes
+                    encoded_msg = self.encode_stream_message(message)
+                    pipe.xadd(stream_name, encoded_msg, maxlen=maxlen, approximate=True)
+                await pipe.execute()
         log.debug(f"Sent {len(messages)} messages to {stream_name}")
     
     except Exception as e:
