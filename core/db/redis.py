@@ -199,41 +199,6 @@ async def publishing_specific_purposes(
         )
 
 
-@staticmethod
-def encode_stream_message(message: dict) -> dict:
-    """Encode message values for Redis stream compatibility"""
-    encoded = {}
-    for key, value in message.items():
-        try:
-            if isinstance(value, (dict, list)):
-                encoded[key] = orjson.dumps(value)
-            else:
-                encoded[key] = str(value).encode('utf-8')
-        except Exception as e:
-            log.warning(f"Error encoding field {key}: {e}")
-            encoded[key] = b''  # Fallback to empty bytes
-    return encoded
-
-@staticmethod
-def parse_stream_message(message_data: Dict[bytes, bytes]) -> dict:
-    """Parse Redis stream message into Python types"""
-    result = {}
-    for key, value in message_data.items():
-        try:
-            k = key.decode('utf-8')
-            
-            # Handle special fields
-            if k == 'data':
-                try:
-                    result[k] = orjson.loads(value)
-                except orjson.JSONDecodeError:
-                    result[k] = value.decode('utf-8')
-            else:
-                result[k] = value.decode('utf-8')
-        except Exception as e:
-            log.warning(f"Error parsing field {key}: {e}")
-            result[key] = value  # Keep original value on error
-    return result
 
 class CustomRedisClient: 
     """Singleton Redis client with connection pooling""" 
@@ -334,6 +299,43 @@ class CustomRedisClient:
             count=count,
             block=block
         )
+
+
+    @staticmethod
+    def encode_stream_message(message: dict) -> dict:
+        """Encode message values for Redis stream compatibility"""
+        encoded = {}
+        for key, value in message.items():
+            try:
+                if isinstance(value, (dict, list)):
+                    encoded[key] = orjson.dumps(value)
+                else:
+                    encoded[key] = str(value).encode('utf-8')
+            except Exception as e:
+                log.warning(f"Error encoding field {key}: {e}")
+                encoded[key] = b''  # Fallback to empty bytes
+        return encoded
+
+    @staticmethod
+    def parse_stream_message(message_data: Dict[bytes, bytes]) -> dict:
+        """Parse Redis stream message into Python types"""
+        result = {}
+        for key, value in message_data.items():
+            try:
+                k = key.decode('utf-8')
+                
+                # Handle special fields
+                if k == 'data':
+                    try:
+                        result[k] = orjson.loads(value)
+                    except orjson.JSONDecodeError:
+                        result[k] = value.decode('utf-8')
+                else:
+                    result[k] = value.decode('utf-8')
+            except Exception as e:
+                log.warning(f"Error parsing field {key}: {e}")
+                result[key] = value  # Keep original value on error
+        return result
 
     async def xadd_bulk(
         self,
