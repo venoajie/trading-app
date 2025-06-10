@@ -95,6 +95,10 @@ async def run_receiver():
 
 async def main():
     """Service entry point with graceful shutdown"""
+    
+    # Initialize dependencies
+    error_handler.notifiers = [...]
+    
     try:
         await run_receiver()
     except (KeyboardInterrupt, SystemExit):
