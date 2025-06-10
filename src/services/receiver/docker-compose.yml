@@ -1,0 +1,53 @@
+# src\services\receiver\docker-compose.yml
+
+services:
+  redis:
+    image: redis/redis-stack:7.2.0-v7
+    ports:
+      - "6379:6379"
+      - "8001:8001"  # RedisInsight UI
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    command:     
+      - redis-server
+      - --maxmemory 2gb
+      - --maxmemory-policy volatile-lfu # Better for streams
+      - --save ""  # Disable disk persistence
+      - --bind 0.0.0.0
+      - --protected-mode no
+
+  receiver:
+    build:
+      context: .
+      dockerfile: src/services/receiver/Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    secrets:
+      - source: deribit_client_id
+        target: deribit_client_id
+      - source: deribit_client_secret
+        target: deribit_client_secret
+      - source: db_password  # Add DB password secret
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-h", "redis", "ping"]
+      interval: 30s
+
+volumes:
+  redis-data:
+  
+secrets:
+  deribit_client_id:
+    file: ./secrets/client_id.txt
+  deribit_client_secret:
+    file: ./secrets/client_secret.txt

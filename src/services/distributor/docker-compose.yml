@@ -1,0 +1,76 @@
+# src\services\distributor\docker-compose.yml
+
+services:
+  redis:
+    image: redis/redis-stack:7.2.0-v7
+    ports:
+      - "6379:6379"
+      - "8001:8001"  # RedisInsight UI
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    command:     
+      - redis-server
+      - --maxmemory 2gb
+      - --maxmemory-policy volatile-lfu # Better for streams
+      - --save ""  # Disable disk persistence
+      - --bind 0.0.0.0
+      - --protected-mode no
+
+  distributor:
+    build:
+      context: .
+      dockerfile: src/services/distributor/Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - TZ=UTC
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=trading
+    secrets:
+      - source: db_password
+        target: db_password
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: trading_app
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_DB: trading
+      POSTGRES_INITDB_ARGS: --data-checksums
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    secrets:
+      - db_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trading_app -d trading"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: 
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pg_stat_statements"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "work_mem=16MB"
+
+volumes:
+  redis-data:
+  pgdata:  
+  
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
