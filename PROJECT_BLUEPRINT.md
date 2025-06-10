@@ -5,51 +5,24 @@
 - **Message broker**: Redis
 - **Back up**: database backed up at backblaze using inotify
 - **Key Services**:
-  - `receivers` () - receive data from exchanges through websockets 
-  - `distributors` (v0) - distributor received the data, manipulate them, and further dispatched to processor using redis
-  both services above combined into one service 'receivers'
+  - `receiver` () - receive data from exchanges through websockets 
+  cores involved: redis stream (redis)
+  - `distributor` (v0) - distributor received the data from receiver, manipulate them, and further dispatched to processor using redis
+    cores involved: redis & postgresql
   - `processor` (v) - Processing events (order/cancel/transactions) and number (ohlc/balance)
   - `shared` (v) - Shared library: text/numbers/time/db manipulation
   - `general` (v) - Db maintenance/back up, communicating events by telegram
 
 ## KNOWN CONCERNS
-- idle state: exchanges will stop sending data ata maintenance situation. this will cause websockets in hanging state.
-- decoupling: events/data come in the same time and have to be processed separately or caused backlog
 - failed message: in heavy backlog/hang situation, there is possibility events failed to reach the services
 - ram size is gradually improving although the data volume is fixed
-- data consistency: to reduce request to sqlite, all services retain their own data in cache. this cache should be reconciled time after time
   
 
-# SHORT TERM
-- ensure docker migration succesfull
-  - receiver (done)
+## CURRENT PHASE (2025-06-10)
+- testing and optimized/collaborated receiver and distributor services
+- migrate sqlite syntax to postgresql
 
-## CURRENT PHASE (2025-06-02)
-- receiver basic functionalities has completed. doing some optimizations before next steps
-- processorbasic functionalities in deployment stage. still facing some errors due to inconsistent caching 
 CURRENT PHASE CONCERN:
-
-main.py is overly complex with mixed concerns. Need to refactor
-# services.py (new abstraction)-->seems not needed
-class ServiceManager:
-    def __init__(self):
-        self.services = {}
-        
-    def register(self, name, coro):
-        self.services[name] = coro
-        
-    async def start_all(self):
-        for name, coro in self.services.items():
-            asyncio.create_task(coro())
-
-# main.py (simplified)
-from services import ServiceManager
-manager = ServiceManager()
-manager.register("redis_monitor", monitor_system_alerts)
-manager.register("trading_main", trading_main)
-
-asyncio.run(manager.start_all())
-
 
 8. Dead Code Removal
 Remove these unused components:
@@ -100,10 +73,9 @@ async def health_check():
 
 
 ## NEXT PHASE ()
-receiver. need add additional things:
-- unit testing
-- how communicate failures
-- listing possible alternatives (speed vs easy maintenance vs technology)
+need add additional things:
+- unit testing, partially done
+- how communicate failures: ignored now
 - improve documentation and familiarize my self with the code
 
 
@@ -111,14 +83,8 @@ receiver. need add additional things:
 - migrate to postgresql
 - implement threading (to process data from exchanges)
 - code optimization
-- Add queue overflow handling
 - Implement proper task cancellation
 - Create health check endpoint
-- Split monolith into microservices
-- Implement proper backpressure mechanisms
-Redis Backpressure: No backpressure handling in distributing_ws_data.py
-
-Add max queue size and overflow handling
 
 
 
