@@ -12,6 +12,7 @@ from loguru import logger as log
 
 # user defined formula
 from core.db.postgres import insert_ohlc
+from core.error_handler import error_handler
 from src.shared.utils import error_handling
 from src.shared.config.settings import DERIBIT_CURRENCIES
 from src.scripts.deribit.restful_api import end_point_params_template as end_point

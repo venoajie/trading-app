@@ -8,7 +8,7 @@ from loguru import logger as log
 
 # user defined formula
 from core.db import redis as redis_client
-from core.error_handler import handle_error
+from core.error_handler import error_handler
 from core.db.postgres import (
     fetch,
     insert_trade_or_order,

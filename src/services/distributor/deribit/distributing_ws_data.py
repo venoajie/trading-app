@@ -9,7 +9,7 @@ from typing import Dict, List, Any, Tuple
 # Application imports
 from core.db import postgres as pg
 from core.db.redis import redis_client
-from core.error_handler import handle_error
+from core.error_handler import error_handler
 from src.scripts.deribit import caching
 from src.shared.utils import error_handling, string_modification as str_mod
 

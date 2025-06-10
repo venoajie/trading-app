@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Union, cast
 from loguru import logger as log
 
 # Application imports
-from core.error_handler import handle_error
+from core.error_handler import error_handler
 from src.scripts.deribit.restful_api import end_point_params_template
 from src.shared.utils import string_modification as str_mod
 
