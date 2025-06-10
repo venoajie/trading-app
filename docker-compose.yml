@@ -3,14 +3,15 @@
 services:
   redis:
     image: redis/redis-stack:7.2.0-v7
+    profiles: ["full", "receiver", "distributor"]  
     ports:
       - "6379:6379"
       - "8001:8001"  # RedisInsight UI
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
+      test: ["CMD", "redis-cli", "--raw", "ping | grep -q PONG"]
+      interval: 1m
       timeout: 5s
       retries: 3
     command:     
@@ -22,7 +23,7 @@ services:
       - --protected-mode no
 
   receiver:
-    profiles: ["receiver"]
+    profiles: ["full", "receiver"]
     build:
       context: .
       dockerfile: src/services/receiver/Dockerfile
@@ -40,11 +41,11 @@ services:
         target: deribit_client_secret
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "-h", "redis", "ping"]
+      test: ["CMD", "python", "-c", "from core.db.redis import check_redis; check_redis()"]
       interval: 30s
 
   distributor:
-    profiles: ["distributor"]
+    profiles: ["full", "distributor"]
     build:
       context: .
       dockerfile: src/services/distributor/Dockerfile
@@ -54,6 +55,9 @@ services:
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DB=trading
+    healthcheck:
+      test: ["CMD", "python", "-c", "from core.db.postgres import check_postgres; check_postgres()"]
+      interval: 30s
     secrets:
       - source: db_password
         target: db_password
@@ -66,6 +70,7 @@ services:
 
   postgres:
     image: postgres:17
+    profiles: ["full", "distributor"] 
     environment:
       POSTGRES_USER: trading_app
       POSTGRES_PASSWORD_FILE: /run/secrets/db_password
