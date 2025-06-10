@@ -21,6 +21,22 @@ CONSUMER_NAME = "dispatcher_consumer"
 BATCH_SIZE = 100
 MAX_RETRIES = 3
 
+def parse_redis_message(message_data: dict) -> dict:
+    """Efficient parser for Redis stream messages"""
+    result = {}
+    for key, value in message_data.items():
+        k = key.decode('utf-8')
+        try:
+            # Special handling for JSON data field
+            if k == 'data':
+                result[k] = orjson.loads(value)
+            else:
+                result[k] = value.decode('utf-8')
+        except (orjson.JSONDecodeError, UnicodeDecodeError):
+            # Fallback to raw value
+            result[k] = value
+    return result
+
 async def process_message(
     message_id: str,
     message_data: Dict[bytes, bytes],
@@ -29,7 +45,7 @@ async def process_message(
     """Process single message with error handling and retries"""
     try:
         # Deserialize message
-        payload = {k.decode(): v.decode() for k, v in message_data.items()}
+        payload = parse_redis_message(message_data)
         channel = payload["channel"]
         data = orjson.loads(payload["data"])  # Deserialize JSON data
         currency = str_mod.extract_currency_from_text(channel)
