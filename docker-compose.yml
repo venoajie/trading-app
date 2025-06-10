@@ -1,24 +1,26 @@
 # docker-compose.yml
 
+networks:
+  trading-net:
+    driver: bridge
+
 services:
   redis:
     image: redis/redis-stack:7.2.0-v7
-    profiles: ["full", "receiver", "distributor"]  
-    ports:
-      - "6379:6379"
-      - "8001:8001"  # RedisInsight UI
-    volumes:
-      - redis-data:/data
+    profiles: ["full", "receiver", "distributor"]
+    ports: ["6379:6379", "8001:8001"]
+    volumes: [redis-data:/data]
+    networks: [trading-net]
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "ping | grep -q PONG"]
       interval: 1m
       timeout: 5s
       retries: 3
-    command:     
+    command: 
       - redis-server
       - --maxmemory 2gb
-      - --maxmemory-policy volatile-lfu # Better for streams
-      - --save ""  # Disable disk persistence
+      - --maxmemory-policy volatile-lfu
+      - --save ""
       - --bind 0.0.0.0
       - --protected-mode no
 
@@ -27,50 +29,44 @@ services:
     build:
       context: .
       dockerfile: src/services/receiver/Dockerfile
-    environment:
-      - REDIS_URL=redis://redis:6379
-    volumes:
-      - ./data:/app/data
-    depends_on:
-      redis:
-        condition: service_healthy
-    secrets:
-      - source: deribit_client_id
-        target: deribit_client_id
-      - source: deribit_client_secret
-        target: deribit_client_secret
+    environment: [REDIS_URL=redis://redis:6379]
+    volumes: [./data:/app/data]
+    depends_on: {redis: {condition: service_healthy}}
+    secrets: [deribit_client_id, deribit_client_secret]
     restart: unless-stopped
+    networks: [trading-net]
     healthcheck:
-      test: ["CMD", "python", "-c", "from core.db.redis import check_redis; check_redis()"]
+      test: ["CMD", "python", "-c", "import asyncio; from core.db.redis import check_redis; asyncio.run(check_redis())"]
       interval: 30s
+      timeout: 10s
+      retries: 3
 
   distributor:
     profiles: ["full", "distributor"]
     build:
       context: .
       dockerfile: src/services/distributor/Dockerfile
-    environment:
+    environment: 
       - REDIS_URL=redis://redis:6379
       - TZ=UTC
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DB=trading
+    secrets: [db_password]
+    depends_on: 
+      redis: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+    restart: unless-stopped
+    networks: [trading-net]
     healthcheck:
       test: ["CMD", "python", "-c", "from core.db.postgres import check_postgres; check_postgres()"]
       interval: 30s
-    secrets:
-      - source: db_password
-        target: db_password
-    depends_on:
-      redis:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
+      timeout: 10s
+      retries: 3
 
   postgres:
     image: postgres:17
-    profiles: ["full", "distributor"] 
+    profiles: ["full", "distributor"]
     environment:
       POSTGRES_USER: trading_app
       POSTGRES_PASSWORD_FILE: /run/secrets/db_password
@@ -79,8 +75,8 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    secrets:
-      - db_password
+    secrets: [db_password]
+    networks: [trading-net]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U trading_app -d trading"]
       interval: 10s
@@ -94,15 +90,9 @@ services:
       - "max_connections=200"
       - "-c"
       - "work_mem=16MB"
-
-volumes:
-  redis-data:
-  pgdata:  
-  
+ 
+volumes: [redis-data, pgdata]
 secrets:
-  deribit_client_id:
-    file: ./secrets/client_id.txt
-  deribit_client_secret:
-    file: ./secrets/client_secret.txt
-  db_password:
-    file: ./secrets/db_password.txt
+  deribit_client_id: {file: ./secrets/client_id.txt}
+  deribit_client_secret: {file: ./secrets/client_secret.txt}
+  db_password: {file: ./secrets/db_password.txt}
