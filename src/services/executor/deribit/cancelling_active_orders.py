@@ -14,7 +14,13 @@ from src.scripts.deribit import subscribing_to_channels
 from src.scripts.deribit.restful_api import end_point_params_template
 from src.scripts.deribit.strategies.cash_carry import combo_auto as combo
 from src.scripts.deribit.strategies.hedging import hedging_spot
-from src.shared.utils import error_handling, string_modification as str_mod, system_tools, template
+from src.shared.utils import (
+    error_handling,
+    string_modification as str_mod,
+    system_tools,
+    template,
+)
+
 
 async def cancelling_orders(
     client_id: str,
@@ -156,7 +162,7 @@ async def cancelling_orders(
                     currency_lower = currency_upper.lower()
 
                     instrument_name_perpetual = f"{currency_upper}-PERPETUAL"
-                    
+
                     market_condition = [
                         o
                         for o in market_condition_all
@@ -291,7 +297,7 @@ async def cancelling_orders(
                             if "hedgingSpot" in strategy:
 
                                 max_position: int = notional * -1
-                                
+
                                 hedging = hedging_spot.HedgingSpot(
                                     strategy,
                                     strategy_params,
@@ -386,9 +392,9 @@ async def cancel_the_cancellables(
     log.critical(f" cancel_the_cancellables {currency}")
 
     query_orders = f"SELECT * FROM  v_orders"
-    
+
     open_orders_sqlite: list = await fecth(query_orders)
-        
+
     if open_orders_sqlite:
 
         for strategy in cancellable_strategies:

@@ -18,6 +18,7 @@ from src.shared.utils import (
     error_handling,
 )
 
+
 def get_label_main(
     result: list,
     strategy_label: str,

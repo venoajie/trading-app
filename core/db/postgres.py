@@ -9,11 +9,11 @@ from core.db.redis import publishing_specific_purposes
 from core.error_handler import error_handler
 from src.shared.config.settings import POSTGRES_DSN
 
-    
+
 def query_insert_trade_or_order(data: dict):
-    currency = data.get('fee_currency') or data['instrument_name'].split('-')[0].upper()
-    is_trade = 'trade_id' in data
-    
+    currency = data.get("fee_currency") or data["instrument_name"].split("-")[0].upper()
+    is_trade = "trade_id" in data
+
     query = """
         INSERT INTO orders (
             currency, instrument_name, label, amount_dir, price, 
@@ -31,22 +31,23 @@ def query_insert_trade_or_order(data: dict):
     """
     params = (
         currency,
-        data['instrument_name'],
-        data.get('label'),
-        data.get('amount'),
-        data.get('price'),
-        data.get('side') or data.get('direction'),
-        data.get('timestamp'),
-        data.get('trade_id'),
-        data.get('order_id'),
+        data["instrument_name"],
+        data.get("label"),
+        data.get("amount"),
+        data.get("price"),
+        data.get("side") or data.get("direction"),
+        data.get("timestamp"),
+        data.get("trade_id"),
+        data.get("order_id"),
         is_trade,  # Mark as open if it's a trade
-        orjson.dumps(data)
+        orjson.dumps(data),
     )
+
 
 class PostgresClient:
     def __init__(self):
         self._pool = None
-        
+
     async def start_pool(self):
         if not self._pool:
             for _ in range(3):
@@ -57,9 +58,9 @@ class PostgresClient:
                         max_size=20,
                         command_timeout=60,
                         server_settings={
-                            'application_name': 'trading-app',
-                            'jit': 'off'
-                        }
+                            "application_name": "trading-app",
+                            "jit": "off",
+                        },
                     )
                     log.info("PostgreSQL pool created")
                     return
@@ -67,12 +68,13 @@ class PostgresClient:
                     log.error(f"Connection failed: {e}")
                     await asyncio.sleep(2)
             raise ConnectionError("Failed to create PostgreSQL pool")
-    
 
     async def insert_trade_or_order(self, data: dict):
-        currency = data.get('fee_currency') or data['instrument_name'].split('-')[0].upper()
-        is_trade = 'trade_id' in data
-        
+        currency = (
+            data.get("fee_currency") or data["instrument_name"].split("-")[0].upper()
+        )
+        is_trade = "trade_id" in data
+
         query = """
             INSERT INTO orders (
                 currency, instrument_name, label, amount_dir, price, 
@@ -90,26 +92,24 @@ class PostgresClient:
         """
         params = (
             currency,
-            data['instrument_name'],
-            data.get('label'),
-            data.get('amount'),
-            data.get('price'),
-            data.get('side') or data.get('direction'),
-            data.get('timestamp'),
-            data.get('trade_id'),
-            data.get('order_id'),
+            data["instrument_name"],
+            data.get("label"),
+            data.get("amount"),
+            data.get("price"),
+            data.get("side") or data.get("direction"),
+            data.get("timestamp"),
+            data.get("trade_id"),
+            data.get("order_id"),
             is_trade,  # Mark as open if it's a trade
-            orjson.dumps(data)
+            orjson.dumps(data),
         )
 
         await self.start_pool()
         async with self._pool.acquire() as conn:
             await conn.execute(query, *params)
-        
+
         # Publish update to Redis
         await self.order_executed(table, data)
-
-
 
     async def fetch_active_trades(self, query):
         await self.start_pool()
@@ -117,11 +117,7 @@ class PostgresClient:
             return await conn.fetch(query)
 
     async def delete_row(
-        self,
-        table: str,
-        filter_col: str,
-        operator: str,
-        filter_value: Any
+        self, table: str, filter_col: str, operator: str, filter_value: Any
     ) -> None:
         """
         Delete rows from PostgreSQL table
@@ -131,14 +127,14 @@ class PostgresClient:
             filter_value = f"%{filter_value}%"
         else:
             query = f"DELETE FROM {table} WHERE {filter_col} {operator} $1"
-        
+
         await self.start_pool()
         async with self._pool.acquire() as conn:
             await conn.execute(query, filter_value)
-        
+
         # Publish update to Redis
-        await self.order_executed(table,data)
-            
+        await self.order_executed(table, data)
+
     async def querying_arithmetic_operator(
         self,
         item: str,
@@ -147,18 +143,18 @@ class PostgresClient:
     ) -> float:
         """Safe PostgreSQL version using function"""
         query = "SELECT get_arithmetic_value($1, $2, $3)"
-        
+
         await self.start_pool()
         async with self._pool.acquire() as conn:
             return await conn.fetchval(query, item, operator, table)
-        
+
     async def update_status_data(
         self,
         table: str,
         data_column: str,
         filter_col: str,
         filter_value: Any,
-        new_value: Any
+        new_value: Any,
     ) -> None:
         """
         Update data in PostgreSQL table
@@ -180,11 +176,11 @@ class PostgresClient:
                 WHERE {filter_col} = $2
             """
             params = (new_value, filter_value)
-        
+
         await self.start_pool()
         async with self._pool.acquire() as conn:
             await conn.execute(query, *params)
-        
+
         # Publish update to Redis
         await self.order_executed(table)
 
@@ -194,26 +190,23 @@ class PostgresClient:
         """
         if "orders" in table:
             active_trades = await self.fetch_active_trades()
-            
+
             await error_handler.capture(
-                Exception("Order executed"), 
+                Exception("Order executed"),
                 context="Trade execution",
                 metadata=active_trades,
-                severity="INFO"
+                severity="INFO",
             )
 
-    async def get_table_schema(self,table_name: str) -> list:
+    async def get_table_schema(self, table_name: str) -> list:
         """
         Get column details for a table
         """
         query = f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = $1"
-        
+
         return await self.fetch_active_trades(query)
 
-    async def query_table_data(self,
-        table_name: str, 
-        limit: int = 10
-    ) -> list:
+    async def query_table_data(self, table_name: str, limit: int = 10) -> list:
         """
         Query data from a table
         """
@@ -231,4 +224,3 @@ delete_row = postgres_client.delete_row
 update_status_data = postgres_client.update_status_data
 insert_trade_or_order = postgres_client.insert_trade_or_order
 fetch = postgres_client.fetch_active_trades
-

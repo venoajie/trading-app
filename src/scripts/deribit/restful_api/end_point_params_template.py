@@ -19,6 +19,7 @@ def get_basic_https() -> str:
 def get_currencies_end_point() -> str:
     return f"public/get_currencies?"
 
+
 async def get_currencies() -> dict:
 
     result = await connector.get_connected(
@@ -27,6 +28,7 @@ async def get_currencies() -> dict:
     )
 
     return result["result"]
+
 
 def get_server_time_end_point() -> str:
     return f"public/get_time?"
@@ -37,14 +39,13 @@ def get_instruments_end_point(currency) -> str:
 
 
 async def get_instruments(currency) -> dict:
-
     """
     result_example = {
         "id": 5,
-        "result": {           
+        "result": {
         "price_index":"eth_usd"
         "rfq":false
-        "kind":"future" 
+        "kind":"future"
         "min_trade_amount":1
         "instrument_name":"ETH-20JUN25"
         "maker_commission":-0.0001
@@ -70,7 +71,6 @@ async def get_instruments(currency) -> dict:
         }
 
     """
-
 
     result = await connector.get_connected(
         get_basic_https(),
@@ -111,7 +111,7 @@ def get_ohlc_end_point(
 
     if resolution == "1D":
         resolution = 60 * 24
-        
+
     # start timestamp is provided
     start_timestamp = qty_or_start_time_stamp
 
@@ -132,7 +132,8 @@ async def get_ohlc(
     resolution: int,
     qty_or_start_time_stamp: int,
     provided_end_timestamp: int = None,
-    qty_as_start_time_stamp: bool = False,) -> dict:
+    qty_as_start_time_stamp: bool = False,
+) -> dict:
 
     result = await connector.get_connected(
         get_basic_https(),
@@ -142,8 +143,8 @@ async def get_ohlc(
             qty_or_start_time_stamp,
             provided_end_timestamp,
             qty_as_start_time_stamp,
-        )
-        )
+        ),
+    )
 
     return result["result"]
 
@@ -488,7 +489,7 @@ class SendApiRequest:
                 add_positions,
             ),
         )
-        
+
         return portfolio_simulation["result"]
 
     async def get_cancel_order_byOrderId(
@@ -903,4 +904,3 @@ def id_numbering(
     if "ETH" or "eth" in ws_channel:
         id_instrument = 2
     return int(f"{id_auth}{id_method}{id_item}{id_instrument}")
-

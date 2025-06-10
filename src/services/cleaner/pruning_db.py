@@ -7,6 +7,7 @@ import asyncio
 from core.db import sqlite as db_mgt
 from src.shared.utils import error_handling
 
+
 async def count_and_delete_ohlc_rows(
     database: str,
     table: str,

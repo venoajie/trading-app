@@ -58,6 +58,7 @@ def get_platform() -> str:
 
     return platforms[sys.platform]
 
+
 def provide_path_for_file(
     end_point: str,
     marker: str = None,
@@ -67,7 +68,7 @@ def provide_path_for_file(
     """Provide uniform format for file/folder path address"""
     # Use DB_BASE_PATH for all persistent storage
     base_path = os.getenv("DB_BASE_PATH", "/app/data")
-    
+
     # Map endpoint types to subdirectories
     endpoint_map = {
         "portfolio": f"exchanges/deribit/portfolio",
@@ -80,23 +81,23 @@ def provide_path_for_file(
         "index": "market",
         # ... other endpoint mappings ...
     }
-    
+
     # Determine subfolder based on endpoint
     sub_folder = endpoint_map.get(end_point, "general")
-    
+
     # Construct full path
     path_components = [base_path, "databases", sub_folder]
     if marker:
         path_components.append(marker.lower())
     if status:
         path_components.append(status)
-    
+
     my_path = os.path.join(*path_components)
-    
+
     # Create directory if needed
     os.makedirs(my_path, exist_ok=True)
     os.chmod(my_path, 0o755)  # Ensure write permissions
-    
+
     # Handle filename
     if ".env" in end_point or ".toml" in end_point:
         return os.path.join(my_path, end_point)
@@ -205,10 +206,10 @@ def get_config_tomli(config_path) -> list:
     """ """
 
     import tomli
-    
+
     if os.path.exists(config_path):
 
         with open(config_path, "rb") as handle:
-            
+
             read = tomli.load(handle)
             return read

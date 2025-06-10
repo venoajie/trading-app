@@ -28,7 +28,7 @@ from streaming_helper.utilities import (
 
 
 async def future_spreads(
-    client_id, 
+    client_id,
     client_secret,
     client_redis: object,
     config_app: list,
@@ -108,17 +108,16 @@ async def future_spreads(
             try:
 
                 message_byte = await pubsub.get_message(pubsub)
-                                
+
                 params = await get_published_messages.get_redis_message(message_byte)
 
                 data, message_channel = params["data"], params["channel"]
 
-
                 if order_allowed_channel in message_channel:
 
                     allowed_instruments = [
-                            o for o in order_allowed if o["size_is_reconciled"] == 1
-                        ]
+                        o for o in order_allowed if o["size_is_reconciled"] == 1
+                    ]
 
                     if market_analytics_channel in message_channel:
 
@@ -634,7 +633,6 @@ async def future_spreads(
                                                                 break
 
             except Exception as error:
-
 
                 await error_handling.parse_error_message_with_redis(
                     client_redis,

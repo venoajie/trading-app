@@ -23,7 +23,7 @@ def translate_current_local_date_time_to_utc():
 def time_format_standardization(
     time_input,
     time_format: str = "%Y-%m-%d %H:%M:%S.%f",
-    ):
+):
     """
     Standardize the time format.
     """
@@ -46,9 +46,9 @@ def time_format_standardization(
 
 
 def convert_time_to_utc(
-    transaction_time: str = None, 
+    transaction_time: str = None,
     hours_diff_with_utc: float = None,
-    ) -> dict:
+) -> dict:
     """
     # Mendapatkan waktu UTC/JKT saat ini (now) dengan UTC sebagai patokan
 
@@ -139,6 +139,7 @@ def get_now_unix_time() -> int:
 
     return int(convert_time_to_unix(now_utc))
 
+
 def time_delta_between_now_and_transaction_time_both_in_utc(
     transaction_time: str,
 ) -> dict:
@@ -166,11 +167,10 @@ def time_delta_between_now_and_transaction_time_both_in_utc(
 
 
 def time_delta_between_two_times(
-    time_format, 
+    time_format,
     start_time: str,
     end_time: str = None,
-    ) -> float:
-    
+) -> float:
     """
     Menghitung selisih  antara waktu 2 waktu
     time format: utc/unix
@@ -224,11 +224,11 @@ def time_delta_between_two_times(
 
 
 def check_alarm_clock(
-    triggerHour, 
-    triggerMinute, 
-    isTrigger=False, 
+    triggerHour,
+    triggerMinute,
+    isTrigger=False,
     local_time: str = None,
-    ):
+):
     """
 
     Add an alarm clock to the trading strategy
@@ -271,9 +271,9 @@ def check_alarm_clock(
 
 
 def resampling_time_frame(
-    ohlc_data: list, 
+    ohlc_data: list,
     time_frame: str = "5min",
-    ):
+):
     """
 
 

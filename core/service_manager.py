@@ -2,6 +2,7 @@ import asyncio
 import logging
 from typing import Dict, Callable, Coroutine, Any
 
+
 class ServiceManager:
     def __init__(self):
         self.services: Dict[str, Callable[[], Coroutine[Any, Any, None]]] = {}
@@ -33,6 +34,7 @@ class ServiceManager:
         for task in self.tasks.values():
             task.cancel()
         await asyncio.gather(*self.tasks.values(), return_exceptions=True)
+
 
 # Global service manager instance
 service_manager = ServiceManager()

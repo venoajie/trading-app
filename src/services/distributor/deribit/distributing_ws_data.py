@@ -23,35 +23,35 @@ CONSUMER_NAME = "dispatcher_consumer"
 BATCH_SIZE = 100
 MAX_RETRIES = 3
 
+
 def parse_redis_message(message_data: dict) -> dict:
     """Efficient parser for Redis stream messages"""
     result = {}
-                
+
     for key, value in message_data.items():
-        
-        k = key.decode('utf-8')
-        
+
+        k = key.decode("utf-8")
+
         try:
             # Handle 'data' field differently
-            if k == 'data':
+            if k == "data":
                 # Check if it's already a string before parsing
                 if isinstance(value, bytes):
                     result[k] = orjson.loads(value)
                 else:
                     result[k] = value
             else:
-                result[k] = value.decode('utf-8')
+                result[k] = value.decode("utf-8")
         except Exception as e:
             log.warning(f"Error parsing field {k}: {e}")
             result[k] = value
-            
+
     return result
+
 
 @error_handler.wrap_async
 async def process_message(
-    message_id: str,
-    message_data: Dict[bytes, bytes],
-    state: Dict[str, Any]
+    message_id: str, message_data: Dict[bytes, bytes], state: Dict[str, Any]
 ) -> bool:
     """Process single message with error handling and retries"""
     try:
@@ -60,13 +60,15 @@ async def process_message(
         channel = payload["channel"]
         data = payload["data"]
         currency = str_mod.extract_currency_from_text(channel)
-        
+
         # Add detailed logging
-        log.info(f"Processing message {message_id} | Channel: {channel} | Currency: {currency}")
+        log.info(
+            f"Processing message {message_id} | Channel: {channel} | Currency: {currency}"
+        )
         log.debug(f"Message payload: {payload}")
-        
+
         # Get currency-specific lock
-        async with state['locks'][currency]:
+        async with state["locks"][currency]:
             # Route message to appropriate handler
             if "user.portfolio" in channel:
                 await handle_portfolio(currency, data, state)
@@ -75,61 +77,50 @@ async def process_message(
             elif "chart.trades" in channel:
                 await handle_chart(currency, data, state)
             # Add other handlers as needed
-        
+
         return True
     except Exception as error:
         log.error(f"Message processing failed: {error}")
         return False
 
-async def handle_portfolio(
-    currency: str,
-    data: Dict,
-    state: Dict[str, Any]
-) -> None:
+
+async def handle_portfolio(currency: str, data: Dict, state: Dict[str, Any]) -> None:
     """Handle portfolio updates"""
     # Update in-memory cache
-    state['caches']['portfolio'][currency] = data
-    
+    state["caches"]["portfolio"][currency] = data
+
     # Persist to PostgreSQL
     await pg.update_portfolio(currency, data)
 
-async def handle_ticker(
-    currency: str,
-    data: Dict,
-    state: Dict[str, Any]
-) -> None:
+
+async def handle_ticker(currency: str, data: Dict, state: Dict[str, Any]) -> None:
     """Handle ticker updates"""
     # Update in-memory cache
-    state['caches']['ticker'][currency] = data
-    
+    state["caches"]["ticker"][currency] = data
+
     # Update OHLC data
     await pg.update_ohlc(currency, data)
 
-async def handle_chart(
-    currency: str,
-    data: Dict,
-    state: Dict[str, Any]
-) -> None:
+
+async def handle_chart(currency: str, data: Dict, state: Dict[str, Any]) -> None:
     """Handle chart data updates"""
     # Process chart data
     await pg.insert_ohlc(currency, data)
 
-async def stream_consumer(
-    redis: Any,
-    state: Dict[str, Any]
-) -> None:
+
+async def stream_consumer(redis: Any, state: Dict[str, Any]) -> None:
     """Main stream consumption loop with error handling"""
     retry_count = 0
     dead_letter_queue = []
-    
+
     while True:
         try:
             # Claim pending messages first
-            #pending = await redis.xpending_range(
+            # pending = await redis.xpending_range(
             #    STREAM_NAME,
             #    GROUP_NAME
             #    )
-            #if pending:
+            # if pending:
             #    await redis.xclaim(
             #        STREAM_NAME,
             #        GROUP_NAME,
@@ -137,36 +128,35 @@ async def stream_consumer(
             #        30000,
             #        [msg.id for msg in pending]
             #    )
-            
+
             # Read new messages
             messages = await redis.xreadgroup(
                 groupname=GROUP_NAME,
                 consumername=CONSUMER_NAME,
                 streams={STREAM_NAME: ">"},
                 count=BATCH_SIZE,
-                block=5000
+                block=5000,
             )
-            
+
             # Process messages in parallel
             if messages:
                 tasks = []
                 for stream, message_list in messages:
                     for message_id, message_data in message_list:
-                
-                        tasks.append(
-                            process_message(message_id, message_data, state)
-                        )
-                
+
+                        tasks.append(process_message(message_id, message_data, state))
+
                 results = await asyncio.gather(*tasks)
-                
+
                 # Acknowledge successful messages
                 ack_ids = [
-                    message_id for i, message_id in enumerate(message_list)
+                    message_id
+                    for i, message_id in enumerate(message_list)
                     if results[i]
                 ]
                 if ack_ids:
                     await redis.xack(STREAM_NAME, GROUP_NAME, *ack_ids)
-                
+
                 # Handle failed messages
                 for i, success in enumerate(results):
                     if not success:
@@ -174,18 +164,19 @@ async def stream_consumer(
                         if len(dead_letter_queue) > 100:
                             await handle_dead_letters(dead_letter_queue)
                             dead_letter_queue = []
-            
+
             # Reset retry count on successful cycle
             retry_count = 0
             await asyncio.sleep(0.01)
-            
+
         except (ConnectionError, TimeoutError):
             log.warning("Redis connection error, retrying...")
-            await asyncio.sleep(min(2 ** retry_count, 30))
+            await asyncio.sleep(min(2**retry_count, 30))
             retry_count += 1
         except Exception as error:
             log.error(f"Unexpected error in consumer: {error}")
             await asyncio.sleep(5)
+
 
 async def handle_dead_letters(messages: List) -> None:
     """Process dead-letter messages with exponential backoff"""

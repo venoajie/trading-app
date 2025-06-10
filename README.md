@@ -116,6 +116,52 @@ docker system prune -a --volumes --force
 docker network prune -f
 ```
 
+
+Decorators for Automatic Handling:
+@error_handler.wrap_async
+async def critical_async_task():
+    # ... code that might fail ...
+
+@error_handler.wrap_sync
+def critical_sync_operation():
+    # ... code that might fail ...
+
+
+Basic error capture:
+
+python
+try:
+    risky_operation()
+except Exception as e:
+    await error_handler.capture(
+        e,
+        context="Data processing",
+        metadata={"file": "data.csv", "size": "128MB"},
+        severity="CRITICAL"
+    )
+
+
+    Event reporting (non-error):
+
+python
+async def order_executed(order_details):
+    await error_handler.capture(
+        Exception("Order executed"),  # Fake exception for structure
+        context="Trade execution",
+        metadata=order_details,
+        severity="INFO"
+    )
+
+Automatic service monitoring:
+
+python
+async def health_check():
+    if not await check_service_health():
+        await error_handler.capture(
+            Exception("Service unhealthy"),
+            context="Health check failed",
+            severity="WARNING"
+        )
 latest folder structure:
 
 .

@@ -35,6 +35,20 @@ CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
 --
 
+
+CREATE TABLE instruments (
+    id SERIAL PRIMARY KEY,
+    data JSONB NOT NULL,
+    kind TEXT GENERATED ALWAYS AS ((data->>'kind')::TEXT) STORED
+    instrument_name TEXT GENERATED ALWAYS AS ((data->>'instrument_name')::TEXT) STORED
+    base_currency TEXT GENERATED ALWAYS AS ((data->>'base_currency')::TEXT) STORED
+    settlement_period TEXT GENERATED ALWAYS AS ((data->>'settlement_period')::TEXT) STORED
+    tick_size FLOAT GENERATED ALWAYS AS ((data->>'tick_size')::FLOAT) STORED
+    expiration_timestamp INTEGER GENERATED ALWAYS AS ((data->>'expiration_timestamp')::INTEGER) STORED
+    contract_size INTEGER GENERATED ALWAYS AS ((data->>'contract_size')::INTEGER) STORED
+);
+
+
 CREATE TABLE ohlc60_btc_perp (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,

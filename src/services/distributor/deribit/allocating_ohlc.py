@@ -12,8 +12,17 @@ from core.db.redis import publishing_result
 from core.db.sqlite import (
     insert_tables,
 )
-from core.db.postgres import fetch, insert_trade_or_order, delete_row, update_status_data, querying_by_arithmetic
-from src.scripts.deribit.restful_api import end_point_params_template as end_point, connector
+from core.db.postgres import (
+    fetch,
+    insert_trade_or_order,
+    delete_row,
+    update_status_data,
+    querying_by_arithmetic,
+)
+from src.scripts.deribit.restful_api import (
+    end_point_params_template as end_point,
+    connector,
+)
 from src.shared.utils import error_handling, string_modification as str_mod
 
 
@@ -125,9 +134,7 @@ async def updating_ohlc(
 
                                 ohlc_query = f"SELECT data FROM {table_ohlc} WHERE tick = {end_timestamp}"
 
-                                result_from_sqlite = await fetch(
-                                    ohlc_query
-                                )
+                                result_from_sqlite = await fetch(ohlc_query)
 
                                 high_from_ws = data["high"]
                                 low_from_ws = data["low"]
@@ -173,7 +180,7 @@ async def updating_ohlc(
                             )
 
                             for result in result_all:
-                                
+
                                 log.info(f"result {result}")
 
                                 await insert_tables(
@@ -228,7 +235,6 @@ async def inserting_open_interest(
             open_interest,
             "is",
         )
-
 
 
 def currency_inline_with_database_address(

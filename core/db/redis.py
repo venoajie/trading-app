@@ -1,29 +1,34 @@
 # core\db\redis.py
 
-""" 
-core/db/redis.py 
-Consolidated Redis client with connection pooling 
-""" 
+"""
+core/db/redis.py
+Consolidated Redis client with connection pooling
+"""
 
-import logging 
-import orjson 
-import redis.asyncio as aioredis 
+import logging
+import orjson
+import redis.asyncio as aioredis
 from typing import Any, Dict, List, Optional, Union
 
-from src.shared.config.settings import REDIS_URL, REDIS_DB 
+from src.shared.config.settings import REDIS_URL, REDIS_DB
 from src.shared.utils import error_handling
 
-# Configure logger 
-log = logging.getLogger(__name__) 
+# Configure logger
+log = logging.getLogger(__name__)
 
 
 async def stream_health_check():
     return {
         "length": await client_redis.xlen("stream:market_data"),
-        "pending": await client_redis.xpending("stream:market_data", "dispatcher_group"),
-        "consumers": await client_redis.xinfo_consumers("stream:market_data", "dispatcher_group")
+        "pending": await client_redis.xpending(
+            "stream:market_data", "dispatcher_group"
+        ),
+        "consumers": await client_redis.xinfo_consumers(
+            "stream:market_data", "dispatcher_group"
+        ),
     }
-    
+
+
 async def saving_and_publishing_result(
     client_redis: object,
     keys: str,
@@ -62,7 +67,7 @@ async def publishing_result(
     """ """
 
     try:
-        
+
         channel = message["params"]["channel"]
 
         # publishing message
@@ -72,7 +77,7 @@ async def publishing_result(
         )
 
     except Exception as error:
-        
+
         print(f"publishing_result message {message}")
 
         await error_handling.parse_error_message_with_redis(
@@ -89,9 +94,9 @@ async def saving_result(
     """ """
 
     try:
-        
+
         channel = cached_data["params"]["channel"]
-        
+
         await client_redis.hset(
             keys,
             channel,
@@ -99,7 +104,7 @@ async def saving_result(
         )
 
     except Exception as error:
-        
+
         print(f"saving_result cached_data {cached_data}")
 
         await error_handling.parse_error_message_with_redis(
@@ -128,6 +133,7 @@ async def querying_data(
             client_redis,
             error,
         )
+
 
 async def publishing_specific_purposes(
     purpose,
@@ -163,10 +169,7 @@ async def publishing_specific_purposes(
 
         if not client_redis:
             client_redis = aioredis.Redis(
-                host="localhost",
-                port=6379,
-                db=0,
-                decode_responses=True
+                host="localhost", port=6379, db=0, decode_responses=True
             )
 
         if not redis_channels:
@@ -199,56 +202,47 @@ async def publishing_specific_purposes(
         )
 
 
+class CustomRedisClient:
+    """Singleton Redis client with connection pooling"""
 
-class CustomRedisClient: 
-    """Singleton Redis client with connection pooling""" 
-    _instance = None 
-    
-    def __new__(cls): 
-        if cls._instance is None: 
-            cls._instance = super().__new__(cls) 
-            cls._instance.pool = None 
-        return cls._instance 
-    
-    async def get_pool(self) -> aioredis.Redis: 
-        """Get or create Redis connection pool""" 
-        if self.pool is None: 
-            self.pool = aioredis.from_url( 
-                REDIS_URL, 
-                db=REDIS_DB, 
-                encoding="utf-8", 
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.pool = None
+        return cls._instance
+
+    async def get_pool(self) -> aioredis.Redis:
+        """Get or create Redis connection pool"""
+        if self.pool is None:
+            self.pool = aioredis.from_url(
+                REDIS_URL,
+                db=REDIS_DB,
+                encoding="utf-8",
                 decode_responses=False,  # Keep binary for performance
-                socket_connect_timeout=5, 
-                socket_keepalive=True, 
-                max_connections=50 
-            ) 
-            log.info(f"Created Redis pool for {REDIS_URL}") 
-        return self.pool 
+                socket_connect_timeout=5,
+                socket_keepalive=True,
+                max_connections=50,
+            )
+            log.info(f"Created Redis pool for {REDIS_URL}")
+        return self.pool
 
-    async def publish(self, channel: str, message: Union[Dict, str]) -> None: 
-        """Publish message to Redis channel""" 
-        pool = await self.get_pool() 
-        if isinstance(message, dict): 
-            message = orjson.dumps(message).decode("utf-8") 
-        await pool.publish(channel, message) 
+    async def publish(self, channel: str, message: Union[Dict, str]) -> None:
+        """Publish message to Redis channel"""
+        pool = await self.get_pool()
+        if isinstance(message, dict):
+            message = orjson.dumps(message).decode("utf-8")
+        await pool.publish(channel, message)
 
-    async def save_to_hash(
-        self,
-        hash_key: str,
-        field: str,
-        data: Any
-    ) -> None:
+    async def save_to_hash(self, hash_key: str, field: str, data: Any) -> None:
         """Save data to Redis hash field"""
         pool = await self.get_pool()
         if not isinstance(data, (str, bytes)):
             data = orjson.dumps(data).decode("utf-8")
         await pool.hset(hash_key, field, data)
 
-    async def get_from_hash(
-        self,
-        hash_key: str,
-        field: str
-    ) -> Optional[Any]:
+    async def get_from_hash(self, hash_key: str, field: str) -> Optional[Any]:
         """Retrieve data from Redis hash field"""
         pool = await self.get_pool()
         data = await pool.hget(hash_key, field)
@@ -259,16 +253,15 @@ class CustomRedisClient:
                 return data
         return None
 
-
     async def xadd(
         self,
         stream_name: str,
         data: dict,
-        maxlen: int = 1000  # Changed parameter name to match Redis API
+        maxlen: int = 1000,  # Changed parameter name to match Redis API
     ) -> None:
         """
         Add entry to Redis stream with trimming capability
-        
+
         Args:
             stream_name: Name of Redis stream
             data: Dictionary of data to add
@@ -280,7 +273,7 @@ class CustomRedisClient:
             stream_name,
             data,  # Pass directly as field-value pairs
             maxlen=maxlen,
-            approximate=True  # More efficient trimming
+            approximate=True,  # More efficient trimming
         )
 
     async def xreadgroup(
@@ -289,7 +282,7 @@ class CustomRedisClient:
         consumer_name: str,
         stream_name: str,
         count: int = 10,
-        block: int = 5000
+        block: int = 5000,
     ) -> list:
         pool = await self.get_pool()
         return await pool.xreadgroup(
@@ -297,9 +290,8 @@ class CustomRedisClient:
             consumername=consumer_name,
             streams={stream_name: ">"},
             count=count,
-            block=block
+            block=block,
         )
-
 
     @staticmethod
     def encode_stream_message(message: dict) -> dict:
@@ -310,10 +302,10 @@ class CustomRedisClient:
                 if isinstance(value, (dict, list)):
                     encoded[key] = orjson.dumps(value)
                 else:
-                    encoded[key] = str(value).encode('utf-8')
+                    encoded[key] = str(value).encode("utf-8")
             except Exception as e:
                 log.warning(f"Error encoding field {key}: {e}")
-                encoded[key] = b''  # Fallback to empty bytes
+                encoded[key] = b""  # Fallback to empty bytes
         return encoded
 
     @staticmethod
@@ -322,16 +314,16 @@ class CustomRedisClient:
         result = {}
         for key, value in message_data.items():
             try:
-                k = key.decode('utf-8')
-                
+                k = key.decode("utf-8")
+
                 # Handle special fields
-                if k == 'data':
+                if k == "data":
                     try:
                         result[k] = orjson.loads(value)
                     except orjson.JSONDecodeError:
-                        result[k] = value.decode('utf-8')
+                        result[k] = value.decode("utf-8")
                 else:
-                    result[k] = value.decode('utf-8')
+                    result[k] = value.decode("utf-8")
             except Exception as e:
                 log.warning(f"Error parsing field {key}: {e}")
                 result[key] = value  # Keep original value on error
@@ -343,9 +335,9 @@ class CustomRedisClient:
         messages: List[dict],
         maxlen: int = 1000,
     ) -> None:
-    
+
         pool = await self.get_pool()
-        
+
         try:
             async with pool.pipeline(transaction=False) as pipe:
                 for message in messages:
@@ -354,12 +346,11 @@ class CustomRedisClient:
                     pipe.xadd(stream_name, encoded_msg, maxlen=maxlen, approximate=True)
                 await pipe.execute()
             log.debug(f"Sent {len(messages)} messages to {stream_name}")
-        
+
         except Exception as e:
             log.error(f"Bulk xadd failed: {e}")
             # Implement retry logic or dead-letter queue here
 
-        
     async def xack(self, stream_name: str, group_name: str, message_id: str) -> None:
         pool = await self.get_pool()
         await pool.xack(stream_name, group_name, message_id)
@@ -373,14 +364,11 @@ class CustomRedisClient:
                 raise
 
     async def ensure_consumer_group(
-        self,
-        stream_name: str,
-        group_name: str,
-        create_stream: bool = True
+        self, stream_name: str, group_name: str, create_stream: bool = True
     ) -> None:
         """
         Ensure consumer group exists with proper error handling
-        
+
         Args:
             stream_name: Redis stream name
             group_name: Consumer group name
@@ -392,7 +380,7 @@ class CustomRedisClient:
                 name=stream_name,
                 groupname=group_name,
                 id="0",  # Start from beginning
-                mkstream=create_stream
+                mkstream=create_stream,
             )
             log.info(f"Created consumer group {group_name} for {stream_name}")
         except aioredis.ResponseError as e:
@@ -408,18 +396,18 @@ class CustomRedisClient:
         group_name: str,
         consumer_name: str,
         count: int = 100,
-        block: int = 5000
+        block: int = 5000,
     ) -> list:
         """
         Read messages from stream with consumer group
-        
+
         Args:
             stream_name: Redis stream name
             group_name: Consumer group name
             consumer_name: Consumer identifier
             count: Max messages per read
             block: Blocking time in ms
-            
+
         Returns:
             List of (message_id, message_data) tuples
         """
@@ -430,7 +418,7 @@ class CustomRedisClient:
                 consumername=consumer_name,
                 streams={stream_name: ">"},  # Deliver never-seen messages
                 count=count,
-                block=block
+                block=block,
             )
             return messages[0][1] if messages else []  # (stream, [(id, data)])
         except aioredis.ResponseError as e:
@@ -441,29 +429,22 @@ class CustomRedisClient:
             raise
 
     async def acknowledge_message(
-        self,
-        stream_name: str,
-        group_name: str,
-        message_id: str
+        self, stream_name: str, group_name: str, message_id: str
     ) -> None:
         """Acknowledge successful processing of message"""
         pool = await self.get_pool()
         await pool.xack(stream_name, group_name, message_id)
 
-    async def trim_stream(
-        self,
-        stream_name: str,
-        maxlen: int = 1000
-    ) -> None:
+    async def trim_stream(self, stream_name: str, maxlen: int = 1000) -> None:
         """Trim stream to prevent excessive memory usage"""
         pool = await self.get_pool()
-        await pool.xtrim(stream_name, maxlen=maxlen, approximate=True) 
-        
-    
+        await pool.xtrim(stream_name, maxlen=maxlen, approximate=True)
+
     async def publish_error(self, error_data: Dict[str, Any]):
         """Publish errors to Redis channel"""
         message = template.redis_error_template(error_data)
         await self.publish("system_errors", message)
-                   
-# Global Redis client instance 
+
+
+# Global Redis client instance
 redis_client = CustomRedisClient()

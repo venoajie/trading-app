@@ -20,6 +20,7 @@ from src.shared.utils import (
     time_modification as time_mod,
 )
 
+
 async def reconciling_size(
     client_id: str,
     client_secret: str,

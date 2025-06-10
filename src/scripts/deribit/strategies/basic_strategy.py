@@ -10,6 +10,7 @@ from loguru import logger as log
 # user defined formula
 from src.shared.utils import error_handling, string_modification as str_mod
 
+
 def positions_and_orders(
     current_size: int,
     current_orders_size: int,
@@ -485,7 +486,7 @@ def convert_list_to_dict(transaction: list) -> dict:
 def is_label_and_side_consistent(
     non_checked_strategies,
     params,
-    ) -> bool:
+) -> bool:
     """ """
 
     # log.error (f"params {params}")

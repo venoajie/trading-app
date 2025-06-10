@@ -8,7 +8,12 @@ from loguru import logger as log
 
 # user defined formula
 from core.db import redis as redis_client
-from core.db.postgres import fetch, insert_trade_or_order, delete_row, update_status_data
+from core.db.postgres import (
+    fetch,
+    insert_trade_or_order,
+    delete_row,
+    update_status_data,
+)
 from src.scripts.deribit import get_published_messages, caching, subscribing_to_channels
 from src.scripts.deribit.restful_api import end_point_params_template
 from src.scripts.deribit.strategies import basic_strategy
@@ -221,7 +226,7 @@ async def processing_orders(
                                             order_db_table,
                                             order_id,
                                         )
-                                        
+
                                         order_db_table = "orders_json"
 
                                         # log.error (f"order {order}")
@@ -359,7 +364,7 @@ async def cancelling_and_relabelling(
             log.error("OTO" not in order_id)
 
             if "OTO" not in order_id:
-                
+
                 order_db_table = "orders_json"
 
                 # log.error (f"order {order}")
@@ -538,7 +543,7 @@ async def saving_order_based_on_state(
     order_state = order["order_state"]
 
     if order_state == "cancelled" or order_state == "filled":
-        
+
         order_table = "orders_json"
 
         await delete_row(
@@ -550,7 +555,7 @@ async def saving_order_based_on_state(
         )
 
     if order_state == "open":
-        
+
         order_table = "orders_json"
 
         # log.error (f"order {order}")
@@ -640,7 +645,7 @@ async def saving_traded_orders(
         label_open: str = template.get_custom_label(trade_result)
 
     trade_to_db.update({"label": label_open})
-    
+
     trade_table = "orders_json"
 
     await insert_trade_or_order(trade_to_db)
@@ -704,7 +709,7 @@ async def saving_oto_order(
             else:
 
                 # log.error (f"transaction_main {transaction_main}")
-                
+
                 order_table = "orders_json"
                 await insert_trade_or_order(transaction_main)
 

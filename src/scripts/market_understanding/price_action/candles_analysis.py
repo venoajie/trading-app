@@ -406,7 +406,9 @@ async def get_market_condition(
 
                 if chart_low_high_tick_channel in message_channel:
 
-                    message_byte_data["params"].update({"channel": market_analytics_channel})
+                    message_byte_data["params"].update(
+                        {"channel": market_analytics_channel}
+                    )
 
                     if market_analytics_data:
 
@@ -455,15 +457,13 @@ async def get_market_condition(
                                     if instrument_name not in o["instrument_name"]
                                 ]
 
-                                pub_message.update(
-                                    {"instrument_name": instrument_name}
-                                )
+                                pub_message.update({"instrument_name": instrument_name})
 
                                 market_analytics_data.append(pub_message)
 
                                 message_byte_data["params"].update(
-                                        {"data": market_analytics_data}
-                                    )
+                                    {"data": market_analytics_data}
+                                )
 
                                 await redis_client.publishing_result(
                                     client_redis,
@@ -484,27 +484,23 @@ async def get_market_condition(
                                 if instrument_name in o["instrument_name"]
                             ][0]
 
-                            pub_message = (
-                                translate_candles_data_to_market_condition(
-                                    np,
-                                    candles_data_instrument,
-                                )
+                            pub_message = translate_candles_data_to_market_condition(
+                                np,
+                                candles_data_instrument,
                             )
 
                             pub_message.update({"instrument_name": instrument_name})
 
                             market_analytics_data.append(pub_message)
 
-                                                    
                         message_byte_data["params"].update(
-                                {"data": market_analytics_data}
-                            )
+                            {"data": market_analytics_data}
+                        )
 
                         await redis_client.publishing_result(
                             client_redis,
                             message_byte_data,
                         )
-
 
             except Exception as error:
 

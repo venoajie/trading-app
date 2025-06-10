@@ -217,7 +217,7 @@ def positions_updating_cached(
     source: str = "ws",
 ):
     """ """
-    
+
     log.info(f"sub_account_data {sub_account_data}")
 
     if source == "ws":
@@ -230,7 +230,7 @@ def positions_updating_cached(
     if positions:
 
         for position in positions:
-            
+
             log.info(f"position {position}")
 
             position_instrument_name = position["instrument_name"]

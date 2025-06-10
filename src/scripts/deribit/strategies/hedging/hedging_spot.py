@@ -20,7 +20,7 @@ from src.scripts.deribit.strategies.basic_strategy import (
     size_rounding,
 )
 
-from src.scripts.deribit.restful_api import end_point_params_template,connector
+from src.scripts.deribit.restful_api import end_point_params_template, connector
 from src.shared.utils.string_modification import parsing_label
 
 
@@ -289,11 +289,11 @@ async def modify_hedging_instrument(
         return ticker_perpetual_instrument_name
 
 
-@dataclass 
+@dataclass
 class HedgingSpot(BasicStrategy):
     """ """
 
-    notional: float 
+    notional: float
     my_trades_currency_strategy: list
     market_condition: dict
     index_price: float
@@ -304,10 +304,10 @@ class HedgingSpot(BasicStrategy):
     max_position: float = field
 
     def __post_init__(self):
-        
+
         print(f"HedgingSpot init args: {args}")
         print(f"HedgingSpot init kwargs: {kwargs}")
-        
+
         self.sum_my_trades_currency_strategy = get_transactions_sum(
             self.my_trades_currency_strategy
         )
@@ -321,7 +321,7 @@ class HedgingSpot(BasicStrategy):
             self.over_hedged_closing,
             self.market_condition,
         )
-        
+
         print(f"sum_my_trades_currency_strategy {self.sum_my_trades_currency_strategy}")
 
     #        log.info(
@@ -330,9 +330,11 @@ class HedgingSpot(BasicStrategy):
 
     def get_basic_params(self) -> dict:
         """ """
-        
-        print(f"strategy_label {self.strategy_label} strategy_parameters {self.strategy_parameters}")
-        
+
+        print(
+            f"strategy_label {self.strategy_label} strategy_parameters {self.strategy_parameters}"
+        )
+
         return BasicStrategy(self.strategy_label, self.strategy_parameters)
 
     async def understanding_the_market(self, threshold_market_condition) -> None:
@@ -641,7 +643,7 @@ class HedgingSpot(BasicStrategy):
         strong_bearish = market_condition["strong_bearish"]
         #        neutral = market_condition["neutral"]
         params: dict = self.get_basic_params().get_basic_opening_parameters(ask_price)
-        
+
         print(f"params {params}")
 
         weighted_factor = hedging_attributes["weighted_factor"]

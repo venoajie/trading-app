@@ -1,4 +1,4 @@
-#src\scripts\deribit\get_instrument_summary.py
+# src\scripts\deribit\get_instrument_summary.py
 
 # built ins
 import asyncio

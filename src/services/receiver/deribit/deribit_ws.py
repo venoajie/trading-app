@@ -28,9 +28,11 @@ BATCH_SIZE = 50
 STREAM_NAME = "market_data:deribit"
 batch = []
 
+
 @dataclass(unsafe_hash=True, slots=True)
 class StreamingAccountData:
     """Enhanced WebSocket manager with maintenance detection and recovery"""
+
     sub_account_id: str
     client_id: str
     client_secret: str
@@ -69,7 +71,7 @@ class StreamingAccountData:
                 self.connection_active = True
                 self.reconnect_attempts = 0
                 self.maintenance_mode = False
-                
+
                 async with websockets.connect(
                     self.ws_connection_url,
                     ping_interval=20,
@@ -78,24 +80,21 @@ class StreamingAccountData:
                 ) as self.websocket_client:
                     log.info("WebSocket connection established")
                     self.last_message_time = time.time()
-                    
+
                     # Create background tasks
                     self.heartbeat_task = asyncio.create_task(
                         self.monitor_heartbeat(client_redis)
                     )
-                    self.refresh_task = asyncio.create_task(
-                        self.ws_refresh_auth()
-                    )
+                    self.refresh_task = asyncio.create_task(self.ws_refresh_auth())
 
                     # Setup subscriptions
                     await self.authenticate_and_setup(
-                        client_redis, exchange,  
-                        futures_instruments, resolutions
+                        client_redis, exchange, futures_instruments, resolutions
                     )
-                    
+
                     # Process incoming messages
                     await self.process_messages(client_redis, exchange)
-                    
+
             except (websockets.ConnectionClosed, ConnectionError) as e:
                 log.warning(f"Connection closed: {e}")
             except Exception as e:
@@ -116,7 +115,7 @@ class StreamingAccountData:
                     log.debug("Background task cancelled")
                 except Exception as e:
                     log.error(f"Error cancelling task: {e}")
-        
+
         # Reset task references
         self.heartbeat_task = None
         self.refresh_task = None
@@ -126,19 +125,21 @@ class StreamingAccountData:
         while self.connection_active:
             await asyncio.sleep(self.heartbeat_interval)  # Use instance variable
             time_since_last = time.time() - self.last_message_time
-            
+
             # Detect extended silence (possible maintenance)
             if time_since_last > self.maintenance_threshold:
                 alert = {
                     "component": "deribit_ws",
                     "event": "heartbeat_timeout",
-                    "reason": f"No messages for {time_since_last:.0f} seconds"
+                    "reason": f"No messages for {time_since_last:.0f} seconds",
                 }
                 await client_redis.publish("system_alerts", json.dumps(alert))
-                
+
             # Normal timeout handling
             elif time_since_last > self.websocket_timeout:  # Use instance variable
-                log.warning(f"No messages for {time_since_last:.0f} seconds. Reconnecting...")
+                log.warning(
+                    f"No messages for {time_since_last:.0f} seconds. Reconnecting..."
+                )
                 if self.websocket_client:
                     await self.websocket_client.close()
                 break
@@ -147,48 +148,55 @@ class StreamingAccountData:
         """Handle reconnection with exponential backoff"""
         self.reconnect_attempts += 1
         delay = min(
-            self.reconnect_base_delay * (2 ** self.reconnect_attempts),  # Use instance variable
-            self.max_reconnect_delay  # Use instance variable
+            self.reconnect_base_delay
+            * (2**self.reconnect_attempts),  # Use instance variable
+            self.max_reconnect_delay,  # Use instance variable
         )
-        
-        log.info(f"Reconnecting attempt {self.reconnect_attempts} in {delay} seconds...")
+
+        log.info(
+            f"Reconnecting attempt {self.reconnect_attempts} in {delay} seconds..."
+        )
         await asyncio.sleep(delay)
 
     async def process_messages(self, client_redis, exchange):
         """Process incoming messages with state recovery"""
 
         batch = []  # Local batch per connection
-        
+
         try:
             async for message in self.websocket_client:
                 current_time = time.time()
                 self.last_message_time = current_time
-                
+
                 try:
                     message_dict = orjson.loads(message)
 
                     if message_dict.get("method") == "heartbeat":
                         await self.heartbeat_response(client_redis)
                         continue
-                    
+
                     # Only process data messages
                     if "params" in message_dict and "channel" in message_dict["params"]:
                         channel = message_dict["params"]["channel"]
                         data = message_dict["params"]["data"]
-                        
+
                         # Serialize data to JSON string
-                        serialized_data = orjson.dumps(data).decode('utf-8')
-                        
-                        timestamp= str(int(current_time * 1000))  # Convert to milliseconds
-                        
+                        serialized_data = orjson.dumps(data).decode("utf-8")
+
+                        timestamp = str(
+                            int(current_time * 1000)
+                        )  # Convert to milliseconds
+
                         # Add to batch
-                        batch.append({
-                            "channel": channel,
-                            "data": serialized_data,
-                            "timestamp": timestamp,
-                            "exchange": exchange
-                        })
-                        
+                        batch.append(
+                            {
+                                "channel": channel,
+                                "data": serialized_data,
+                                "timestamp": timestamp,
+                                "exchange": exchange,
+                            }
+                        )
+
                         # Send batch when full
                         if len(batch) >= BATCH_SIZE:
                             # Use the wrapper's xadd_bulk method
@@ -204,23 +212,25 @@ class StreamingAccountData:
                     await client_redis.xadd_bulk(STREAM_NAME, batch)
                 except Exception as e:
                     log.error(f"Failed to send final batch: {e}")
-                
+
     def handle_auth_response(self, message: Dict) -> None:
         """Handle authentication responses"""
         try:
             result = message["result"]
             self.refresh_token = result["refresh_token"]
-            
+
             # Calculate token expiration time
-            expires_in = 300 if message.get("testnet", False) else result["expires_in"] - 240
+            expires_in = (
+                300 if message.get("testnet", False) else result["expires_in"] - 240
+            )
             now_utc = datetime.now(timezone.utc)
             self.refresh_token_expiry_time = now_utc + timedelta(seconds=expires_in)
-            
+
             if not self.refresh_token:
                 log.info("WebSocket authentication successful")
             else:
                 log.info("Authentication refreshed successfully")
-                
+
         except KeyError as e:
             log.error(f"Missing key in auth response: {e}")
 
@@ -229,7 +239,7 @@ class StreamingAccountData:
         if not self.websocket_client:
             log.error("Cannot send heartbeat - WebSocket not connected")
             return
-            
+
         msg = {
             "jsonrpc": "2.0",
             "id": 8212,
@@ -248,7 +258,7 @@ class StreamingAccountData:
         if not self.websocket_client:
             log.error("Cannot authenticate - WebSocket not connected")
             return
-            
+
         msg = {
             "jsonrpc": "2.0",
             "id": 9929,
@@ -273,14 +283,14 @@ class StreamingAccountData:
                 if not self.refresh_token_expiry_time:
                     await asyncio.sleep(30)
                     continue
-                    
+
                 now_utc = datetime.now(timezone.utc)
                 if now_utc >= self.refresh_token_expiry_time:
                     if not self.websocket_client:
                         log.warning("Skipping refresh - WebSocket not connected")
                         await asyncio.sleep(30)
                         continue
-                        
+
                     msg = {
                         "jsonrpc": "2.0",
                         "id": 9929,
@@ -292,7 +302,7 @@ class StreamingAccountData:
                     }
                     await self.websocket_client.send(json.dumps(msg))
                     log.debug("Authentication refresh sent")
-                
+
                 # Check every 30 seconds
                 await asyncio.sleep(30)
             except Exception as e:
@@ -324,36 +334,31 @@ class StreamingAccountData:
         )
 
     def generate_subscription_list(
-        self, 
-        instruments_name: List[str], 
-        resolutions: List[str]
+        self, instruments_name: List[str], resolutions: List[str]
     ) -> List[str]:
         """Generate list of channels to subscribe to"""
         ws_instruments = []
-        
+
         # Add account-related channels
         instrument_kinds = ["future", "future_combo"]
         for kind in instrument_kinds:
             ws_instruments.append(f"user.changes.{kind}.any.raw")
-        
-        ws_instruments.extend([
-            "user.orders.any.any.raw",
-            "user.trades.any.any.raw"
-        ])
-        
+
+        ws_instruments.extend(["user.orders.any.any.raw", "user.trades.any.any.raw"])
+
         # Add instrument-specific channels
         for instrument in instruments_name:
             if "PERPETUAL" in instrument:
                 currency = str_mod.extract_currency_from_text(instrument)
                 ws_instruments.append(f"user.portfolio.{currency}")
-                
+
                 # Add chart subscriptions for all resolutions
                 for resolution in resolutions:
                     ws_instruments.append(f"chart.trades.{instrument}.{resolution}")
-            
+
             # Add ticker subscription for all instruments
             ws_instruments.append(f"incremental_ticker.{instrument}")
-        
+
         return ws_instruments
 
     async def establish_heartbeat(self, client_redis: Any) -> None:
@@ -361,7 +366,7 @@ class StreamingAccountData:
         if not self.websocket_client:
             log.error("Cannot establish heartbeat - WebSocket not connected")
             return
-            
+
         msg = {
             "jsonrpc": "2.0",
             "id": 9098,
@@ -383,7 +388,7 @@ class StreamingAccountData:
     ) -> None:
         """
         Subscribe or unsubscribe to WebSocket channels
-        
+
         Args:
             operation: 'subscribe' or 'unsubscribe'
             ws_channel: List of channels to operate on
@@ -392,7 +397,7 @@ class StreamingAccountData:
         if not self.websocket_client:
             log.error(f"Cannot {operation} - WebSocket not connected")
             return
-            
+
         await asyncio.sleep(0.05)  # Small delay to prevent flooding
 
         id = end_point_params_template.id_numbering(operation, ws_channel)

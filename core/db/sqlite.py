@@ -1,6 +1,6 @@
-""" 
-core/db/sqlite.py 
-""" 
+"""
+core/db/sqlite.py
+"""
 
 # built ins
 import asyncio
@@ -24,33 +24,37 @@ from src.shared.utils import (
 # Initialize module-level Redis client (to be set at runtime)
 _redis_client = None
 
+
 def set_redis_client(redis_client):
     """Set Redis client for error reporting"""
     global _redis_client
     _redis_client = redis_client
-    
+
+
 def get_db_path():
     """Get SQLite database path with Docker compatibility"""
-    base_path = os.environ.get('DB_BASE_PATH', '/app/data')
-    db_path = os.path.join(base_path, 'trading.sqlite3')
-    
+    base_path = os.environ.get("DB_BASE_PATH", "/app/data")
+    db_path = os.path.join(base_path, "trading.sqlite3")
+
     # Ensure directory exists
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
-    
+
     # Return path without changing permissions
     return db_path
+
 
 def create_connection():
     db_path = get_db_path()
     conn = sqlite3.connect(db_path, check_same_thread=False)
-    
+
     # Enable write-ahead logging for better concurrency
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
-    
+
     # Set timeout to handle concurrent access
     conn.execute("PRAGMA busy_timeout=5000")
     return conn
+
 
 async def telegram_bot_sendtext(bot_message, purpose: str = "general_error") -> None:
 
@@ -63,8 +67,8 @@ async def create_dataBase_sqlite(db_name: str = None) -> None:
     """
 
     if db_name is None:
-        db_name = get_db_path() 
-        
+        db_name = get_db_path()
+
     try:
         conn = await aiosqlite.connect(db_name)
         cur = await conn.cursor()
@@ -87,10 +91,10 @@ async def db_ops(db_name: str == None):
     """
 
     if db_name is None:
-        db_name = get_db_path() 
+        db_name = get_db_path()
 
     conn = await aiosqlite.connect(db_name, isolation_level=None)
-        
+
     try:
         cur = await conn.cursor()
         yield cur
@@ -109,27 +113,27 @@ async def db_ops(db_name: str == None):
 
 async def insert_tables(
     table_name: str,
-    params,#: list | dict | str,
+    params,  #: list | dict | str,
     db_name: str = None,
-    )-> None:
+) -> None:
     """
-    
+
     Insert data into specified table
-    
+
     alternative insert format (safer):
     https://stackoverflow.com/questions/56910918/saving-json-data-to-sqlite-python
 
     """
 
     if db_name is None:
-        db_name = get_db_path() 
-        
+        db_name = get_db_path()
+
     try:
 
         async with aiosqlite.connect(
-            db_name, 
+            db_name,
             isolation_level=None,
-            ) as db:
+        ) as db:
 
             await db.execute("pragma journal_mode=wal;")
 
@@ -193,8 +197,8 @@ async def querying_table(
     # https://stackoverflow.com/questions/65934371/return-data-from-sqlite-with-headers-python3
     """
     if database is None:
-        database = get_db_path() 
-        
+        database = get_db_path()
+
     NONE_DATA: None = [0, None, []]
 
     query_table = f"SELECT  * FROM {table} WHERE  {filter} {operator}?"
@@ -254,8 +258,8 @@ async def deleting_row(
     """ """
 
     if database is None:
-        database = get_db_path() 
-        
+        database = get_db_path()
+
     query_table = f"DELETE  FROM {table} WHERE  {filter} {operator}?"
     query_table_filter_none = f"DELETE FROM {table}"
 
@@ -314,8 +318,8 @@ async def querying_duplicated_transactions(
     """ """
 
     if database is None:
-        database = get_db_path() 
-        
+        database = get_db_path()
+
     # query_table = f"""SELECT CAST(SUBSTR((label),-13)as integer) AS label_int, count (*)  FROM {label} GROUP BY label_int HAVING COUNT (*) >1"""
     query_table = f"""SELECT id, data, {group_by}  FROM {label} GROUP BY {group_by} HAVING count(*) >1"""
     combine_result = []
@@ -352,8 +356,8 @@ async def add_additional_column(
     """ """
 
     if database is None:
-        database = get_db_path() 
-        
+        database = get_db_path()
+
     try:
         query_table = f"ALTER TABLE {table} ADD {column_name} {dataType}"
 
@@ -390,7 +394,7 @@ async def update_status_data(
     filter: str,
     filter_value: any,
     new_value: any,
-    operator,#=None | str,
+    operator,  # =None | str,
     database: str = None,
 ) -> None:
     """
@@ -420,11 +424,12 @@ async def update_status_data(
     try:
 
         if database is None:
-            database = get_db_path() 
-            
-        async with aiosqlite.connect(database, 
-                                     isolation_level=None,
-                                     ) as db:
+            database = get_db_path()
+
+        async with aiosqlite.connect(
+            database,
+            isolation_level=None,
+        ) as db:
 
             await db.execute("pragma journal_mode=wal;")
 
@@ -675,8 +680,7 @@ async def executing_query_with_return(
 
     """
     if database is None:
-        database = get_db_path() 
-            
+        database = get_db_path()
 
     filter_val = (f"{filter_value}",)
 
@@ -725,8 +729,7 @@ async def back_up_db_sqlite(database: str = None) -> None:
     TIMESTAMP = datetime.now().strftime("%Y%m%d-%H-%M-%S")
 
     if database is None:
-        database = get_db_path() 
-            
+        database = get_db_path()
 
     src = sqlite3.connect(database)
     dst = sqlite3.connect(f"databases/trdg-{TIMESTAMP}.bak")

@@ -31,7 +31,7 @@ def trade_template() -> str:
         trade_id: str=None,
         order_id: str=None,
         user_seq: int=None
-    
+
     trades_example = {
             'trades': [
                 {
@@ -64,7 +64,7 @@ def trade_template() -> str:
                     }
                 ]
             }
-    
+
     orders_example= [
         {
             'oto_order_ids': ['OTO-80322590'], 'is_liquidation': False, 'risk_reducing': False,
@@ -86,10 +86,10 @@ def trade_template() -> str:
 
     sl = stop loss
     tp = take profit
-    both variables determined by strategy and provided before order was sent to exchange. 
+    both variables determined by strategy and provided before order was sent to exchange.
         they could be adjusted later on
-    
-    the price is derived from the price of the trade. 
+
+    the price is derived from the price of the trade.
         however, they could be adjusted later on (esepcially when averaging down/up)
     """
     return dict(
@@ -167,6 +167,6 @@ def redis_error_template(error_data: Dict[str, Any]) -> Dict[str, Any]:
             "severity": error_data["severity"],
             "context": error_data["context"],
             "stack_trace": error_data["stack_trace"],
-            "metadata": error_data["metadata"]
-        }
+            "metadata": error_data["metadata"],
+        },
     }

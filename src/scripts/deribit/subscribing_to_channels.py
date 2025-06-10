@@ -4,6 +4,7 @@
 import asyncio
 from src.shared.utils import error_handling
 
+
 async def redis_channels(
     pubsub: object,
     redis_channels: list,
@@ -46,7 +47,7 @@ async def redis_channels(
                     sqlite_updating_channel,
                     sub_account_cached_channel,
                 ]
-            case "scalping" | "hedging_spot" | "future_spread" :
+            case "scalping" | "hedging_spot" | "future_spread":
                 channels = [
                     market_analytics_channel,
                     order_update_channel,
@@ -75,7 +76,7 @@ async def redis_channels(
                     sqlite_updating_channel,
                     sub_account_cached_channel,
                 ]
-        
+
         [await pubsub.subscribe(o) for o in channels]
 
     except Exception as error:

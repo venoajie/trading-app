@@ -1,11 +1,12 @@
 # src/core/security.py
 import os
 
+
 def get_secret(secret_name: str) -> str:
     """Load Docker secrets securely"""
     try:
         # Try Docker secrets path first
-        with open(f'/run/secrets/{secret_name}', 'r') as secret_file:
+        with open(f"/run/secrets/{secret_name}", "r") as secret_file:
             return secret_file.read().strip()
     except IOError:
         try:

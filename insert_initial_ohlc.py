@@ -13,8 +13,6 @@ from loguru import logger as log
 # user defined formula
 from core.db.postgres import insert_ohlc
 from src.shared.utils import error_handling
-from src.shared.utils.string_modification import transform_nested_dict_to_list
-from src.shared.utils.time_modification import convert_time_to_unix
 from src.shared.config.settings import DERIBIT_CURRENCIES
 from src.scripts.deribit.restful_api import end_point_params_template as end_point
 
@@ -26,13 +24,9 @@ async def insert_ohlc(
     qty_candles: int = 6000,
 ) -> None:
 
-
     ohlc_request = await end_point.get_ohlc(
-        instrument_name,
-        resolution,
-        qty_candles,
-        None,
-        True)
+        instrument_name, resolution, qty_candles, None, True
+    )
 
     log.info(ohlc_request)
 
@@ -45,7 +39,6 @@ async def insert_ohlc(
         await sqlite_management.insert_tables(table, data)
 
 
-
 async def main():
 
     currencies = DERIBIT_CURRENCIES
@@ -56,14 +49,13 @@ async def main():
 
         log.critical(f"instrument_name {instrument_name} currency {currency}")
 
-        resolutions = [60, 5,15,1]
+        resolutions = [60, 5, 15, 1]
 
         qty_candles = 6000
 
         for res in resolutions:
 
             await insert_ohlc(currency, instrument_name, res, qty_candles)
-
 
 
 if __name__ == "__main__":
