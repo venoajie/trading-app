@@ -1,6 +1,6 @@
 # error_handler.py (centralized)
 import traceback
-from core.redis import RedisClient
+from core.db.redis import RedisClient
 
 async def handle_error(error, context=""):
     error_data = {
