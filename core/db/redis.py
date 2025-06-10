@@ -351,7 +351,7 @@ class CustomRedisClient:
                     encoded_msg = self.encode_stream_message(message)
                     pipe.xadd(stream_name, encoded_msg, maxlen=maxlen, approximate=True)
                 await pipe.execute()
-        log.debug(f"Sent {len(messages)} messages to {stream_name}")
+            log.debug(f"Sent {len(messages)} messages to {stream_name}")
     
     except Exception as e:
         log.error(f"Bulk xadd failed: {e}")
