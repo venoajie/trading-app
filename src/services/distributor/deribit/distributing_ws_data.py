@@ -10,6 +10,7 @@ from typing import Dict, List, Any, Tuple
 from core.db import postgres as pg
 from src.scripts.deribit import caching
 from src.shared.utils import error_handling, string_modification as str_mod
+from core.db.redis import redis_client
 
 # Configure logger
 from loguru import logger as log
