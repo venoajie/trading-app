@@ -14,6 +14,7 @@ from loguru import logger as log
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 # Application imports
+from core.error_handler import handle_error
 from core.db.redis import redis_client as global_redis_client
 from core.security import get_secret
 from src.shared.config.settings import (

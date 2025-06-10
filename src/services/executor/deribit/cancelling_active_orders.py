@@ -8,6 +8,7 @@ from loguru import logger as log
 
 # user defined formula
 from core.db.postgres import fetch, delete_row
+from core.error_handler import handle_error
 from src.scripts.deribit import get_instrument_summary, starter
 from src.scripts.deribit import get_published_messages
 from src.scripts.deribit import subscribing_to_channels
