@@ -1,3 +1,5 @@
+# src\services\receiver\Dockerfile
+
 # Stage 1: Base with UV
 FROM python:3.13-slim AS base
 ENV UV_VENV=/opt/venv
