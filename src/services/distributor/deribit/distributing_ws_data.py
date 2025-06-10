@@ -144,7 +144,8 @@ async def stream_consumer(
                 
                         log.info(f"output from xreadgroup {messages}")
                         log.info(f"xreadgroup on for i message_data {message_data}")
-                        payload = {k.decode(): v.decode() for k, v in message_data.items()}
+                        
+                        payload = parse_redis_message(message_data)
                         log.info(f"output from dict compr {payload}")
                 
                         tasks.append(
