@@ -1,9 +1,5 @@
 # docker-compose.yml
 
-networks:
-  trading-net:
-    driver: bridge
-
 services:
   redis:
     image: redis/redis-stack:7.2.0-v7
@@ -91,8 +87,16 @@ services:
       - "-c"
       - "work_mem=16MB"
  
-volumes: [redis-data, pgdata]
+volumes:
+  redis-data:
+  pgdata:  
 secrets:
-  deribit_client_id: {file: ./secrets/client_id.txt}
-  deribit_client_secret: {file: ./secrets/client_secret.txt}
-  db_password: {file: ./secrets/db_password.txt}
+  deribit_client_id:
+    file: ./secrets/client_id.txt
+  deribit_client_secret:
+    file: ./secrets/client_secret.txt
+  db_password:
+    file: ./secrets/db_password.txt    
+networks:
+  trading-net:
+    driver: bridge
