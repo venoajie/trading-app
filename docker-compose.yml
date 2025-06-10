@@ -18,6 +18,8 @@ services:
       - --maxmemory 2gb
       - --maxmemory-policy volatile-lfu # Better for streams
       - --save ""  # Disable disk persistence
+      - --bind 0.0.0.0
+      - --protected-mode no
 
   receiver:
     build:
@@ -48,11 +50,11 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - TZ=UTC
-      - POSTGRES_HOST=postgres  # Add PostgreSQL connection info
+      - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DB=trading
     secrets:
-      - source: db_password  # Add DB password secret
+      - source: db_password
         target: db_password
     depends_on:
       redis:
