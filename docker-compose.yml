@@ -25,10 +25,6 @@ services:
       dockerfile: src/services/receiver/Dockerfile
     environment:
       - REDIS_URL=redis://redis:6379
-      - TZ=UTC
-      - POSTGRES_HOST=postgres  # Add PostgreSQL connection info
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=trading
     volumes:
       - ./data:/app/data
     depends_on:
@@ -41,7 +37,8 @@ services:
         target: deribit_client_id
       - source: deribit_client_secret
         target: deribit_client_secret
-      - source: db_password  # Add DB password secret
+      - source: db_password
+        target: db_password
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "-h", "redis", "ping"]
@@ -53,6 +50,10 @@ services:
       dockerfile: src/services/distributor/Dockerfile
     environment:
       - REDIS_URL=redis://redis:6379
+      - TZ=UTC
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=trading
     depends_on:
       redis:
         condition: service_healthy
@@ -68,7 +69,8 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     secrets:
-      - db_password
+    - source: db_password
+      target: db_password
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U trading_app -d trading"]
       interval: 10s

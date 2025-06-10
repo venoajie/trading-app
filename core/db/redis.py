@@ -198,7 +198,7 @@ async def publishing_specific_purposes(
             error,
         )
 
-class RedisClient: 
+class CustomRedisClient: 
     """Singleton Redis client with connection pooling""" 
     _instance = None 
     
@@ -418,4 +418,4 @@ class RedisClient:
         pool = await self.get_pool()
         await pool.xtrim(stream_name, maxlen=maxlen, approximate=True)            
 # Global Redis client instance 
-redis_client = RedisClient()
+redis_client = CustomRedisClient()
