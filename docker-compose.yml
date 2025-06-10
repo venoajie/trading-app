@@ -2,19 +2,19 @@
 
 services:
   redis:
-    image: redis:7.2-bookworm
+    image: redis/redis-stack:7.2.0-v7
     ports:
       - "6379:6379"
+      - "8001:8001"  # RedisInsight UI
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-h", "redis", "ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 30s
       timeout: 5s
       retries: 3
     command:     
       - redis-server
-      - --loadmodule /usr/lib/redis/modules/rejson.so
       - --maxmemory 2gb
       - --maxmemory-policy volatile-lfu # Better for streams
       - --save ""  # Disable disk persistence
