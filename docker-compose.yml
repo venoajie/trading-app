@@ -22,6 +22,7 @@ services:
       - --protected-mode no
 
   receiver:
+    profiles: ["receiver"]
     build:
       context: .
       dockerfile: src/services/receiver/Dockerfile
@@ -37,7 +38,6 @@ services:
         target: deribit_client_id
       - source: deribit_client_secret
         target: deribit_client_secret
-      - source: db_password  # Add DB password secret
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "-h", "redis", "ping"]
