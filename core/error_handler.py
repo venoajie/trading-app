@@ -1,4 +1,6 @@
-# core\error_handler.py
+"""
+core\error_handler.py
+"""
 
 import asyncio
 import logging
