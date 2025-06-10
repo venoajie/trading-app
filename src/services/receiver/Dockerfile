@@ -36,9 +36,12 @@ RUN groupadd -r appuser --gid=1000 && \
 COPY --from=builder --chown=1000:1000 ${UV_VENV} ${UV_VENV}
 
 WORKDIR /app
-COPY --chown=1000:1000 ./src ./src
-COPY --chown=1000:1000 ./config ./config
-COPY --chown=1000:1000 ./core ./core
+
+# Copy entire project
+COPY . .  
+#COPY --chown=1000:1000 ./src ./src
+#COPY --chown=1000:1000 ./config ./config
+#COPY --chown=1000:1000 ./core ./core
 
 ENV DB_BASE_PATH=/app/data \
     PYTHONPATH=/app \

@@ -49,11 +49,6 @@ async def run_receiver():
         # Get Redis client wrapper instance
         client_redis = global_redis_client
         
-        # Validate connection using the wrapper
-        pool = await client_redis.get_pool()
-        if await pool.ping():
-            log.info("Redis connection validated")
-            
         # Load configuration
         client_id = get_secret("deribit_client_id")
         client_secret = get_secret("deribit_client_secret")
