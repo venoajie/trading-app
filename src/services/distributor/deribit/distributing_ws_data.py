@@ -24,14 +24,19 @@ MAX_RETRIES = 3
 def parse_redis_message(message_data: dict) -> dict:
     """Efficient parser for Redis stream messages"""
     result = {}
+
+    log.info(f"output from xreadgroup {message_data}")
+                
     for key, value in message_data.items():
         k = key.decode('utf-8')
         try:
+            log.info(f"for i message_data {k}")
             # Special handling for JSON data field
             if k == 'data':
                 result[k] = orjson.loads(value)
             else:
                 result[k] = value.decode('utf-8')
+            log.info(f"result {result}")
         except (orjson.JSONDecodeError, UnicodeDecodeError):
             # Fallback to raw value
             result[k] = value
@@ -141,12 +146,6 @@ async def stream_consumer(
                 tasks = []
                 for stream, message_list in messages:
                     for message_id, message_data in message_list:
-                
-                        log.info(f"output from xreadgroup {messages}")
-                        log.info(f"xreadgroup on for i message_data {message_data}")
-                        
-                        payload = parse_redis_message(message_data)
-                        log.info(f"output from dict compr {payload}")
                 
                         tasks.append(
                             process_message(message_id, message_data, state)
