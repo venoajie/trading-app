@@ -30,15 +30,11 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      postgres:
-        condition: service_healthy
     secrets:
       - source: deribit_client_id
         target: deribit_client_id
       - source: deribit_client_secret
         target: deribit_client_secret
-      - source: db_password
-        target: db_password
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "-h", "redis", "ping"]
@@ -58,6 +54,7 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    
   postgres:
     image: postgres:17
     environment:
