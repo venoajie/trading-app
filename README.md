@@ -61,6 +61,60 @@ Step 3: Build & Launch Services
 bash
 docker compose up -d --build  # Builds receiver, executor, Redis, PostgreSQL
 
+## Docker Management Commands
+
+### Start Services
+```bash
+# Full system (all services)
+docker compose --profile full up -d
+
+# Only receiver + Redis
+docker compose --profile receiver up -d
+
+# Only distributor + Redis + Postgres
+docker compose --profile distributor up -d
+```
+
+### Stop Services
+```bash
+# Stop services but preserve data
+docker compose down
+
+# Stop and destroy all data volumes
+docker compose down -v
+```
+
+### Update Services
+```bash
+# 1. Pull latest code
+git pull
+
+# 2. Update single service
+docker compose up -d --build --force-recreate receiver
+
+# 3. Full system update
+docker compose --profile full up -d --build --pull always
+```
+
+### View Logs
+```bash
+# Receiver logs
+docker compose logs -f receiver
+
+# Distributor logs
+docker compose logs -f distributor
+
+# Redis logs
+docker compose logs -f redis
+```
+
+### Cleanup System
+```bash
+# Full cleanup (use before major updates)
+docker compose down -v --remove-orphans
+docker system prune -a --volumes --force
+docker network prune -f
+```
 
 latest folder structure:
 

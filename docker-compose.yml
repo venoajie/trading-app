@@ -25,7 +25,14 @@ services:
     build:
       context: .
       dockerfile: src/services/receiver/Dockerfile
-    environment: [REDIS_URL=redis://redis:6379]
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - ERROR_NOTIFY_TELEGRAM=true
+      - ERROR_NOTIFY_REDIS=true
+      - SERVICE_NAME=receiver
+      - ENVIRONMENT=production
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
     volumes: [./data:/app/data]
     depends_on: {redis: {condition: service_healthy}}
     secrets: [deribit_client_id, deribit_client_secret]

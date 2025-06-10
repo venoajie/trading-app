@@ -6,9 +6,10 @@ from loguru import logger as log
 
 # user defined formulas
 from core.db.redis import publishing_specific_purposes
+from core.error_handler import error_handler
 from src.shared.config.settings import POSTGRES_DSN
 
-
+    
 def query_insert_trade_or_order(data: dict):
     currency = data.get('fee_currency') or data['instrument_name'].split('-')[0].upper()
     is_trade = 'trade_id' in data
@@ -67,6 +68,7 @@ class PostgresClient:
                     await asyncio.sleep(2)
             raise ConnectionError("Failed to create PostgreSQL pool")
     
+
     async def insert_trade_or_order(self, data: dict):
         currency = data.get('fee_currency') or data['instrument_name'].split('-')[0].upper()
         is_trade = 'trade_id' in data
@@ -105,7 +107,8 @@ class PostgresClient:
             await conn.execute(query, *params)
         
         # Publish update to Redis
-        await self.publish_table_update(table, data)
+        await self.order_executed(table, data)
+
 
 
     async def fetch_active_trades(self, query):
@@ -134,7 +137,7 @@ class PostgresClient:
             await conn.execute(query, filter_value)
         
         # Publish update to Redis
-        await self.publish_table_update(table,data)
+        await self.order_executed(table,data)
             
     async def querying_arithmetic_operator(
         self,
@@ -183,20 +186,21 @@ class PostgresClient:
             await conn.execute(query, *params)
         
         # Publish update to Redis
-        await self.publish_table_update(table)
+        await self.order_executed(table)
 
-    async def publish_table_update(self, table: str, data: dict) -> None:
+    async def order_executed(self, table: str, data: dict) -> None:
         """
         Publish table updates to Redis
         """
         if "orders" in table:
             active_trades = await self.fetch_active_trades()
-            result = {
-                "params": {"data": active_trades},
-                "method": "subscription"
-            }
-            await publishing_specific_purposes("sqlite_record_updating", result)
-
+            
+            await error_handler.capture(
+                Exception("Order executed"), 
+                context="Trade execution",
+                metadata=active_trades,
+                severity="INFO"
+            )
 
     async def get_table_schema(self,table_name: str) -> list:
         """

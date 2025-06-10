@@ -457,6 +457,13 @@ class CustomRedisClient:
     ) -> None:
         """Trim stream to prevent excessive memory usage"""
         pool = await self.get_pool()
-        await pool.xtrim(stream_name, maxlen=maxlen, approximate=True)            
+        await pool.xtrim(stream_name, maxlen=maxlen, approximate=True) 
+        
+    
+    async def publish_error(self, error_data: Dict[str, Any]):
+        """Publish errors to Redis channel"""
+        message = template.redis_error_template(error_data)
+        await self.publish("system_errors", message)
+                   
 # Global Redis client instance 
 redis_client = CustomRedisClient()

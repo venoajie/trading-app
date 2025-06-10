@@ -8,9 +8,10 @@ from typing import Dict, List, Any, Tuple
 
 # Application imports
 from core.db import postgres as pg
+from core.db.redis import redis_client
+from core.error_handler import error_handler
 from src.scripts.deribit import caching
 from src.shared.utils import error_handling, string_modification as str_mod
-from core.db.redis import redis_client
 
 # Configure logger
 from loguru import logger as log
@@ -46,6 +47,7 @@ def parse_redis_message(message_data: dict) -> dict:
             
     return result
 
+@error_handler.wrap_async
 async def process_message(
     message_id: str,
     message_data: Dict[bytes, bytes],

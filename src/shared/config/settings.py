@@ -68,3 +68,11 @@ except RuntimeError:
     POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "fallback_password")
 
 POSTGRES_DSN = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+
+# Error Handling
+ERROR_NOTIFY_TELEGRAM: bool = True
+ERROR_NOTIFY_REDIS: bool = True
+TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID")
+SERVICE_NAME: str = os.getenv("SERVICE_NAME", "unknown")
+ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")

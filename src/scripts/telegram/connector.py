@@ -1,3 +1,4 @@
+# src\scripts\telegram\connector.py
 
 """
 why aiohttp over httpx?
@@ -93,3 +94,21 @@ async def telegram_response(
         # RESToverHTTP Response Content
         return await response.json()
 
+async def send_message(message: Dict[str, Any]):
+    """Send formatted error message to Telegram"""
+    text = (
+        f"🚨 *{message['severity']} in {message['service']}*\n"
+        f"_{message['timestamp']}_\n\n"
+        f"*Error*: `{message['type']}`\n"
+        f"*Message*: {message['message']}\n"
+        f"*Context*: {message['context']}\n\n"
+        f"```{message['stack_trace'][:1000]}```"
+    )
+    await get_connected(
+        get_basic_https(),
+        message_end_point(
+            settings.TELEGRAM_BOT_TOKEN,
+            settings.TELEGRAM_CHAT_ID,
+            text
+        )
+    )

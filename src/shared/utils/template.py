@@ -153,3 +153,19 @@ def get_custom_label_oto(transaction: dict) -> dict:
         open=(f"custom{side_label.title()}-open-{last_update}"),
         closed=(f"custom{side_label.title()}-closed-{last_update}"),
     )
+
+
+def redis_error_template(error_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Standard error format for Redis"""
+    return {
+        "type": "error_report",
+        "timestamp": datetime.utcnow().isoformat(),
+        "payload": {
+            "service": error_data["service"],
+            "error_type": error_data["type"],
+            "severity": error_data["severity"],
+            "context": error_data["context"],
+            "stack_trace": error_data["stack_trace"],
+            "metadata": error_data["metadata"]
+        }
+    }
