@@ -1,4 +1,4 @@
-# error_handler.py (centralized)
+# core\error_handler.py
 import traceback
 from core.db.redis import redis_client
 
@@ -8,4 +8,4 @@ async def handle_error(error, context=""):
         "context": context,
         "traceback": traceback.format_exc()
     }
-    await RedisClient.publish("system_errors", error_data)
+    await redis_client.publish("system_errors", error_data)
