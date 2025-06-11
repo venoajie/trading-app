@@ -30,10 +30,10 @@ class ErrorHandler:
             bot_token = telegram_config["bot_token"]
             chat_id = telegram_config["chat_id"]
             
-            if isinstance(bot_token, SecretStr):
-                bot_token = bot_token.get_secret_value()
-            if isinstance(chat_id, SecretStr):
-                chat_id = chat_id.get_secret_value()
+#            if isinstance(bot_token, SecretStr):
+#                bot_token = bot_token.get_secret_value()
+#            if isinstance(chat_id, SecretStr):
+#                chat_id = chat_id.get_secret_value()
                 
             self.notifiers.append(
                 lambda data: telegram.send_message(

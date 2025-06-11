@@ -8,7 +8,7 @@ import os
 import tomllib
 from .models import AppConfig, RedisConfig, PostgresConfig
 from core.security import get_secret
-from pydantic import SecretStr
+#from pydantic import SecretStr
 
 class ConfigLoader:
     _instance = None
@@ -34,11 +34,11 @@ class ConfigLoader:
         telegram_bot_token = ""
         telegram_chat_id = ""
         try:
-            telegram_bot_token = get_secret("telegram_bot_token").get_secret_value()
+            telegram_bot_token = get_secret("telegram_bot_token")
         except Exception:
             pass
         try:
-            telegram_chat_id = get_secret("telegram_chat_id").get_secret_value()
+            telegram_chat_id = get_secret("telegram_chat_id")
         except Exception:
             pass
         
@@ -47,8 +47,7 @@ class ConfigLoader:
         print(f""""telegram_bot_token {telegram_bot_token} telegram_chat_id {telegram_chat_id}""")
         if os.getenv("SERVICE_NAME") == "distributor":
             try:
-                password_secret = get_secret("db_password")
-                password_str = password_secret.get_secret_value()
+                password_str = get_secret("db_password")
             except Exception:
                 password_str = os.getenv("POSTGRES_PASSWORD", "")
             
