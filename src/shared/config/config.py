@@ -61,7 +61,7 @@ class ConfigLoader:
         try:
             with open(config_path, "rb") as f:
                 strategy_config = tomllib.load(f)
-                print(f"CCCCCCCCCCCCCCCCCCCCCCCCCCCC {strategy_config}")
+                print(f"DDDDDDDDDDDDD {strategy_config}")
         except FileNotFoundError:
             pass
 
