@@ -5,7 +5,7 @@ Primary configuration loader
 """
 
 import os
-import tomllib
+import tomli
 from .models import AppConfig, RedisConfig, PostgresConfig
 from core.security import get_secret
 #from pydantic import SecretStr
@@ -32,7 +32,8 @@ class ConfigLoader:
         strategy_config = {}
         try:
             with open(config_path, "rb") as f:
-                strategy_config = tomllib.load(f)
+                strategy_config = tomli.load(f)
+                print(f"strategy_config {strategy_config}")
         except FileNotFoundError:
             pass
         
@@ -50,7 +51,7 @@ class ConfigLoader:
         
         # Build configuration
         postgres_config = None
-        print(f""""telegram_bot_token {telegram_bot_token} telegram_chat_id {telegram_chat_id}""")
+
         if os.getenv("SERVICE_NAME") == "distributor":
             try:
                 password_str = get_secret("db_password")
