@@ -14,7 +14,6 @@ asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 from core.db.redis import redis_client
 from core.error_handler import error_handler
 from src.services.distributor.deribit import distributing_ws_data
-from src.shared.config.settings import REDIS_URL, REDIS_DB
 
 
 async def stream_consumer():
@@ -90,9 +89,6 @@ async def stream_consumer():
 async def main():
     """Service entry point"""
     log.info("Starting distributor service")
-    
-    # Initialize dependencies
-    error_handler.notifiers = [...]
     
     try:
         await stream_consumer()

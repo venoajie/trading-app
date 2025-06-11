@@ -39,7 +39,7 @@ services:
     restart: unless-stopped
     networks: [trading-net]
     healthcheck:
-      test: ["CMD", "python", "-c", "import asyncio; from core.db.redis import check_redis; asyncio.run(check_redis())"]
+      test:  ["CMD", "redis-cli", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3

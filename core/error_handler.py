@@ -8,7 +8,7 @@ import traceback
 from datetime import datetime
 from typing import Any, Callable, Coroutine, Dict, Optional, Type
 
-from src.shared.config import settings
+from src.shared.config.config import config
 from src.shared.utils import template
 
 # Centralized logger
@@ -24,7 +24,7 @@ class ErrorHandler:
 
     def _setup_notifiers(self):
         """Initialize notification channels based on config"""
-        if settings.ERROR_NOTIFY_TELEGRAM:
+        if config.error_handling.notify_telegram:
             from src.scripts.telegram import connector as telegram
 
             self.notifiers.append(telegram.send_message)

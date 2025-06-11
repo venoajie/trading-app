@@ -59,7 +59,7 @@ async def run_receiver():
 
         # Get instruments
         currencies = config.deribit.currencies
-        maintenance_threshold = config.deribit.ws["maintenance_threshold"]
+        maintenance_threshold = config.deribit.ws.maintenance_threshold
         resolutions = [1, 5, 15, 60]
         futures_instruments = await get_instrument_summary.get_futures_instruments(
             currencies, ["perpetual"]
@@ -91,9 +91,6 @@ async def run_receiver():
 
 async def main():
     """Service entry point with graceful shutdown"""
-    
-    # Initialize dependencies
-    error_handler.notifiers = [...]
     
     try:
         await run_receiver()

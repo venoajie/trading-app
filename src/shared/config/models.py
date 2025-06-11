@@ -1,5 +1,10 @@
-from pydantic import BaseModel, BaseSettings, Field, RedisDsn, PostgresDsn
-from pydantic.tools import parse_obj_as
+"""
+src\shared\config\models.py
+Pydantic schema definitions
+"""
+
+from pydantic import BaseModel, Field, RedisDsn, PostgresDsn
+from pydantic_settings import BaseSettingsfrom pydantic.tools import parse_obj_as
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 
@@ -13,7 +18,7 @@ class RedisConfig(BaseModel):
 
 class PostgresConfig(BaseModel):
     host: str = "postgres"
-    port: int = 5432
+    port: int = Field(ge=1024, le=65535, default=5432)
     db: str = "trading"
     user: str = "trading_app"
     password: str = Field(..., description="Database password")
@@ -49,14 +54,20 @@ class ServiceConfig(BaseModel):
     environment: str = "development"
     db_base_path: Path = Path("/app/data")
 
+
+class StrategyConfig(BaseModel):
+    strategy_label: str
+    is_active: bool
+    
 class AppConfig(BaseSettings):
-    redis: RedisConfig = Field(default_factory=RedisConfig)
+    redis: RedisConfig = RedisConfig()
     postgres: PostgresConfig = Field(...)
     deribit: DeribitConfig = Field(default_factory=DeribitConfig)
     error_handling: ErrorHandlingConfig = Field(default_factory=ErrorHandlingConfig)
     services: ServiceConfig = Field(default_factory=ServiceConfig)
-    strategies: Dict[str, Any] = Field(default_factory=dict)
+    strategies: Dict[str, StrategyConfig] = Field(default_factory=dict)
 
     class Config:
+        env_prefix = "APP_"
         env_nested_delimiter = "__"
         secrets_dir = "/run/secrets"

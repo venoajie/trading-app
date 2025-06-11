@@ -1,9 +1,17 @@
-# src/shared/config/constants.py
+"""
+src/shared/config/constants.py
+Static application constants
+"""
 class ServiceConstants:
     # Redis keys
     REDIS_STREAM_MARKET = "stream:market_data"
     REDIS_GROUP_DISPATCHER = "dispatcher_group"
-    
+
+    REDIS_STREAMS = {
+        "MARKET_DATA": "stream:market_data",
+        "DISPATCHER": "dispatcher_group",
+        "ERRORS": "stream:errors"
+    }    
     # Database
     DB_BASE_PATH = "/app/data"
     

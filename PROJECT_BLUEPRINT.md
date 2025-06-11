@@ -18,9 +18,16 @@
 - ram size is gradually improving although the data volume is fixed
   
 
-## CURRENT PHASE (2025-06-10)
+## CURRENT PHASE (2025-06-11)
 - testing and optimized/collaborated receiver and distributor services
 - migrate sqlite syntax to postgresql
+- introduce pydantic + consolidating config files
+
+## Configuration Schema
+| Section | Source | Example |
+|---------|--------|---------|
+| Redis | ENV+Secrets | `REDIS_URL` |
+| PostgreSQL | Secrets | `db_password` |
 
 CURRENT PHASE CONCERN:
 
@@ -32,26 +39,6 @@ starter.py (replaced by service manager)
 sqlite.py (replaced by db.py)
 
 caching.py (functionality exists in utils)
-
-Circular dependencies between redis.py and error_handling.py
-
-we have 2 error handlers, at core and shared
-
-Fix:
-
-python
-# In db.py
-import os
-
-class Database:
-    @staticmethod
-    async def get_connection():
-        db_path = Config().db_path
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        if not os.path.exists(db_path):
-            open(db_path, 'w').close()  # Create empty file
-        os.chmod(db_path, 0o660)  # Set permissions
-        return await aiosqlite.connect(db_path)
 
         10. Health Check Enhancement
 Problem: Basic Redis health check doesn't verify application state.
@@ -75,7 +62,6 @@ async def health_check():
 ## NEXT PHASE ()
 need add additional things:
 - unit testing, partially done
-- how communicate failures: ignored now
 - improve documentation and familiarize my self with the code
 
 

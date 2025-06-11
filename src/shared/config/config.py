@@ -1,3 +1,8 @@
+    """
+    src\shared\config\config.py
+    Primary configuration loader
+    """
+
 import os
 import tomllib
 from .models import AppConfig
@@ -24,13 +29,17 @@ class ConfigLoader:
             pass
         
         # Build configuration
+        password = get_secret("db_password") or os.getenv("POSTGRES_PASSWORD", "")
+        if not password:
+            raise RuntimeError("DB password missing in secrets and ENV")
+        
         return AppConfig(
             postgres={
                 "host": os.getenv("POSTGRES_HOST", "postgres"),
                 "port": int(os.getenv("POSTGRES_PORT", 5432)),
                 "db": os.getenv("POSTGRES_DB", "trading"),
                 "user": os.getenv("POSTGRES_USER", "trading_app"),
-                "password": get_secret("db_password") or os.getenv("POSTGRES_PASSWORD", ""),
+                "password": password,
                 "dsn": f"postgresql://{os.getenv('POSTGRES_USER')}:{get_secret('db_password')}@{os.getenv('POSTGRES_HOST')}:{os.getenv('POSTGRES_PORT')}/{os.getenv('POSTGRES_DB')}"
             },
             strategies=strategy_config,
