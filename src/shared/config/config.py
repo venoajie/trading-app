@@ -23,7 +23,7 @@ class ConfigLoader:
     def _load_config() -> AppConfig:
         
         # Load strategy config
-        config_path = os.getenv("STRATEGY_CONFIG_PATH", "/app/shared/config/strategies.toml")
+        config_path = os.getenv("STRATEGY_CONFIG_PATH", "/app/src/shared/config/strategies.toml")
         strategy_config = {}
         try:
             with open(config_path, "rb") as f:

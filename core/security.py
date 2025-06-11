@@ -21,6 +21,6 @@ def get_secret(secret_name: str) -> str:
         
     if value := os.getenv(secret_name.upper().replace("-", "_")):
         #return SecretStr(value)
-        return SecretStr(value)
+        return (value)
         
     raise ValueError(f"Missing secret: {secret_name}")
