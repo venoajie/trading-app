@@ -16,6 +16,8 @@ class ErrorHandler:
         self._setup_notifiers()
 
     def _setup_notifiers(self):
+        
+        print(f"config {config}")
         telegram_config = config["error_handling"]["telegram"]
         if telegram_config.get("bot_token") and telegram_config.get("chat_id"):
             from src.scripts.telegram import connector as telegram
