@@ -43,7 +43,7 @@ ENV DB_BASE_PATH=/app/data \
     PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \
     PYTHONPYCACHEPREFIX=/tmp/.pycache\
-    STRATEGY_CONFIG_PATH=/app/config/shared/strategies.toml
+    STRATEGY_CONFIG_PATH=/app/shared/config/strategies.toml
 
 
 USER 1000
