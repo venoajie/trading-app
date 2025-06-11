@@ -98,17 +98,24 @@ services:
   app:
     build: 
       context: .
-      dockerfile: src/services/receiver/Dockerfile  # Or your main Dockerfile
+      dockerfile: src/services/receiver/Dockerfile
     environment:
       - REDIS_URL=redis://redis:6379
       - POSTGRES_HOST=postgres
-      - STRATEGY_CONFIG_PATH=/app/config/strategies.toml
     secrets:
       - db_password
       - deribit_client_id
       - deribit_client_secret
     networks: [trading-net]
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      redis: 
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
+        
 volumes:
   redis-data:
   pgdata:  

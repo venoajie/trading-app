@@ -13,6 +13,7 @@ WORKDIR /build
 
 
 # Copy application files
+COPY pyproject.toml .
 COPY src/shared/ src/shared/
 COPY src/services/receiver/ src/services/receiver/
 
@@ -43,7 +44,9 @@ COPY --chown=1000:1000 ./core ./core
 ENV DB_BASE_PATH=/app/data \
     PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \
-    PYTHONPYCACHEPREFIX=/tmp/.pycache
+    PYTHONPYCACHEPREFIX=/tmp/.pycache\
+    STRATEGY_CONFIG_PATH=/app/config/shared/strategies.toml
+
 
 USER 1000
 CMD ["python", "src/services/receiver/deribit/main.py"]
