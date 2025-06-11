@@ -89,7 +89,7 @@ async def stream_consumer():
 async def main():
     """Service entry point"""
     log.info("Starting distributor service")
-    
+
     try:
         await stream_consumer()
     except (KeyboardInterrupt, SystemExit):

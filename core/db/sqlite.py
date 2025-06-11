@@ -1,4 +1,4 @@
-#core/db/sqlite.py
+# core/db/sqlite.py
 
 # built ins
 import asyncio

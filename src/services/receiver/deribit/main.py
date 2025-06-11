@@ -92,7 +92,7 @@ async def run_receiver():
 
 async def main():
     """Service entry point with graceful shutdown"""
-    
+
     try:
         await run_receiver()
     except (KeyboardInterrupt, SystemExit):
