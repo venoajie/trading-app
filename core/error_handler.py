@@ -22,16 +22,16 @@ class ErrorHandler:
 
     def _setup_notifiers(self):
         """Initialize notification channels based on config"""
-        if config.error_handling.notify_telegram:
+        if config.error_handling.telegram.get("bot_token"):
             from src.scripts.telegram import connector as telegram
-
-            self.notifiers.append(telegram.send_message)
-
-        if settings.ERROR_NOTIFY_REDIS:
-            from core.db.redis import redis_client
-
-            self.notifiers.append(redis_client.publish_error)
-
+            self.notifiers.append(
+                lambda data: telegram.send_message(
+                    config.error_handling.telegram["chat_id"],
+                    data["message"],
+                    token=config.error_handling.telegram["bot_token"]
+                )
+            )
+            
     async def capture(
         self,
         exception: Exception,

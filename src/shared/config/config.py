@@ -8,6 +8,7 @@ import os
 import tomllib
 from .models import AppConfig, RedisConfig, PostgresConfig
 from core.security import get_secret
+from pydantic import SecretStr
 
 class ConfigLoader:
     _instance = None
@@ -33,9 +34,10 @@ class ConfigLoader:
         postgres_config = None
         if os.getenv("SERVICE_NAME") == "distributor":
             try:
-                password = get_secret("db_password")
+                password_secret = get_secret("db_password")
+                password_str = password_secret.get_secret_value()
             except Exception:
-                password = os.getenv("POSTGRES_PASSWORD", "")
+                password_str = os.getenv("POSTGRES_PASSWORD", "")
             
             if not password:
                 raise RuntimeError("DB password missing for distributor service")
@@ -45,7 +47,7 @@ class ConfigLoader:
                 "port": int(os.getenv("POSTGRES_PORT", 5432)),
                 "db": os.getenv("POSTGRES_DB", "trading"),
                 "user": os.getenv("POSTGRES_USER", "trading_app"),
-                "password": password,
+                "password": password_str,
                 "dsn": f"postgresql://{os.getenv('POSTGRES_USER')}:{password}@{os.getenv('POSTGRES_HOST')}:{os.getenv('POSTGRES_PORT')}/{os.getenv('POSTGRES_DB')}",
                 "pool": {"min_size": 5, "max_size": 20, "command_timeout": 60}
             }
@@ -62,12 +64,12 @@ class ConfigLoader:
                 "environment": os.getenv("ENVIRONMENT", "development")
             },
               
-#            error_handling={
-#                "telegram": {
-#                    "bot_token": get_secret("telegram_bot_token") or "",
-#                    "chat_id": get_secret("telegram_chat_id") or ""
-#                }
-#            }
+            error_handling={
+                "telegram": {
+                    "bot_token": get_secret("telegram_bot_token") or "",
+                    "chat_id": get_secret("telegram_chat_id") or ""
+                }
+            }
             
         )
 
