@@ -1,0 +1,216 @@
+# src\shared\config\strategies.toml
+
+[ws]
+# Base delay before attempting to reconnect (seconds)
+reconnect_base_delay = 5
+
+# Maximum delay between reconnect attempts (seconds)
+max_reconnect_delay = 300
+
+# Threshold for detecting exchange maintenance (seconds)
+maintenance_threshold = 300
+
+# Interval for heartbeat checks (seconds)
+heartbeat_interval = 30
+
+# Timeout for WebSocket connections (seconds)
+websocket_timeout = 300
+
+[redis]
+url = "redis://redis:6379"  # Moved from .env
+db = 0
+
+[database]
+type = "sqlite"  # Moved from .env
+
+[security]
+blocked_scanners = ["censysinspect", "nmap"]  # Array format
+rate_limit = 10 
+
+[[tradable]]
+spot = [
+    "BTC",
+    "ETH",
+    #"XRP",
+    #"SOL",     
+       ]
+
+resolutions = [1,5,15,60,"1D"]
+
+strategy_labels = [#represert strategy
+    "hedgingSpot",
+    "futureSpread",
+    "comboAuto",
+    "scalping",
+    "custom",
+    #"customLong",
+    #"customShort",
+    #"marketMakerShort",
+    #"marketMakerLong",
+       ]
+
+mode_full = [true]
+
+reduce_only = [false]
+
+[[relevant_tables]]
+my_trades_table = "my_trades_all_json"
+orders_table = "orders_all_json"
+closed_table = "my_trades_closed_json"
+transaction_log = "transaction_log"
+archive = "my_trades_all"
+
+[[redis_channels]]
+# naming convention: ws/fix channel + action + attributes
+chart_update = "market.chart.all"
+chart_low_high_tick = "market.chart.low_high_tick"
+ticker_update_data = "market.ticker.data"
+ticker_cache_updating = "market.ticker.cached"
+market_analytics_update = "market.analytics"
+abnormal_trading_notices = "market.abnormal_trading_notices"
+
+portfolio = "account.portfolio.ws"
+portfolio_rest = "account.portfolio.rest"
+order_rest = "account.order.rest"
+order_receiving = "account.user_changes.order"
+my_trade_receiving = "account.user_changes.my_trade"
+sub_account_receiving = "account.user_changes.sub_account"
+order_is_allowed = "account.is_order_allowed"
+order_cache_updating = "account.sub_account.cached_order"
+my_trades_cache_updating = "account.sub_account.cached_trade"
+position_cache_updating = "account.sub_account.cached_positions"
+sub_account_cache_updating = "account.sub_account.cached_all"
+market_summary_updating = "others.summary.cached_all"
+account_summary_updating = "others.summary.cached_all"
+sqlite_record_updating = "others.sqlite_record_updating"
+
+[[redis_keys]]
+orders = "order"
+mytrade_btc = "mytrade:btc"
+mytrade_eth = "mytrade:eth"
+trades = "order:trade"
+portfolio = "account:portfolio"
+ticker = "market:ticker"
+chart = "market:chart"
+user_changes = "user_changes"
+market_condition = "market:market_condition"
+
+[[strategies]]
+strategy_label = "hedgingSpot"
+is_active = true
+contribute_to_hedging = true
+cancellable = true
+non_checked_for_size_label_consistency = false
+side = "sell"
+take_profit_pct = 0
+settlement_period = ["perpetual", "week"]
+weighted_factor = {minimum = 1, medium = 5, extreme=10, flash_crash= 20}
+waiting_minute_before_cancel = 3 #basis?
+halt_minute_before_reorder= 240
+max_leverage= 1
+delta_price_pct= 0.005
+sub_account_max_open_orders = {per_instrument = 50, total = 200}
+mode_full= true
+reduce_only= false
+
+
+[[strategies]]
+strategy_label = "scalping"
+is_active = true
+contribute_to_hedging = false
+cancellable = true
+non_checked_for_size_label_consistency = false
+side = "sell"
+take_profit_pct = 0
+settlement_period = ["perpetual", "week"]
+weighted_factor = {minimum = 1, medium = 5, extreme=10, flash_crash= 20}
+waiting_minute_before_cancel = 3 #basis?
+halt_minute_before_reorder= 240
+max_leverage= 1
+delta_price_pct= 0.005
+sub_account_max_open_orders = {per_instrument = 50, total = 200}
+mode_full= true
+reduce_only= false
+
+
+[[strategies]]
+strategy_label = "futureSpread"
+is_active = true
+contribute_to_hedging = true
+cancellable = true
+non_checked_for_size_label_consistency = true
+side = "sell"
+take_profit_pct = 0
+settlement_period =  ["week", "month"]
+weighted_factor = { minimum = 1, medium = 5, extreme=10, flash_crash= 20}
+waiting_minute_before_cancel = 3 #basis?
+waiting_minute_before_relabelling = 15 #basis? waiting minute before reorder  15 min
+halt_minute_before_reorder= 240
+max_leverage= 10
+delta_price_pct= 0.1
+monthly_profit_pct= 0.5
+sub_account_max_open_orders = {per_instrument = 50, total = 200}
+mode_full= false
+reduce_only= true
+       
+
+[[strategies]]
+strategy_label = "futureSpreadAuto"
+is_active = true
+contribute_to_hedging = true
+cancellable = false
+non_checked_for_size_label_consistency = true
+side = "sell"
+take_profit_pct = 0
+settlement_period =  ["week", "month"]
+weighted_factor = { minimum = 1, medium = 5, extreme=10, flash_crash= 20}
+waiting_minute_before_cancel = 10 #basis?
+waiting_minute_before_relabelling = 15 #basis?
+halt_minute_before_reorder= 240
+max_leverage= 10
+delta_price_pct= 0.1
+monthly_profit_pct= 0.5
+sub_account_max_open_orders = {per_instrument = 50, total = 200}
+mode_full= false
+reduce_only= true
+
+[[strategies]]
+strategy_label = "comboAuto"
+is_active = false
+contribute_to_hedging = true
+cancellable = true
+non_checked_for_size_label_consistency = true
+side = "sell"
+take_profit_pct = 0
+settlement_period =  ["week", "month"]
+weighted_factor = { minimum = 1, medium = 5, extreme=10, flash_crash= 20}
+waiting_minute_before_cancel = 3 #basis?
+waiting_minute_before_relabelling = 15 #basis?
+halt_minute_before_reorder= 240
+max_leverage= 10
+monthly_profit_pct= 0.5
+delta_price_pct= 0.1
+sub_account_max_open_orders = {per_instrument = 50, total = 200}
+
+[[strategies]]
+strategy_label = "custom"
+is_active = false
+contribute_to_hedging = false
+cancellable = false
+non_checked_for_size_label_consistency = true
+side = []
+take_profit_pct = 0
+settlement_period = ["perpetual", "week", "month"]
+weighted_factor = { minimum = 1, medium = 5, extreme=10, flash_crash= 20}
+waiting_minute_before_cancel = []
+halt_minute_before_reorder= 240
+max_leverage= 1
+delta_price_pct= 0.005
+sub_account_max_open_orders = {per_instrument = 50, total = 200}
+
+[[strategies.general]]
+sub_account_max_open_orders = {per_instrument = 50, total = 200}
+
+
+[paths]
+root_dir = "/home/florian"

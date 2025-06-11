@@ -94,7 +94,11 @@ services:
       - "-c"
       - "work_mem=16MB"
 
+
   app:
+    build: 
+      context: .
+      dockerfile: src/services/receiver/Dockerfile  # Or your main Dockerfile
     environment:
       - REDIS_URL=redis://redis:6379
       - POSTGRES_HOST=postgres
@@ -103,7 +107,8 @@ services:
       - db_password
       - deribit_client_id
       - deribit_client_secret
- 
+    networks: [trading-net]
+
 volumes:
   redis-data:
   pgdata:  

@@ -1,27 +1,20 @@
-"""
-core/security.py
-"""
-
 import os
-from dotenv import load_dotenv  # Add python-dotenv to requirements
+from dotenv import load_dotenv
+from pydantic import SecretStr
 
-load_dotenv()  # Load .env file if present
+load_dotenv()
 
-def get_secret(secret_name: str) -> str:
-    """Retrieve secrets in priority order: 
-    1. Environment variables
-    2. Docker secrets
-    3. .env file
-    """
-    # Check environment variables
+def get_secret(secret_name: str) -> SecretStr:
+    """Retrieve secrets with type safety"""
+    # Environment variables
     if value := os.getenv(secret_name.upper()):
-        return value
+        return SecretStr(value)
     
-    # Check Docker secrets (if running in container)
+    # Docker secrets
     secret_path = f"/run/secrets/{secret_name}"
     if os.path.exists(secret_path):
         with open(secret_path) as f:
-            return f.read().strip()
+            return SecretStr(f.read().strip())
     
-    # Fallback to .env file
-    return os.getenv(secret_name.upper(), "")
+    # .env file
+    return SecretStr(os.getenv(secret_name.upper(), ""))

@@ -1,6 +1,8 @@
-# src\services\receiver\deribit\main.py
+"""
+src\services\receiver\deribit\main.py
+Decoupled receiver service focused on Redis Stream production
+"""
 
-"""Decoupled receiver service focused on Redis Stream production"""
 import os
 import asyncio
 import uvloop
@@ -57,6 +59,7 @@ async def run_receiver():
 
         # Get instruments
         currencies = config.deribit.currencies
+        maintenance_threshold = config.deribit.ws["maintenance_threshold"]
         resolutions = [1, 5, 15, 60]
         futures_instruments = await get_instrument_summary.get_futures_instruments(
             currencies, ["perpetual"]
@@ -69,7 +72,7 @@ async def run_receiver():
             client_secret=client_secret,
             reconnect_base_delay=5,
             max_reconnect_delay=300,
-            maintenance_threshold=config.deribit.maintenance_threshold,
+            maintenance_threshold=maintenance_threshold,
             websocket_timeout=900,
             heartbeat_interval=config.deribit.heartbeat_interval,
         )
