@@ -70,31 +70,34 @@ class ConfigLoader:
                 "pool": {"min_size": 5, "max_size": 20, "command_timeout": 60},
             }
             
-        print(f"postgres_config {postgres_config}")
-        print(f"""redis {RedisConfig(
-                url=os.getenv("REDIS_URL", "redis://localhost:6379"),
-                db=int(os.getenv("REDIS_DB", 0)),
-            )}""")
-
-        return AppConfig(
-            redis=RedisConfig(
-                url=os.getenv("REDIS_URL", "redis://localhost:6379"),
-                db=int(os.getenv("REDIS_DB", 0)),
-            ),
-            postgres=(
+        postgres_config_all=(
                 PostgresConfig(**postgres_config) if postgres_config else None
-            ),  # Will be None for receiver
-            strategies=strategy_config,
-            services={
+            )
+        print(f"postgres_config {postgres_config_all}")
+        redis_config=RedisConfig(
+                url=os.getenv("REDIS_URL", "redis://localhost:6379"),
+                db=int(os.getenv("REDIS_DB", 0)),
+            )
+        print(f"redis_config {redis_config}")
+        services_config={
                 "name": os.getenv("SERVICE_NAME", "distributor"),
                 "environment": os.getenv("ENVIRONMENT", "production"),
-            },
-            error_handling={
+            }
+        print(f"services_config {services_config}")
+        error_handling_config={
                 "telegram": {
                     "bot_token": telegram_bot_token,
                     "chat_id": telegram_chat_id,
                 }
-            },
+            }
+        print(f"error_handling_config {error_handling_config}")
+
+        return AppConfig(
+            redis=redis_config,
+            postgres=postgres_config_all,  # Will be None for receiver
+            strategies=strategy_config,
+            services=services_config,
+            error_handling=error_handling_config,
         )
 
 
