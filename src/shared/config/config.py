@@ -22,6 +22,10 @@ class ConfigLoader:
     @staticmethod
     def _load_config() -> AppConfig:
         
+        print(f"Loading strategy config from: {config_path}")
+        print(f"Current working directory: {os.getcwd()}")
+        print(f"Directory contents: {os.listdir(os.path.dirname(config_path))}")
+
         # Load strategy config
         config_path = os.getenv("STRATEGY_CONFIG_PATH", "/app/src/shared/config/strategies.toml")
         strategy_config = {}
