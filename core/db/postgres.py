@@ -7,8 +7,7 @@ from loguru import logger as log
 # user defined formulas
 from core.db.redis import publishing_specific_purposes
 from core.error_handler import error_handler
-from src.shared.config.settings import POSTGRES_DSN
-
+from src.shared.config import config
 
 def query_insert_trade_or_order(data: dict):
     currency = data.get("fee_currency") or data["instrument_name"].split("-")[0].upper()
@@ -45,15 +44,16 @@ def query_insert_trade_or_order(data: dict):
 
 
 class PostgresClient:
-    def __init__(self):
-        self._pool = None
+    def __init__(self):        
+        self.dsn = config.postgres.dsn
+        self.pool_config = config.postgres.pool
 
     async def start_pool(self):
         if not self._pool:
             for _ in range(3):
                 try:
                     self._pool = await asyncpg.create_pool(
-                        dsn=POSTGRES_DSN,
+                        dsn=self.dsn,
                         min_size=5,
                         max_size=20,
                         command_timeout=60,

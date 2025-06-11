@@ -93,6 +93,16 @@ services:
       - "max_connections=200"
       - "-c"
       - "work_mem=16MB"
+
+  app:
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_HOST=postgres
+      - STRATEGY_CONFIG_PATH=/app/config/strategies.toml
+    secrets:
+      - db_password
+      - deribit_client_id
+      - deribit_client_secret
  
 volumes:
   redis-data:

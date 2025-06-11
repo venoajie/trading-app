@@ -10,7 +10,7 @@ import orjson
 import redis.asyncio as aioredis
 from typing import Any, Dict, List, Optional, Union
 
-from src.shared.config.settings import REDIS_URL, REDIS_DB
+from src.shared.config import config
 from src.shared.utils import error_handling
 
 # Configure logger
@@ -217,15 +217,15 @@ class CustomRedisClient:
         """Get or create Redis connection pool"""
         if self.pool is None:
             self.pool = aioredis.from_url(
-                REDIS_URL,
-                db=REDIS_DB,
+                config.redis.url,
+                db=config.redis.db,
                 encoding="utf-8",
                 decode_responses=False,  # Keep binary for performance
                 socket_connect_timeout=5,
                 socket_keepalive=True,
                 max_connections=50,
             )
-            log.info(f"Created Redis pool for {REDIS_URL}")
+            log.info(f"Created Redis pool for {config.redis.url}")
         return self.pool
 
     async def publish(self, channel: str, message: Union[Dict, str]) -> None:

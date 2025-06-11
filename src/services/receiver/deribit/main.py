@@ -16,14 +16,7 @@ from src.scripts.deribit import get_instrument_summary
 from src.scripts.deribit.restful_api import end_point_params_template
 from core.security import get_secret
 from src.services.receiver.deribit import deribit_ws
-from src.shared.config.settings import (
-    REDIS_URL,
-    REDIS_DB,
-    DERIBIT_SUBACCOUNT,
-    DERIBIT_CURRENCIES,
-    DERIBIT_MAINTENANCE_THRESHOLD,
-    DERIBIT_HEARTBEAT_INTERVAL,
-)
+from src.shared.config import config
 from src.shared.utils import system_tools, template
 
 
@@ -63,7 +56,7 @@ async def run_receiver():
             return
 
         # Get instruments
-        currencies = DERIBIT_CURRENCIES
+        currencies = config.deribit.currencies
         resolutions = [1, 5, 15, 60]
         futures_instruments = await get_instrument_summary.get_futures_instruments(
             currencies, ["perpetual"]
@@ -71,14 +64,14 @@ async def run_receiver():
 
         # Initialize WebSocket client
         stream = deribit_ws.StreamingAccountData(
-            sub_account_id=DERIBIT_SUBACCOUNT,
+            sub_account_id=config.deribit.subaccount,
             client_id=client_id,
             client_secret=client_secret,
             reconnect_base_delay=5,
             max_reconnect_delay=300,
-            maintenance_threshold=DERIBIT_MAINTENANCE_THRESHOLD,
+            maintenance_threshold=config.deribit.maintenance_threshold,
             websocket_timeout=900,
-            heartbeat_interval=DERIBIT_HEARTBEAT_INTERVAL,
+            heartbeat_interval=config.deribit.heartbeat_interval,
         )
 
         await stream.manage_connection(
