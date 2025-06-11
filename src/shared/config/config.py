@@ -27,7 +27,7 @@ class ConfigLoader:
                 strategy_config = tomllib.load(f)
         except FileNotFoundError:
             pass
-        
+        print(f"""AAAAAAAAAAAAAAAAAAAAAAAAAAAA {os.getenv("SERVICE_NAME")} {os.getenv("SERVICE_NAME") == "distributor"}""")
         # Build configuration
         try:
             password = get_secret("db_password")
