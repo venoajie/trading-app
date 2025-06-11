@@ -28,7 +28,7 @@ class ConfigLoader:
                 strategy_config = tomllib.load(f)
         except FileNotFoundError:
             pass
-        print(f"""AAAAAAAAAAAAAAAAAAAAAAAAAAAA {os.getenv("SERVICE_NAME")} {os.getenv("SERVICE_NAME") == "distributor"}""")
+
         # Build configuration
         try:
             password = get_secret("db_password")
@@ -70,12 +70,12 @@ class ConfigLoader:
                 "environment": os.getenv("ENVIRONMENT", "development")
             },
               
-            error_handling={
-                "telegram": {
-                    "bot_token": get_secret("telegram_bot_token") or "",
-                    "chat_id": get_secret("telegram_chat_id") or ""
-                }
-            }
+#            error_handling={
+#                "telegram": {
+#                    "bot_token": get_secret("telegram_bot_token") or "",
+#                    "chat_id": get_secret("telegram_chat_id") or ""
+#                }
+#            }
             
         )
 
