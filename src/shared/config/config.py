@@ -29,6 +29,41 @@ class ConfigLoader:
                 strategy_config = tomllib.load(f)
         except FileNotFoundError:
             pass
+        
+        config_path = os.getenv("STRATEGY_CONFIG_PATH", "app/src/shared/config/strategies.toml")
+        strategy_config = {}
+        try:
+            with open(config_path, "rb") as f:
+                strategy_config = tomllib.load(f)
+                print(f"AAAAAAAAAAAAAAAAAAAAAAAAAA {strategy_config}")
+        except FileNotFoundError:
+            pass
+        
+        config_path = os.getenv("STRATEGY_CONFIG_PATH", "/app/shared/config/strategies.toml")
+        strategy_config = {}
+        try:
+            with open(config_path, "rb") as f:
+                strategy_config = tomllib.load(f)
+                print(f"BBBBBBBBBBBBBBBB {strategy_config}")
+        except FileNotFoundError:
+            pass
+        
+        config_path = os.getenv("STRATEGY_CONFIG_PATH", "app/config/shared/strategies.toml")
+        strategy_config = {}
+        try:
+            with open(config_path, "rb") as f:
+                strategy_config = tomllib.load(f)
+                print(f"CCCCCCCCCCCCCCCCCCCCCCCCCCCC {strategy_config}")
+        except FileNotFoundError:
+            pass
+        config_path = os.getenv("STRATEGY_CONFIG_PATH", "app/config/shared/strategies.toml")
+        strategy_config = {}
+        try:
+            with open(config_path, "rb") as f:
+                strategy_config = tomllib.load(f)
+                print(f"CCCCCCCCCCCCCCCCCCCCCCCCCCCC {strategy_config}")
+        except FileNotFoundError:
+            pass
 
 
         telegram_bot_token = ""
