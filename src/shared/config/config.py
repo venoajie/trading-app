@@ -30,14 +30,6 @@ class ConfigLoader:
             pass
 
         # Build configuration
-        try:
-            password = get_secret("db_password")
-        except Exception:
-            password = os.getenv("POSTGRES_PASSWORD", "")
-            
-        if not password and os.getenv("SERVICE_NAME") == "distributor":
-            raise RuntimeError("DB password missing for distributor service")
-     
         postgres_config = None
         if os.getenv("SERVICE_NAME") == "distributor":
             try:
