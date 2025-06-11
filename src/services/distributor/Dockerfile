@@ -12,7 +12,6 @@ FROM base AS builder
 WORKDIR /build
 
 # Copy application files
-COPY pyproject.toml .
 COPY src/shared/ src/shared/
 COPY src/services/distributor/ src/services/distributor/
 
