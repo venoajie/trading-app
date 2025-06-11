@@ -47,7 +47,7 @@ class PostgresClient:
     def __init__(self):        
         self.dsn = config.postgres.dsn
         self.pool_config = config.postgres.pool
-        elf._pool = None #  explicit initialization
+        self._pool = None #  explicit initialization
 
     async def start_pool(self):
         if not self._pool:

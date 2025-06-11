@@ -1,11 +1,12 @@
+# src\shared\config\config.py
+
 """
-src\shared\config\config.py
 Primary configuration loader
 """
 
 import os
 import tomllib
-from .models import AppConfig
+from .models import AppConfig, RedisConfig, PostgresConfig
 from core.security import get_secret
 
 class ConfigLoader:

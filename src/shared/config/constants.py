@@ -1,5 +1,6 @@
+# src/shared/config/constants.py
+
 """
-src/shared/config/constants.py
 Static application constants
 """
 class ServiceConstants:

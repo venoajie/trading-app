@@ -1,5 +1,6 @@
+# src/shared/config/runtime_settings.py
+
 """
-src/shared/config/runtime_settings.py
 Optimized runtime access
 """
 

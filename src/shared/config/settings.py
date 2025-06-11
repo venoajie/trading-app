@@ -1,5 +1,6 @@
+# shared/config/settings.py
+
 """
-shared/config/settings.py
 Configuration settings for the application, loading from environment variables and TOML files
 """
 

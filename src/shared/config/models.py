@@ -1,5 +1,6 @@
+# src\shared\config\models.py
+
 """
-src\shared\config\models.py
 Pydantic schema definitions
 """
 

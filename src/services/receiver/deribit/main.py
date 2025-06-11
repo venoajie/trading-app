@@ -1,5 +1,6 @@
+# src\services\receiver\deribit\main.py
+
 """
-src\services\receiver\deribit\main.py
 Decoupled receiver service focused on Redis Stream production
 """
 
