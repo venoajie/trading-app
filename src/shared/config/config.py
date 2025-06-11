@@ -33,7 +33,7 @@ class ConfigLoader:
         try:
             with open(config_path, "rb") as f:
                 strategy_config = tomli.load(f)
-                print(f"strategy_config {strategy_config}")
+
         except FileNotFoundError:
             pass
 
@@ -69,6 +69,12 @@ class ConfigLoader:
                 "dsn": f"postgresql://{os.getenv('POSTGRES_USER')}:{password_str}@{os.getenv('POSTGRES_HOST')}:{os.getenv('POSTGRES_PORT')}/{os.getenv('POSTGRES_DB')}",  # Fix here
                 "pool": {"min_size": 5, "max_size": 20, "command_timeout": 60},
             }
+            
+        print(f"postgres_config {postgres_config}")
+        print(f"""redis {redis=RedisConfig(
+                url=os.getenv("REDIS_URL", "redis://localhost:6379"),
+                db=int(os.getenv("REDIS_DB", 0)),
+            )}""")
 
         return AppConfig(
             redis=RedisConfig(
