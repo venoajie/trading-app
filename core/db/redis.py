@@ -4,6 +4,7 @@
 core/db/redis.py
 Consolidated Redis client with connection pooling
 """
+import os
 
 import logging
 import orjson
@@ -216,6 +217,7 @@ class CustomRedisClient:
     async def get_pool(self) -> aioredis.Redis:
         """Get or create Redis connection pool"""
         if self.pool is None:
+            redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
             self.pool = aioredis.from_url(
                 config.redis.url,
                 db=config.redis.db,

@@ -5,19 +5,14 @@ from pydantic import SecretStr
 load_dotenv()
 
 def get_secret(secret_name: str) -> SecretStr:
-    """Retrieve secrets with type safety"""
-    # Environment variables
-    if value := os.getenv(secret_name.upper()):
-        return SecretStr(value)
-
-    else:
-        raise ValueError(f"Empty secret value for {secret_name}")
-    
-    # Docker secrets
+    # 1. Check Docker secrets first
     secret_path = f"/run/secrets/{secret_name}"
     if os.path.exists(secret_path):
         with open(secret_path) as f:
             return SecretStr(f.read().strip())
-    
-    # .env file
-    return SecretStr(os.getenv(secret_name.upper(), ""))
+            
+    # 2. Check environment variables
+    if value := os.getenv(secret_name.upper()):
+        return SecretStr(value)
+        
+    raise ValueError(f"Missing secret: {secret_name}")

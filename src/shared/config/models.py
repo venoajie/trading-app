@@ -62,7 +62,7 @@ class StrategyConfig(BaseModel):
     
 class AppConfig(BaseSettings):
     redis: RedisConfig = RedisConfig()
-    postgres: PostgresConfig = Field(...)
+    postgres: Optional[PostgresConfig] = None 
     deribit: DeribitConfig = Field(default_factory=DeribitConfig)
     error_handling: ErrorHandlingConfig = Field(default_factory=ErrorHandlingConfig)
     services: ServiceConfig = Field(default_factory=ServiceConfig)

@@ -37,15 +37,32 @@ class ConfigLoader:
         if not password and os.getenv("SERVICE_NAME") == "distributor":
             raise RuntimeError("DB password missing for distributor service")
      
-        return AppConfig(
-            postgres={
+        postgres_config = None
+        if os.getenv("SERVICE_NAME") == "distributor":
+            try:
+                password = get_secret("db_password")
+            except Exception:
+                password = os.getenv("POSTGRES_PASSWORD", "")
+            
+            if not password:
+                raise RuntimeError("DB password missing for distributor service")
+            
+            postgres_config = {
                 "host": os.getenv("POSTGRES_HOST", "postgres"),
                 "port": int(os.getenv("POSTGRES_PORT", 5432)),
                 "db": os.getenv("POSTGRES_DB", "trading"),
                 "user": os.getenv("POSTGRES_USER", "trading_app"),
                 "password": password,
-                "dsn": f"postgresql://{os.getenv('POSTGRES_USER')}:{get_secret('db_password')}@{os.getenv('POSTGRES_HOST')}:{os.getenv('POSTGRES_PORT')}/{os.getenv('POSTGRES_DB')}"
-            },
+                "dsn": f"postgresql://{os.getenv('POSTGRES_USER')}:{password}@{os.getenv('POSTGRES_HOST')}:{os.getenv('POSTGRES_PORT')}/{os.getenv('POSTGRES_DB')}",
+                "pool": {"min_size": 5, "max_size": 20, "command_timeout": 60}
+            }
+     
+        return AppConfig(
+    redis=RedisConfig(
+        url=os.getenv("REDIS_URL", "redis://localhost:6379"),
+        db=int(os.getenv("REDIS_DB", 0))
+    ),
+    postgres=PostgresConfig(**postgres_config) if postgres_config else None,# Will be None for receiver
             strategies=strategy_config,
             services={
                 "name": os.getenv("SERVICE_NAME", "unknown"),
