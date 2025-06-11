@@ -80,8 +80,8 @@ class ConfigLoader:
     postgres=PostgresConfig(**postgres_config) if postgres_config else None,# Will be None for receiver
             strategies=strategy_config,
             services={
-                "name": os.getenv("SERVICE_NAME", "unknown"),
-                "environment": os.getenv("ENVIRONMENT", "development")
+                "name": os.getenv("SERVICE_NAME", "distributor"),
+                "environment": os.getenv("ENVIRONMENT", "production")
             },
               
             error_handling={
