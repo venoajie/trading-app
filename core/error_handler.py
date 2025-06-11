@@ -4,37 +4,25 @@ import asyncio
 import logging
 import traceback
 from datetime import datetime
-from typing import Any, Callable, Coroutine, Dict, Optional, Type
+from typing import Any, Callable, Coroutine, Dict, Optional
 
-from src.shared.config.config import config
-from src.shared.utils import template
+from src.shared.config import config
 
-# Centralized logger
 logger = logging.getLogger("error_handler")
 
-
 class ErrorHandler:
-    """Centralized error handling with real-time notifications"""
-
     def __init__(self):
         self.notifiers = []
         self._setup_notifiers()
 
     def _setup_notifiers(self):
-        """Initialize notification channels based on config"""
-        telegram_config = config.error_handling.telegram
+        telegram_config = config["error_handling"]["telegram"]
         if telegram_config.get("bot_token") and telegram_config.get("chat_id"):
             from src.scripts.telegram import connector as telegram
-
-            # Extract and convert secrets
+            
             bot_token = telegram_config["bot_token"]
             chat_id = telegram_config["chat_id"]
-
-            #            if isinstance(bot_token, SecretStr):
-            #                bot_token = bot_token.get_secret_value()
-            #            if isinstance(chat_id, SecretStr):
-            #                chat_id = chat_id.get_secret_value()
-
+            
             self.notifiers.append(
                 lambda data: telegram.send_message(
                     chat_id,
@@ -47,9 +35,8 @@ class ErrorHandler:
                 )
             )
 
-        if config.error_handling.get("notify_redis", True):
+        if config["error_handling"].get("notify_redis", True):
             from core.db.redis import redis_client
-
             self.notifiers.append(redis_client.publish_error)
 
     async def capture(

@@ -4,13 +4,10 @@
 Primary configuration loader
 """
 
+
 import os
 import tomli
-from .models import AppConfig, RedisConfig, PostgresConfig
 from core.security import get_secret
-
-# from pydantic import SecretStr
-
 
 class ConfigLoader:
     _instance = None
@@ -22,8 +19,7 @@ class ConfigLoader:
         return cls._instance
 
     @staticmethod
-    def _load_config() -> AppConfig:
-
+    def _load_config():
         # Load strategy config
         config_path = os.getenv(
             "STRATEGY_CONFIG_PATH", "/app/src/shared/config/strategies.toml"
@@ -33,10 +29,10 @@ class ConfigLoader:
         try:
             with open(config_path, "rb") as f:
                 strategy_config = tomli.load(f)
-
         except FileNotFoundError:
             pass
 
+        # Get Telegram credentials
         telegram_bot_token = ""
         telegram_chat_id = ""
         try:
@@ -48,58 +44,61 @@ class ConfigLoader:
         except Exception:
             pass
 
-        # Build configuration
+        # Build PostgreSQL configuration
         postgres_config = None
-
         if os.getenv("SERVICE_NAME") == "distributor":
             try:
                 password_str = get_secret("db_password")
             except Exception:
                 password_str = os.getenv("POSTGRES_PASSWORD", "")
-
-            if not password_str:  # Fix variable name here
+            
+            if not password_str:
                 raise RuntimeError("DB password missing for distributor service")
-
+            
+            user = os.getenv("POSTGRES_USER", "trading_app")
+            host = os.getenv("POSTGRES_HOST", "postgres")
+            port = int(os.getenv("POSTGRES_PORT", 5432))
+            db = os.getenv("POSTGRES_DB", "trading")
+            
             postgres_config = {
-                "host": os.getenv("POSTGRES_HOST", "postgres"),
-                "port": int(os.getenv("POSTGRES_PORT", 5432)),
-                "db": os.getenv("POSTGRES_DB", "trading"),
-                "user": os.getenv("POSTGRES_USER", "trading_app"),
+                "host": host,
+                "port": port,
+                "db": db,
+                "user": user,
                 "password": password_str,
-                "dsn": f"postgresql://{os.getenv('POSTGRES_USER')}:{password_str}@{os.getenv('POSTGRES_HOST')}:{os.getenv('POSTGRES_PORT')}/{os.getenv('POSTGRES_DB')}",  # Fix here
+                "dsn": f"postgresql://{user}:{password_str}@{host}:{port}/{db}",
                 "pool": {"min_size": 5, "max_size": 20, "command_timeout": 60},
             }
-            
-        postgres_config_all=(
-                PostgresConfig(**postgres_config) if postgres_config else None
-            )
-        print(f"postgres_config {postgres_config_all}")
-        redis_config=RedisConfig(
-                url=os.getenv("REDIS_URL", "redis://localhost:6379"),
-                db=int(os.getenv("REDIS_DB", 0)),
-            )
-        print(f"redis_config {redis_config}")
-        services_config={
-                "name": os.getenv("SERVICE_NAME", "distributor"),
-                "environment": os.getenv("ENVIRONMENT", "production"),
-            }
-        print(f"services_config {services_config}")
-        error_handling_config={
-                "telegram": {
-                    "bot_token": telegram_bot_token,
-                    "chat_id": telegram_chat_id,
-                }
-            }
-        print(f"error_handling_config {error_handling_config}")
 
-        return AppConfig(
-            redis=redis_config,
-            postgres=postgres_config_all,  # Will be None for receiver
-            services=services_config,
-            strategies=strategy_config,
-            #error_handling=error_handling_config,
-        )
+        # Build Redis configuration
+        redis_config = {
+            "url": os.getenv("REDIS_URL", "redis://localhost:6379"),
+            "db": int(os.getenv("REDIS_DB", 0))
+        }
 
+        # Build services configuration
+        services_config = {
+            "name": os.getenv("SERVICE_NAME", "distributor"),
+            "environment": os.getenv("ENVIRONMENT", "production")
+        }
+
+        # Build error handling configuration
+        error_handling_config = {
+            "telegram": {
+                "bot_token": telegram_bot_token,
+                "chat_id": telegram_chat_id,
+            },
+            "notify_redis": os.getenv("ERROR_NOTIFY_REDIS", "true").lower() == "true"
+        }
+
+        # Return consolidated configuration
+        return {
+            "redis": redis_config,
+            "postgres": postgres_config,
+            "services": services_config,
+            "strategies": strategy_config,
+            "error_handling": error_handling_config
+        }
 
 # Global config instance
 config = ConfigLoader().config

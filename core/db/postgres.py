@@ -1,4 +1,5 @@
 # core/db/postgres.py
+
 import orjson
 from typing import Any, Optional, Union, List, Dict
 import asyncpg, asyncio
@@ -46,8 +47,9 @@ def query_insert_trade_or_order(data: dict):
 
 class PostgresClient:
     def __init__(self):
-        self.dsn = config.postgres.dsn
-        self.pool_config = config.postgres.pool
+        self.postgres_config = config.get("postgres")
+        self.dsn = self.postgres_config["dsn"] if self.postgres_config else None
+        self.pool_config = self.postgres_config["pool"] if self.postgres_config else None
         self._pool = None  #  explicit initialization
 
     async def start_pool(self):
