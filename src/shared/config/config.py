@@ -30,11 +30,21 @@ class ConfigLoader:
         except FileNotFoundError:
             pass
 
+
+        telegram_bot_token = ""
+        telegram_chat_id = ""
+        try:
+            telegram_bot_token = get_secret("telegram_bot_token").get_secret_value()
+        except Exception:
+            pass
+        try:
+            telegram_chat_id = get_secret("telegram_chat_id").get_secret_value()
+        except Exception:
+            pass
+        
         # Build configuration
         postgres_config = None
-        # Build configuration
-        postgres_config = None
-        print(f""""telegram_bot_token {get_secret("telegram_bot_token")} telegram_chat_id {get_secret("telegram_chat_id")}""")
+        print(f""""telegram_bot_token {telegram_bot_token} telegram_chat_id {telegram_chat_id}""")
         if os.getenv("SERVICE_NAME") == "distributor":
             try:
                 password_secret = get_secret("db_password")
@@ -70,8 +80,8 @@ class ConfigLoader:
               
             error_handling={
                 "telegram": {
-                    "bot_token": get_secret("telegram_bot_token") or "",
-                    "chat_id": get_secret("telegram_chat_id") or ""
+                    "bot_token": telegram_bot_token,
+                    "chat_id": telegram_chat_id
                 }
             }
             

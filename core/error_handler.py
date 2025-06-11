@@ -85,7 +85,7 @@ class ErrorHandler:
             "stack_trace": traceback.format_exc(),
             "metadata": metadata or {},
             "service": settings.SERVICE_NAME,
-            "environment": settings.ENVIRONMENT,
+            "environment": config.services.environment,
         }
 
     def wrap_async(self, func: Callable[..., Coroutine]) -> Callable[..., Coroutine]:
