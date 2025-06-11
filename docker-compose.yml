@@ -55,6 +55,8 @@ services:
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DB=trading
+      - POSTGRES_USER=trading_app
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
     secrets: [db_password]
     depends_on: 
       redis: {condition: service_healthy}

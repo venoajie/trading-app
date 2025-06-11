@@ -6,10 +6,11 @@
 - **Back up**: database backed up at backblaze using inotify
 - **Key Services**:
   - `receiver` () - receive data from exchanges through websockets 
-  cores involved: redis stream (redis)
+  core involved: redis stream (redis)
   - `distributor` (v0) - distributor received the data from receiver, manipulate them, and further dispatched to processor using redis
     cores involved: redis & postgresql
   - `processor` (v) - Processing events (order/cancel/transactions) and number (ohlc/balance)
+      cores involved: redis & postgresql
   - `shared` (v) - Shared library: text/numbers/time/db manipulation
   - `general` (v) - Db maintenance/back up, communicating events by telegram
 

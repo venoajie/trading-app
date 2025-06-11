@@ -29,10 +29,14 @@ class ConfigLoader:
             pass
         
         # Build configuration
-        password = get_secret("db_password") or os.getenv("POSTGRES_PASSWORD", "")
-        if not password:
-            raise RuntimeError("DB password missing in secrets and ENV")
-        
+        try:
+            password = get_secret("db_password")
+        except Exception:
+            password = os.getenv("POSTGRES_PASSWORD", "")
+            
+        if not password and os.getenv("SERVICE_NAME") == "distributor":
+            raise RuntimeError("DB password missing for distributor service")
+     
         return AppConfig(
             postgres={
                 "host": os.getenv("POSTGRES_HOST", "postgres"),
@@ -47,12 +51,14 @@ class ConfigLoader:
                 "name": os.getenv("SERVICE_NAME", "unknown"),
                 "environment": os.getenv("ENVIRONMENT", "development")
             },
+              
             error_handling={
                 "telegram": {
-                    "bot_token": get_secret("telegram_bot_token"),
-                    "chat_id": get_secret("telegram_chat_id")
+                    "bot_token": get_secret("telegram_bot_token") or "",
+                    "chat_id": get_secret("telegram_chat_id") or ""
                 }
             }
+            
         )
 
 # Global config instance

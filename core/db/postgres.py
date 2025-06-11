@@ -47,6 +47,7 @@ class PostgresClient:
     def __init__(self):        
         self.dsn = config.postgres.dsn
         self.pool_config = config.postgres.pool
+        elf._pool = None #  explicit initialization
 
     async def start_pool(self):
         if not self._pool:
@@ -108,9 +109,6 @@ class PostgresClient:
         async with self._pool.acquire() as conn:
             await conn.execute(query, *params)
 
-        # Publish update to Redis
-        await self.order_executed(table, data)
-
     async def fetch_active_trades(self, query):
         await self.start_pool()
         async with self._pool.acquire() as conn:
@@ -131,9 +129,6 @@ class PostgresClient:
         await self.start_pool()
         async with self._pool.acquire() as conn:
             await conn.execute(query, filter_value)
-
-        # Publish update to Redis
-        await self.order_executed(table, data)
 
     async def querying_arithmetic_operator(
         self,
@@ -180,23 +175,6 @@ class PostgresClient:
         await self.start_pool()
         async with self._pool.acquire() as conn:
             await conn.execute(query, *params)
-
-        # Publish update to Redis
-        await self.order_executed(table)
-
-    async def order_executed(self, table: str, data: dict) -> None:
-        """
-        Publish table updates to Redis
-        """
-        if "orders" in table:
-            active_trades = await self.fetch_active_trades()
-
-            await error_handler.capture(
-                Exception("Order executed"),
-                context="Trade execution",
-                metadata=active_trades,
-                severity="INFO",
-            )
 
     async def get_table_schema(self, table_name: str) -> list:
         """

@@ -9,6 +9,9 @@ def get_secret(secret_name: str) -> SecretStr:
     # Environment variables
     if value := os.getenv(secret_name.upper()):
         return SecretStr(value)
+
+    else:
+        raise ValueError(f"Empty secret value for {secret_name}")
     
     # Docker secrets
     secret_path = f"/run/secrets/{secret_name}"
