@@ -4,7 +4,8 @@ Pydantic schema definitions
 """
 
 from pydantic import BaseModel, Field, RedisDsn, PostgresDsn
-from pydantic_settings import BaseSettingsfrom pydantic.tools import parse_obj_as
+from pydantic_settings import BaseSettings
+from pydantic.tools import parse_obj_as
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 
