@@ -71,7 +71,7 @@ class ConfigLoader:
             }
             
         print(f"postgres_config {postgres_config}")
-        print(f"""redis {redis=RedisConfig(
+        print(f"""redis {RedisConfig(
                 url=os.getenv("REDIS_URL", "redis://localhost:6379"),
                 db=int(os.getenv("REDIS_DB", 0)),
             )}""")
