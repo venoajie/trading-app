@@ -32,6 +32,8 @@ class ConfigLoader:
 
         # Build configuration
         postgres_config = None
+        # Build configuration
+        postgres_config = None
         print(f""""telegram_bot_token {get_secret("telegram_bot_token")} telegram_chat_id {get_secret("telegram_chat_id")}""")
         if os.getenv("SERVICE_NAME") == "distributor":
             try:
@@ -44,7 +46,6 @@ class ConfigLoader:
                 raise RuntimeError("DB password missing for distributor service")
     
             print(f"password_secret {password_str}")
-            
             postgres_config = {
                 "host": os.getenv("POSTGRES_HOST", "postgres"),
                 "port": int(os.getenv("POSTGRES_PORT", 5432)),
@@ -56,11 +57,11 @@ class ConfigLoader:
             }
             
         return AppConfig(
-            redis=RedisConfig(
-            url=os.getenv("REDIS_URL", "redis://localhost:6379"),
-            db=int(os.getenv("REDIS_DB", 0))
-            )
-            postgres=PostgresConfig(**postgres_config) if postgres_config else None,# Will be None for receiver
+    redis=RedisConfig(
+        url=os.getenv("REDIS_URL", "redis://localhost:6379"),
+        db=int(os.getenv("REDIS_DB", 0))
+    ),
+    postgres=PostgresConfig(**postgres_config) if postgres_config else None,# Will be None for receiver
             strategies=strategy_config,
             services={
                 "name": os.getenv("SERVICE_NAME", "unknown"),
