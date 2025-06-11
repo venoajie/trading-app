@@ -68,10 +68,10 @@ class StrategyConfig(BaseModel):
 class AppConfig(BaseSettings):
     redis: RedisConfig = RedisConfig()
     postgres: Optional[PostgresConfig] = None
-    deribit: DeribitConfig = Field(default_factory=DeribitConfig)
-    error_handling: ErrorHandlingConfig = Field(default_factory=ErrorHandlingConfig)
     services: ServiceConfig = Field(default_factory=ServiceConfig)
     strategies: Dict[str, StrategyConfig] = Field(default_factory=dict)
+    error_handling: ErrorHandlingConfig = Field(default_factory=ErrorHandlingConfig)
+    deribit: DeribitConfig = Field(default_factory=DeribitConfig)
 
     class Config:
         env_prefix = "APP_"

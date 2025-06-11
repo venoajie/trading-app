@@ -95,8 +95,8 @@ class ConfigLoader:
         return AppConfig(
             redis=redis_config,
             postgres=postgres_config_all,  # Will be None for receiver
-            strategies=strategy_config,
             services=services_config,
+            strategies=strategy_config,
             error_handling=error_handling_config,
         )
 
