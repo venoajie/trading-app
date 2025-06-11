@@ -1,7 +1,7 @@
-    """
-    src\shared\config\config.py
-    Primary configuration loader
-    """
+"""
+src\shared\config\config.py
+Primary configuration loader
+"""
 
 import os
 import tomllib
