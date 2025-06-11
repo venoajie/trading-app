@@ -97,7 +97,7 @@ class ConfigLoader:
             postgres=postgres_config_all,  # Will be None for receiver
             services=services_config,
             strategies=strategy_config,
-            error_handling=error_handling_config,
+            #error_handling=error_handling_config,
         )
 
 

@@ -70,7 +70,7 @@ class AppConfig(BaseSettings):
     postgres: Optional[PostgresConfig] = None
     services: ServiceConfig = Field(default_factory=ServiceConfig)
     strategies: Dict[str, StrategyConfig] = Field(default_factory=dict)
-    error_handling: ErrorHandlingConfig = Field(default_factory=ErrorHandlingConfig)
+    #error_handling: ErrorHandlingConfig = Field(default_factory=ErrorHandlingConfig)
     deribit: DeribitConfig = Field(default_factory=DeribitConfig)
 
     class Config:
