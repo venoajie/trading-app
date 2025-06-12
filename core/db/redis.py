@@ -222,7 +222,7 @@ class CustomRedisClient:
 
             self.pool = aioredis.from_url(
                 redis_url,
-                db=redis.db,
+                db=redis_db,
                 encoding="utf-8",
                 decode_responses=False,  # Keep binary for performance
                 socket_connect_timeout=5,
