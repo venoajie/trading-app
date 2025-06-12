@@ -20,6 +20,7 @@ from src.scripts.deribit.restful_api import end_point_params_template
 from core.security import get_secret
 from src.services.receiver.deribit import deribit_ws
 from src.shared.config import config
+from src.shared.config.config import config
 from src.shared.utils import system_tools, template
 
 
@@ -58,9 +59,23 @@ async def run_receiver():
             log.error("Deribit credentials not configured")
             return
 
+        config_path = os.getenv(
+            "STRATEGY_CONFIG_PATH", 
+            "/app/src/shared/config/strategies.toml",
+            )
+
+        with open(config_path, "rb") as f:
+            strategy_config = tomli.load(f)
+
         # Get instruments
-        currencies = config.deribit.currencies
-        maintenance_threshold = config.deribit.ws.maintenance_threshold
+        print(f"strategy_config {strategy_config}")
+        
+        # get tradable strategies
+        tradable_config_app = config_app["tradable"]
+        # get TRADABLE currencies
+        currencies: list = [o["spot"] for o in tradable_config_app][0]
+        
+        maintenance_threshold = config_app["ws"]["maintenance_threshold"]
         resolutions = [1, 5, 15, 60]
         futures_instruments = await get_instrument_summary.get_futures_instruments(
             currencies, ["perpetual"]

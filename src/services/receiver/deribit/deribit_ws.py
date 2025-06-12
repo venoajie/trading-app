@@ -196,6 +196,8 @@ class StreamingAccountData:
                                 "exchange": exchange,
                             }
                         )
+                        
+                        print(f"serialized_data {serialized_data}")
 
                         # Send batch when full
                         if len(batch) >= BATCH_SIZE:
