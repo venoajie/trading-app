@@ -221,15 +221,15 @@ class CustomRedisClient:
             redis_db = config["redis"]["db"]
             
             self.pool = aioredis.from_url(
-                config.redis.url,
-                db=config.redis.db,
+                redis.url,
+                db=redis.db,
                 encoding="utf-8",
                 decode_responses=False,  # Keep binary for performance
                 socket_connect_timeout=5,
                 socket_keepalive=True,
                 max_connections=50,
             )
-            log.info(f"Created Redis pool for {config.redis.url}")
+            log.info(f"Created Redis pool for {redis_url}")
         return self.pool
 
     async def publish(self, channel: str, message: Union[Dict, str]) -> None:

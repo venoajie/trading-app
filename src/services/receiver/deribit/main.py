@@ -20,7 +20,6 @@ from src.scripts.deribit import get_instrument_summary
 from src.scripts.deribit.restful_api import end_point_params_template
 from core.security import get_secret
 from src.services.receiver.deribit import deribit_ws
-from src.shared.config import config
 from src.shared.config.config import config
 from src.shared.utils import system_tools, template
 from src.shared.config.constants import AccountId
@@ -86,7 +85,7 @@ async def run_receiver():
         )
 
         await stream.manage_connection(
-            client_redis,  # Directly use the connection pool
+            global_redis_client, 
             "deribit",
             futures_instruments,
             resolutions,

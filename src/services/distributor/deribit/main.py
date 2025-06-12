@@ -14,22 +14,25 @@ asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 from core.db.redis import redis_client
 from core.error_handler import error_handler
 from src.services.distributor.deribit import distributing_ws_data
-
+from src.shared.config.constants import ServiceConstants
 
 async def stream_consumer():
     """Main stream processing loop"""
     redis = await redis_client.get_pool()
+    stream_name = ServiceConstants.REDIS_STREAMS["MARKET_DATA"]
+    group_name = ServiceConstants.REDIS_GROUP_DISPATCHER
+    consumer_name = f"{config['services']['name']}_consumer"
 
     # Ensure consumer group exists
     try:
         await redis.xgroup_create(
-            distributing_ws_data.STREAM_NAME,  # Use constant from module
-            distributing_ws_data.GROUP_NAME,
+            stream_name,  # Use constant from module
+            group_name,
             id="0",
             mkstream=True,
         )
         log.info(
-            f"Created consumer group '{distributing_ws_data.GROUP_NAME}' for stream '{distributing_ws_data.STREAM_NAME}'"
+            f"Created consumer group '{group_name}' for stream '{stream_name}'"
         )
     except Exception as e:
         if "BUSYGROUP" not in str(e):
@@ -37,7 +40,7 @@ async def stream_consumer():
             raise
         else:
             log.info(
-                f"Consumer group '{distributing_ws_data.GROUP_NAME}' already exists"
+                f"Consumer group '{group_name}' already exists"
             )
 
     log.info("Starting stream processing...")
@@ -46,10 +49,10 @@ async def stream_consumer():
         try:
             # Read messages from stream
             messages = await redis.xreadgroup(
-                groupname=distributing_ws_data.GROUP_NAME,
-                consumername=distributing_ws_data.CONSUMER_NAME,
-                streams={distributing_ws_data.STREAM_NAME: ">"},
-                count=distributing_ws_data.BATCH_SIZE,
+                groupname=group_name,
+                consumername==consumer_name,
+                streams={stream_name: ">"},
+                count=batch_size,
                 block=5000,
             )
 
