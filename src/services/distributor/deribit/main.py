@@ -15,7 +15,7 @@ from core.db.redis import redis_client
 from core.error_handler import error_handler
 from src.services.distributor.deribit import distributing_ws_data
 from src.shared.config.constants import ServiceConstants
-
+from src.shared.config.config import config
 
 async def stream_consumer():
     """Main stream processing loop"""
