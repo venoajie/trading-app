@@ -221,7 +221,7 @@ class CustomRedisClient:
             redis_db = config["redis"]["db"]
 
             self.pool = aioredis.from_url(
-                redis.url,
+                redis_url,
                 db=redis.db,
                 encoding="utf-8",
                 decode_responses=False,  # Keep binary for performance
