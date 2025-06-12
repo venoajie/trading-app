@@ -10,6 +10,7 @@ from core.db.redis import publishing_specific_purposes
 from core.error_handler import error_handler
 from src.shared.config.config import config
 
+
 def query_insert_trade_or_order(data: dict):
     currency = data.get("fee_currency") or data["instrument_name"].split("-")[0].upper()
     is_trade = "trade_id" in data
@@ -48,7 +49,9 @@ class PostgresClient:
     def __init__(self):
         self.postgres_config = config.get("postgres")
         self.dsn = self.postgres_config["dsn"] if self.postgres_config else None
-        self.pool_config = self.postgres_config["pool"] if self.postgres_config else None
+        self.pool_config = (
+            self.postgres_config["pool"] if self.postgres_config else None
+        )
         self._pool = None  #  explicit initialization
 
     async def start_pool(self):

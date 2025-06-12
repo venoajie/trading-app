@@ -10,20 +10,21 @@ from src.shared.config.config import config
 
 logger = logging.getLogger("error_handler")
 
+
 class ErrorHandler:
     def __init__(self):
         self.notifiers = []
         self._setup_notifiers()
 
     def _setup_notifiers(self):
-        
+
         telegram_config = config["error_handling"]["telegram"]
         if telegram_config.get("bot_token") and telegram_config.get("chat_id"):
             from src.scripts.telegram import connector as telegram
-            
+
             bot_token = telegram_config["bot_token"]
             chat_id = telegram_config["chat_id"]
-            
+
             self.notifiers.append(
                 lambda data: telegram.send_message(
                     chat_id,
@@ -38,6 +39,7 @@ class ErrorHandler:
 
         if config["error_handling"].get("notify_redis", True):
             from core.db.redis import redis_client
+
             self.notifiers.append(redis_client.publish_error)
 
     async def capture(

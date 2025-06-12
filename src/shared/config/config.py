@@ -9,6 +9,7 @@ import os
 import tomli
 from core.security import get_secret
 
+
 class ConfigLoader:
     _instance = None
 
@@ -51,15 +52,15 @@ class ConfigLoader:
                 password_str = get_secret("db_password")
             except Exception:
                 password_str = os.getenv("POSTGRES_PASSWORD", "")
-            
+
             if not password_str:
                 raise RuntimeError("DB password missing for distributor service")
-            
+
             user = os.getenv("POSTGRES_USER", "trading_app")
             host = os.getenv("POSTGRES_HOST", "postgres")
             port = int(os.getenv("POSTGRES_PORT", 5432))
             db = os.getenv("POSTGRES_DB", "trading")
-            
+
             postgres_config = {
                 "host": host,
                 "port": port,
@@ -73,13 +74,13 @@ class ConfigLoader:
         # Build Redis configuration
         redis_config = {
             "url": os.getenv("REDIS_URL", "redis://localhost:6379"),
-            "db": int(os.getenv("REDIS_DB", 0))
+            "db": int(os.getenv("REDIS_DB", 0)),
         }
 
         # Build services configuration
         services_config = {
             "name": os.getenv("SERVICE_NAME", "distributor"),
-            "environment": os.getenv("ENVIRONMENT", "production")
+            "environment": os.getenv("ENVIRONMENT", "production"),
         }
 
         # Build error handling configuration
@@ -88,7 +89,7 @@ class ConfigLoader:
                 "bot_token": telegram_bot_token,
                 "chat_id": telegram_chat_id,
             },
-            "notify_redis": os.getenv("ERROR_NOTIFY_REDIS", "true").lower() == "true"
+            "notify_redis": os.getenv("ERROR_NOTIFY_REDIS", "true").lower() == "true",
         }
 
         # Return consolidated configuration
@@ -97,8 +98,9 @@ class ConfigLoader:
             "postgres": postgres_config,
             "services": services_config,
             "strategies": strategy_config,
-            "error_handling": error_handling_config
+            "error_handling": error_handling_config,
         }
+
 
 # Global config instance
 config = ConfigLoader().config

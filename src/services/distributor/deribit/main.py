@@ -16,6 +16,7 @@ from core.error_handler import error_handler
 from src.services.distributor.deribit import distributing_ws_data
 from src.shared.config.constants import ServiceConstants
 
+
 async def stream_consumer():
     """Main stream processing loop"""
     redis = await redis_client.get_pool()
@@ -31,17 +32,13 @@ async def stream_consumer():
             id="0",
             mkstream=True,
         )
-        log.info(
-            f"Created consumer group '{group_name}' for stream '{stream_name}'"
-        )
+        log.info(f"Created consumer group '{group_name}' for stream '{stream_name}'")
     except Exception as e:
         if "BUSYGROUP" not in str(e):
             log.error(f"Error creating consumer group: {e}")
             raise
         else:
-            log.info(
-                f"Consumer group '{group_name}' already exists"
-            )
+            log.info(f"Consumer group '{group_name}' already exists")
 
     log.info("Starting stream processing...")
 
@@ -50,7 +47,7 @@ async def stream_consumer():
             # Read messages from stream
             messages = await redis.xreadgroup(
                 groupname=group_name,
-                consumername==consumer_name,
+                consumername=consumer_name,
                 streams={stream_name: ">"},
                 count=batch_size,
                 block=5000,

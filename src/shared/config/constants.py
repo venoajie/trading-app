@@ -26,6 +26,7 @@ class ServiceConstants:
     ERROR_TELEGRAM_ENABLED = True
     ERROR_REDIS_ENABLED = True
 
+
 class WebsocketParameters:
     RECONNECT_BASE_DELAY = 5
     MAX_RECONNECT_DELAY = 300
@@ -69,6 +70,7 @@ class RedisChannels:
     MARKET_SUMMARY_UPDATING = "others.summary.cached_all"
     ACCOUNT_SUMMARY_UPDATING = "others.summary.cached_all"
     SQLITE_RECORD_UPDATING = "others.sqlite_record_updating"
+
 
 # Usage example:
 # from src.shared.config.constants import WebsocketParameters

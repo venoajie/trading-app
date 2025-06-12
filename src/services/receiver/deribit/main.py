@@ -24,6 +24,7 @@ from src.shared.config.config import config
 from src.shared.utils import system_tools, template
 from src.shared.config.constants import AccountId
 
+
 async def setup_redis():
     """Robust Redis connection setup with health checks"""
     max_retries = 5
@@ -60,9 +61,9 @@ async def run_receiver():
             return
 
         config_path = os.getenv(
-            "STRATEGY_CONFIG_PATH", 
+            "STRATEGY_CONFIG_PATH",
             "/app/src/shared/config/strategies.toml",
-            )
+        )
 
         with open(config_path, "rb") as f:
             strategy_config = tomli.load(f)
@@ -71,7 +72,7 @@ async def run_receiver():
         tradable_config_app = strategy_config["tradable"]
         # get TRADABLE currencies
         currencies: list = [o["spot"] for o in tradable_config_app][0]
-        
+
         resolutions = [1, 5, 15, 60]
         futures_instruments = await get_instrument_summary.get_futures_instruments(
             currencies, ["perpetual"]
@@ -85,7 +86,7 @@ async def run_receiver():
         )
 
         await stream.manage_connection(
-            global_redis_client, 
+            global_redis_client,
             "deribit",
             futures_instruments,
             resolutions,

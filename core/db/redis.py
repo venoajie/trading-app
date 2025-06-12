@@ -219,7 +219,7 @@ class CustomRedisClient:
 
             redis_url = config["redis"]["url"]
             redis_db = config["redis"]["db"]
-            
+
             self.pool = aioredis.from_url(
                 redis.url,
                 db=redis.db,
