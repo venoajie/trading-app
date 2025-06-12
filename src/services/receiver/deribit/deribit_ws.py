@@ -22,7 +22,7 @@ from loguru import logger as log
 from core.error_handler import error_handler
 from src.scripts.deribit.restful_api import end_point_params_template
 from src.shared.utils import string_modification as str_mod
-from shared.config.constants import ServiceConstants
+from src.shared.config.constants import ServiceConstants
 
 BATCH_SIZE = 50
 STREAM_NAME = ServiceConstants.REDIS_STREAM_MARKET
