@@ -8,6 +8,7 @@ import os
 import asyncio
 import uvloop
 import logging
+import tomli
 from loguru import logger as log
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
