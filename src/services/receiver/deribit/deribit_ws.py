@@ -133,7 +133,7 @@ class StreamingAccountData:
                     "event": "heartbeat_timeout",
                     "reason": f"No messages for {time_since_last:.0f} seconds",
                 }
-                await client_redis.publish("system_alerts", json.dumps(alert))
+                await client_redis.publish("system_alerts", orjson.dumps(alert))
 
             # Normal timeout handling
             elif time_since_last > self.websocket_timeout:  # Use instance variable
@@ -197,7 +197,7 @@ class StreamingAccountData:
                             }
                         )
                         
-                        print(f"serialized_data {serialized_data}")
+                        log.info(f"serialized_data {serialized_data}")
 
                         # Send batch when full
                         if len(batch) >= BATCH_SIZE:

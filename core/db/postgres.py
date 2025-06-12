@@ -8,8 +8,7 @@ from loguru import logger as log
 # user defined formulas
 from core.db.redis import publishing_specific_purposes
 from core.error_handler import error_handler
-from src.shared.config import config
-
+from src.shared.config.config import config
 
 def query_insert_trade_or_order(data: dict):
     currency = data.get("fee_currency") or data["instrument_name"].split("-")[0].upper()
