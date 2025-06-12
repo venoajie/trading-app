@@ -282,7 +282,7 @@ class CustomRedisClient:
 
     async def xreadgroup(
         self,
-        group_name: str,
+        group_name: str,    
         consumer_name: str,
         stream_name: str,
         count: int = 10,
