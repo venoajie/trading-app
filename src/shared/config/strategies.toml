@@ -1,20 +1,5 @@
 # src\shared\config\strategies.toml
 
-[ws]
-# Base delay before attempting to reconnect (seconds)
-reconnect_base_delay = 5
-
-# Maximum delay between reconnect attempts (seconds)
-max_reconnect_delay = 300
-
-# Threshold for detecting exchange maintenance (seconds)
-maintenance_threshold = 300
-
-# Interval for heartbeat checks (seconds)
-heartbeat_interval = 30
-
-# Timeout for WebSocket connections (seconds)
-websocket_timeout = 300
 
 [redis]
 url = "redis://redis:6379"  # Moved from .env
@@ -211,6 +196,3 @@ sub_account_max_open_orders = {per_instrument = 50, total = 200}
 [[strategies.general]]
 sub_account_max_open_orders = {per_instrument = 50, total = 200}
 
-
-[paths]
-root_dir = "/home/florian"

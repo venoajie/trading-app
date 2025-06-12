@@ -23,7 +23,7 @@ from src.services.receiver.deribit import deribit_ws
 from src.shared.config import config
 from src.shared.config.config import config
 from src.shared.utils import system_tools, template
-
+from src.shared.config.constants import AccountId
 
 async def setup_redis():
     """Robust Redis connection setup with health checks"""
@@ -73,7 +73,6 @@ async def run_receiver():
         # get TRADABLE currencies
         currencies: list = [o["spot"] for o in tradable_config_app][0]
         
-        maintenance_threshold = strategy_config["ws"]["maintenance_threshold"]
         resolutions = [1, 5, 15, 60]
         futures_instruments = await get_instrument_summary.get_futures_instruments(
             currencies, ["perpetual"]
@@ -81,14 +80,9 @@ async def run_receiver():
 
         # Initialize WebSocket client
         stream = deribit_ws.StreamingAccountData(
-            sub_account_id=config.deribit.subaccount,
+            sub_account_id=AccountId.DERIBIT_MAIN,
             client_id=client_id,
             client_secret=client_secret,
-            reconnect_base_delay=5,
-            max_reconnect_delay=300,
-            maintenance_threshold=maintenance_threshold,
-            websocket_timeout=900,
-            heartbeat_interval=config.deribit.heartbeat_interval,
         )
 
         await stream.manage_connection(

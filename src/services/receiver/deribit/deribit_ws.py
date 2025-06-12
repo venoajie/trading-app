@@ -22,7 +22,7 @@ from loguru import logger as log
 from core.error_handler import error_handler
 from src.scripts.deribit.restful_api import end_point_params_template
 from src.shared.utils import string_modification as str_mod
-from src.shared.config.constants import ServiceConstants
+from src.shared.config.constants import ServiceConstants, WebsocketParameters, AddressUrl
 
 BATCH_SIZE = 50
 STREAM_NAME = ServiceConstants.REDIS_STREAM_MARKET
@@ -36,13 +36,13 @@ class StreamingAccountData:
     sub_account_id: str
     client_id: str
     client_secret: str
-    reconnect_base_delay: int = 5
-    max_reconnect_delay: int = 300
-    maintenance_threshold: int = 900
-    websocket_timeout: int = 900
-    heartbeat_interval: int = 30
+    reconnect_base_delay: int = WebsocketParameters.RECONNECT_BASE_DELAY
+    max_reconnect_delay: int = WebsocketParameters.MAX_RECONNECT_DELAY
+    maintenance_threshold: int = WebsocketParameters.MAINTENANCE_THRESHOLD
+    websocket_timeout: int = WebsocketParameters.WEBSOCKET_TIMEOUT
+    heartbeat_interval: int = WebsocketParameters.HEARTBEAT_INTERVAL
     loop: asyncio.AbstractEventLoop = cast(asyncio.AbstractEventLoop, None)
-    ws_connection_url: str = "wss://www.deribit.com/ws/api/v2"
+    ws_connection_url: str = AddressUrl.DERIBIT_WS
     websocket_client: Optional[WebSocketClientProtocol] = None
     refresh_token: Optional[str] = None
     refresh_token_expiry_time: Optional[datetime] = None
