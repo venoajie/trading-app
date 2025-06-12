@@ -11,7 +11,7 @@ import orjson
 import redis.asyncio as aioredis
 from typing import Any, Dict, List, Optional, Union
 
-from src.shared.config import config
+from src.shared.config.config import config
 
 # Configure logger
 log = logging.getLogger(__name__)
