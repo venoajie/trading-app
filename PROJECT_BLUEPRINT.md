@@ -80,3 +80,37 @@ need add additional things:
 - add another exchanges (currently binance and deribit)
 - invites others to use the service
 
+## RECEIVER SERVICE IMPROVEMENT ROADMAP
+
+### Immediate (Pre-Production)
+| Priority | Task                          | Impact Area       |
+|----------|-------------------------------|-------------------|
+| P0       | Secret leakage prevention     | Security          |
+| P0       | Event loop blocking fixes     | Performance       |
+| P1       | Configuration path hardening  | Reliability       |
+| P1       | Reconnect storm protection    | Resilience        |
+
+### Phase 2 (Q3 2025)
+- Horizontal scaling design
+- Configuration hot-reload
+- Prometheus metrics integration
+- Binary message processing
+
+### Technical Debt Notes
+```mermaid
+graph TD
+    A[Receiver Service] --> B[Redis Connection Pool]
+    B --> C[Batch Processing]
+    C --> D{{Potential Bottleneck}}
+    D -->|High Volume| E[Memory Overflow Risk]
+    D -->|Network Issues| F[Data Loss Risk]
+
+    ## RECEIVER SERVICE IMPROVEMENTS (2025-06-15)
+
+### Critical Fixes Implemented:
+- **Reconnect Storm Protection**: 
+
+### Immediate Next Steps:
+1. Load testing with 10k msg/sec burst traffic
+2. Failover simulation (Redis restart during operation)
+3. Secret rotation validation

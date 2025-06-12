@@ -149,17 +149,22 @@ class StreamingAccountData:
                 break
 
     async def handle_reconnect(self) -> None:
-        """Handle reconnection with exponential backoff"""
+        """Handle reconnection with exponential backoff
+            jitter to reconnect timing
+        """
+        import random
+        
         self.reconnect_attempts += 1
-        delay = min(
-            self.reconnect_base_delay
-            * (2**self.reconnect_attempts),  # Use instance variable
-            self.max_reconnect_delay,  # Use instance variable
-        )
-
-        log.info(
-            f"Reconnecting attempt {self.reconnect_attempts} in {delay} seconds..."
-        )
+        base_delay = min(
+            self.reconnect_base_delay * (2 ** self.reconnect_attempts),
+            self.max_reconnect_delay
+            )
+    
+        # Add jitter (up to 50% of base delay)
+        jitter = base_delay * 0.5 * random.random()
+        delay = min(base_delay + jitter, self.max_reconnect_delay)
+        
+        log.info(f"Reconnecting attempt {self.reconnect_attempts} in {delay:.1f} seconds...")
         await asyncio.sleep(delay)
 
     async def process_messages(self, client_redis, exchange):
@@ -203,11 +208,22 @@ class StreamingAccountData:
 
                         log.info(f"serialized_data {serialized_data}")
 
-                        # Send batch when full
+
+                        # Cap batch size to prevent unbounded growth
+                        if len(batch) >= BATCH_SIZE * 2:
+                            # Keep only the latest BATCH_SIZE messages
+                            batch = batch[-BATCH_SIZE:]
+                            log.warning("Batch size capped to prevent memory growth")
+
+                        # cap the batch size.  Send batch when full
                         if len(batch) >= BATCH_SIZE:
-                            # Use the wrapper's xadd_bulk method
-                            await client_redis.xadd_bulk(STREAM_NAME, batch)
-                            batch = []
+                            try:
+                                await client_redis.xadd_bulk(STREAM_NAME, batch)
+                                batch = []
+                            except Exception as e:
+                                log.error(f"Redis batch send failed: {e}")
+                                # Still keep the batch for retry later
+                                
                 except Exception as e:
                     log.error(f"Message processing failed: {e}")
         finally:
@@ -253,12 +269,26 @@ class StreamingAccountData:
             "params": {},
         }
 
+
         try:
             await self.websocket_client.send(json.dumps(msg))
+            
+            # Wait for and validate response
+            response = await asyncio.wait_for(
+                self.websocket_client.recv(),
+                timeout=5.0
+            )
+            response_dict = orjson.loads(response)
+            
+            if response_dict.get("result") != "ok":
+                raise ConnectionError("Invalid heartbeat response")
+                
+        except asyncio.TimeoutError:
+            raise ConnectionError("Heartbeat response timeout")
         except Exception as error:
-            log.error(f"Heartbeat response failed: {error}")
-            await error_handling.parse_error_message_with_redis(client_redis, error)
-
+            log.error(f"Heartbeat failed: {error}")
+            raise ConnectionError("Heartbeat failure") from error
+        
     async def ws_auth(self, client_redis: Any) -> None:
         """Authenticate WebSocket connection"""
         if not self.websocket_client:

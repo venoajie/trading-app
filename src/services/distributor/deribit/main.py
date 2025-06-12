@@ -41,6 +41,8 @@ async def stream_consumer():
             log.info(f"Consumer group '{group_name}' already exists")
 
     log.info("Starting stream processing...")
+    
+    batch_size = 10
 
     while True:
         try:
@@ -78,7 +80,7 @@ async def stream_consumer():
                     },
                 )
 
-        except aioredis.ConnectionError:
+        except ConnectionError:
             log.error("Redis connection lost, reconnecting...")
             await asyncio.sleep(5)
         except Exception as error:
