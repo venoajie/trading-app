@@ -68,15 +68,12 @@ async def run_receiver():
         with open(config_path, "rb") as f:
             strategy_config = tomli.load(f)
 
-        # Get instruments
-        print(f"strategy_config {strategy_config}")
-        
         # get tradable strategies
-        tradable_config_app = config_app["tradable"]
+        tradable_config_app = strategy_config["tradable"]
         # get TRADABLE currencies
         currencies: list = [o["spot"] for o in tradable_config_app][0]
         
-        maintenance_threshold = config_app["ws"]["maintenance_threshold"]
+        maintenance_threshold = strategy_config["ws"]["maintenance_threshold"]
         resolutions = [1, 5, 15, 60]
         futures_instruments = await get_instrument_summary.get_futures_instruments(
             currencies, ["perpetual"]
