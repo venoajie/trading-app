@@ -17,6 +17,7 @@ references:
 
 # built ins
 import asyncio
+from typing import Any, Dict
 
 # installed
 import aiohttp
@@ -107,5 +108,8 @@ async def send_message(message: Dict[str, Any]):
     )
     await get_connected(
         get_basic_https(),
-        message_end_point(settings.TELEGRAM_BOT_TOKEN, settings.TELEGRAM_CHAT_ID, text),
+        message_end_point(
+            settings.TELEGRAM_BOT_TOKEN, 
+            settings.TELEGRAM_CHAT_ID, text,
+            ),
     )
