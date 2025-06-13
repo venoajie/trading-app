@@ -216,3 +216,4 @@ delete_row = postgres_client.delete_row
 update_status_data = postgres_client.update_status_data
 insert_trade_or_order = postgres_client.insert_trade_or_order
 fetch = postgres_client.fetch_active_trades
+insert_ohlc = postgres_client.insert_ohlc
