@@ -211,7 +211,7 @@ class StreamingAccountData:
                         continue
 
                     # Handle heartbeat setup responses
-                    if message_dict.get("id") == 9098:
+                    if message_dict.get("id") == 0:
                         if message_dict.get("result") == "ok":
                             log.info("Heartbeat established successfully")
                         continue
