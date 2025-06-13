@@ -130,9 +130,6 @@ class StreamingAccountData:
         while self.connection_active:
             await asyncio.sleep(self.heartbeat_interval)  # Use instance variable
             time_since_last = time.time() - self.last_message_time
-            
-            log.info(f"time_since_last {time_since_last} self.heartbeat_interval * 0.8 {self.heartbeat_interval * 0.8} self.maintenance_threshold {self.maintenance_threshold}")
-            log.info(f"time_since_last > self.heartbeat_interval * 0.8 {time_since_last > self.heartbeat_interval * 0.8} time_since_last > self.maintenance_threshold {time_since_last > self.maintenance_threshold}")
 
             # Detect extended silence (possible maintenance)
             if time_since_last > self.maintenance_threshold:
@@ -185,18 +182,21 @@ class StreamingAccountData:
 
                 try:
                     message_dict = orjson.loads(message)
-                    
+
                     # Handle heartbeat notifications (just log, no response needed)
                     if message_dict.get("method") == "heartbeat":
-                        
+
                         if message_dict.get("method") == "heartbeat":
                             log.info(f"Heartbeat received: {message_dict}")
                             # Check if it's a test request type
-                            if message_dict.get("params", {}).get("type") == "test_request":
+                            if (
+                                message_dict.get("params", {}).get("type")
+                                == "test_request"
+                            ):
                                 log.info("Responding to test_request heartbeat")
                                 await self.test_request_response()
                             continue
-            
+
                     # Handle authentication responses
                     if message_dict.get("id") == 9929:
                         self.handle_auth_response(message_dict)
@@ -230,7 +230,7 @@ class StreamingAccountData:
                             }
                         )
 
-                        #log.info(f"channel {channel}")
+                        # log.info(f"channel {channel}")
 
                         # Cap batch size to prevent unbounded growth
                         if len(batch) >= BATCH_SIZE * 2:
@@ -286,26 +286,16 @@ class StreamingAccountData:
             return
 
         # Proper test_request response according to Deribit docs
-        response = {
-            "jsonrpc": "2.0",
-            "id": 0,
-            "method": "public/test",
-            "params": {}
-        }
+        response = {"jsonrpc": "2.0", "id": 0, "method": "public/test", "params": {}}
 
         try:
             await self.websocket_client.send(json.dumps(response))
             log.debug("Responded to test_request")
         except Exception as error:
             log.error(f"Test request response failed: {error}")
-            
+
         # Send the required public/test response
-        response = {
-            "jsonrpc": "2.0",
-            "id": 0,
-            "method": "public/test",
-            "params": {}
-            }
+        response = {"jsonrpc": "2.0", "id": 0, "method": "public/test", "params": {}}
 
         try:
             await self.websocket_client.send(json.dumps(response))
