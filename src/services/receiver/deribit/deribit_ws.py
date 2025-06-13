@@ -78,9 +78,10 @@ class StreamingAccountData:
 
                 async with websockets.connect(
                     self.ws_connection_url,
-                    ping_interval=20,
-                    ping_timeout=60,
+                    ping_interval=None,
+                    ping_timeout=None,
                     close_timeout=60,
+                    compression=None,
                 ) as self.websocket_client:
                     log.info("WebSocket connection established")
                     self.last_message_time = time.time()
@@ -130,6 +131,13 @@ class StreamingAccountData:
             await asyncio.sleep(self.heartbeat_interval)  # Use instance variable
             time_since_last = time.time() - self.last_message_time
 
+            # If we're near the heartbeat threshold, send a test request
+            if time_since_last > self.heartbeat_interval * 0.8:
+                try:
+                    await self.heartbeat_response()
+                except Exception as e:
+                    log.warning(f"Preventive heartbeat failed: {e}")
+                    
             # Detect extended silence (possible maintenance)
             if time_since_last > self.maintenance_threshold:
                 alert = {
@@ -183,9 +191,21 @@ class StreamingAccountData:
                     message_dict = orjson.loads(message)
 
                     if message_dict.get("method") == "heartbeat":
-                        await self.heartbeat_response(client_redis)
+                        await self.heartbeat_response()
                         continue
 
+                    # Handle authentication responses
+                    if message_dict.get("id") == 9929:
+                        self.handle_auth_response(message_dict)
+                        continue
+                    
+                        
+                    # Handle heartbeat setup responses
+                    if message_dict.get("id") == 9098:
+                        if message_dict.get("result") == "ok":
+                            log.info("Heartbeat established successfully")
+                        continue
+                    
                     # Only process data messages
                     if "params" in message_dict and "channel" in message_dict["params"]:
                         channel = message_dict["params"]["channel"]
@@ -264,18 +284,18 @@ class StreamingAccountData:
             return
 
         # Send the required public/test response
-        msg = {
-            "jsonrpc": "2.0",
-            "id": 8212,
-            "method": "public/test",
-            "params": {},
-        }
+    response = {
+        "jsonrpc": "2.0",
+        "id": 8212,
+        "method": "public/test",
+        "params": {}
+    }
 
-        try:
-            await self.websocket_client.send(json.dumps(msg))
-        except Exception as error:
-            log.error(f"Heartbeat response failed: {error}")
-        
+    try:
+        await self.websocket_client.send(json.dumps(response))
+        log.debug("Sent heartbeat response")
+    except Exception as error:
+        log.error(f"Heartbeat response failed: {error}")
         
     async def ws_auth(self, client_redis: Any) -> None:
         """Authenticate WebSocket connection"""
