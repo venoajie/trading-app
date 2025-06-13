@@ -4,7 +4,7 @@
 WebSocket client for Deribit exchange with enhanced maintenance handling
 """
 
-
+import sys
 import asyncio
 import json
 import time
@@ -28,6 +28,7 @@ from src.shared.config.constants import (
     AddressUrl,
 )
 
+MAX_BATCH_MEMORY_MB = 100  # Max memory for batch in MB
 BATCH_SIZE = 50
 STREAM_NAME = ServiceConstants.REDIS_STREAM_MARKET
 batch = []
@@ -227,7 +228,9 @@ class StreamingAccountData:
         last_flush_time = time.time()  # Initialize flush timer
         retry_count = 0
         max_retries = 5
-
+        MAX_BATCH_ITEMS = 5000  # Hard limit of 5000 messages
+        MAX_BATCH_MEMORY_MB = 50  # 50MB maximum
+        
         try:
             async for message in self.websocket_client:
                 current_time = time.time()
@@ -268,6 +271,22 @@ class StreamingAccountData:
                             "timestamp": timestamp,
                             "exchange": exchange,
                         })
+                        
+                        
+                        
+                        # Memory safeguard - prevent batch from growing too large
+                        batch_size_bytes = 0
+                        for item in batch:
+                            batch_size_bytes += sys.getsizeof(item["channel"])
+                            batch_size_bytes += sys.getsizeof(item["data"])
+                            batch_size_bytes += sys.getsizeof(item["timestamp"])
+                            batch_size_bytes += sys.getsizeof(item["exchange"])
+
+                        if batch_size_bytes > MAX_BATCH_MEMORY_MB * 1024 * 1024:
+                            # Calculate how many messages to keep (newest 50%)
+                            keep_count = len(batch) // 2
+                            batch = batch[-keep_count:]
+                            log.warning(f"Batch memory exceeded {MAX_BATCH_MEMORY_MB}MB, truncated to {keep_count} messages")
 
                         # Cap batch size to prevent unbounded growth
                         if len(batch) >= BATCH_SIZE * 2:
@@ -281,6 +300,12 @@ class StreamingAccountData:
                 should_send = False
                 max_batch_age = 10  # Max seconds to hold batch
                 delta_flush_time = current_time - last_flush_time
+                
+                if len(batch) > MAX_BATCH_ITEMS:
+                    remove_count = len(batch) - MAX_BATCH_ITEMS
+                    del batch[:remove_count]
+                    log.warning(f"Batch overflow - removed {remove_count} messages")
+                
                 if len(batch) >= BATCH_SIZE:
                     should_send = True
                     log.debug("Batch full - sending")

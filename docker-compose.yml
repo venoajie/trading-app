@@ -14,11 +14,16 @@ services:
       retries: 3
     command: 
       - redis-server
-      - --maxmemory 2gb
-      - --maxmemory-policy volatile-lfu
-      - --save ""
-      - --bind 0.0.0.0
-      - --protected-mode no
+      - "--maxmemory 900mb"
+      - "--maxmemory-policy allkeys-lru"  # Changed from volatile-lfu
+      - "--activedefrag yes"  # Enable active defrag
+      - "--active-defrag-ignore-bytes 500mb"  # Start defrag when fragmentation >500MB
+      - "--active-defrag-threshold-lower 30"  # Aggressive defrag
+      - "--save ''"
+      - "--bind 0.0.0.0"
+      - "--protected-mode no"
+    mem_limit: 1g
+    mem_reservation: 768m
 
   receiver:
     profiles: ["full", "receiver"]
@@ -48,6 +53,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    mem_limit: 512m
+    mem_reservation: 384m
 
   distributor:
     profiles: ["full", "distributor"]
@@ -82,6 +89,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    mem_limit: 768m
+    mem_reservation: 512m
 
   postgres:
     image: postgres:17
@@ -109,6 +118,8 @@ services:
       - "max_connections=200"
       - "-c"
       - "work_mem=16MB"
+    mem_limit: 1g
+    mem_reservation: 768m
 
 volumes:
   redis-data:
