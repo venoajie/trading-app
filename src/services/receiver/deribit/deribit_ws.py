@@ -221,110 +221,109 @@ class StreamingAccountData:
         )
         await asyncio.sleep(delay)
 
-async def process_messages(self, client_redis, exchange):
-    """Process incoming messages with state recovery"""
-    batch = []  # Local batch per connection
-    last_flush_time = time.time()  # Initialize flush timer
-    retry_count = 0
-    max_retries = 5
+    async def process_messages(self, client_redis, exchange):
+        """Process incoming messages with state recovery"""
+        batch = []  # Local batch per connection
+        last_flush_time = time.time()  # Initialize flush timer
+        retry_count = 0
+        max_retries = 5
 
-    try:
-        async for message in self.websocket_client:
-            current_time = time.time()
-            self.last_message_time = current_time
+        try:
+            async for message in self.websocket_client:
+                current_time = time.time()
+                self.last_message_time = current_time
 
-            try:
-                message_dict = orjson.loads(message)
+                try:
+                    message_dict = orjson.loads(message)
 
-                # Handle heartbeat notifications
-                if message_dict.get("method") == "heartbeat":
-                    if message_dict.get("params", {}).get("type") == "test_request":
-                        log.info("Responding to test_request heartbeat")
-                        await self.test_request_response()
-                    continue
+                    # Handle heartbeat notifications
+                    if message_dict.get("method") == "heartbeat":
+                        if message_dict.get("params", {}).get("type") == "test_request":
+                            log.info("Responding to test_request heartbeat")
+                            await self.test_request_response()
+                        continue
 
-                # Handle authentication responses
-                if message_dict.get("id") == 9929:
-                    self.handle_auth_response(message_dict)
-                    continue
+                    # Handle authentication responses
+                    if message_dict.get("id") == 9929:
+                        self.handle_auth_response(message_dict)
+                        continue
 
-                # Handle heartbeat setup responses
-                if message_dict.get("id") == 0:
-                    if message_dict.get("result") == "ok":
-                        log.info("Heartbeat established successfully")
-                    continue
+                    # Handle heartbeat setup responses
+                    if message_dict.get("id") == 0:
+                        if message_dict.get("result") == "ok":
+                            log.info("Heartbeat established successfully")
+                        continue
 
-                # Process data messages
-                if "params" in message_dict and "channel" in message_dict["params"]:
-                    channel = message_dict["params"]["channel"]
-                    data = message_dict["params"]["data"]
-                    serialized_data = orjson.dumps(data).decode("utf-8")
-                    timestamp = str(int(current_time * 1000))
+                    # Process data messages
+                    if "params" in message_dict and "channel" in message_dict["params"]:
+                        channel = message_dict["params"]["channel"]
+                        data = message_dict["params"]["data"]
+                        serialized_data = orjson.dumps(data).decode("utf-8")
+                        timestamp = str(int(current_time * 1000))
 
-                    # Add to batch
-                    batch.append({
-                        "channel": channel,
-                        "data": serialized_data,
-                        "timestamp": timestamp,
-                        "exchange": exchange,
-                    })
+                        # Add to batch
+                        batch.append({
+                            "channel": channel,
+                            "data": serialized_data,
+                            "timestamp": timestamp,
+                            "exchange": exchange,
+                        })
 
-                    # Cap batch size to prevent unbounded growth
-                    if len(batch) >= BATCH_SIZE * 2:
-                        batch = batch[-BATCH_SIZE:]
-                        log.warning("Batch size capped to prevent memory growth")
+                        # Cap batch size to prevent unbounded growth
+                        if len(batch) >= BATCH_SIZE * 2:
+                            batch = batch[-BATCH_SIZE:]
+                            log.warning("Batch size capped to prevent memory growth")
 
-            except Exception as e:
-                log.error(f"Message processing failed: {e}")
-            
-            # Check if we should send batch (size or time-based)
-            should_send = False
-            max_batch_age = 10  # Max seconds to hold batch
-            delta_flush_time = current_time - last_flush_time
-            if len(batch) >= BATCH_SIZE:
-                should_send = True
-                log.debug("Batch full - sending")
-            elif batch and delta_flush_time > 5:
-                should_send = True
-                log.debug("Periodic flush - sending")
-            elif batch and delta_flush_time > max_batch_age:
-                should_send = True
-                log.debug(f"Batch age {delta_flush_time:.1f}s > {max_batch_age}s - forcing send")
-            
-            if should_send:
-                send_success = False
-                attempt = 0
+                except Exception as e:
+                    log.error(f"Message processing failed: {e}")
                 
-                while attempt < max_retries and not send_success:
-                    try:
-                        await client_redis.xadd_bulk(STREAM_NAME, batch)
-                        batch = []  # Clear only on success
-                        last_flush_time = current_time
-                        send_success = True
-                        retry_count = 0  # Reset retry counter on success
-                    except (ConnectionError, TimeoutError) as e:
-                        attempt += 1
-                        retry_count += 1
-                        delay = min(2 ** attempt, 10)
-                        log.warning(f"Redis error ({attempt}/{max_retries}): {e}")
-                        await asyncio.sleep(delay)
-                    except Exception as e:
-                        log.error(f"Redis batch send failed: {e}")
-                        break  # Break on non-recoverable errors
-                        
-                if not send_success:
-                    log.error(f"Failed to send batch after {max_retries} attempts")
-                    # Keep batch for next attempt
-                        
-    finally:
-        # Send any remaining messages on disconnect
-        if batch:
-            try:
-                log.debug(f"Sending final batch of {len(batch)} messages")
-                await client_redis.xadd_bulk(STREAM_NAME, batch)
-            except Exception as e:
-                log.error(f"Failed to send final batch: {e}")
-
+                # Check if we should send batch (size or time-based)
+                should_send = False
+                max_batch_age = 10  # Max seconds to hold batch
+                delta_flush_time = current_time - last_flush_time
+                if len(batch) >= BATCH_SIZE:
+                    should_send = True
+                    log.debug("Batch full - sending")
+                elif batch and delta_flush_time > 5:
+                    should_send = True
+                    log.debug("Periodic flush - sending")
+                elif batch and delta_flush_time > max_batch_age:
+                    should_send = True
+                    log.debug(f"Batch age {delta_flush_time:.1f}s > {max_batch_age}s - forcing send")
+                
+                if should_send:
+                    send_success = False
+                    attempt = 0
+                    
+                    while attempt < max_retries and not send_success:
+                        try:
+                            await client_redis.xadd_bulk(STREAM_NAME, batch)
+                            batch = []  # Clear only on success
+                            last_flush_time = current_time
+                            send_success = True
+                            retry_count = 0  # Reset retry counter on success
+                        except (ConnectionError, TimeoutError) as e:
+                            attempt += 1
+                            retry_count += 1
+                            delay = min(2 ** attempt, 10)
+                            log.warning(f"Redis error ({attempt}/{max_retries}): {e}")
+                            await asyncio.sleep(delay)
+                        except Exception as e:
+                            log.error(f"Redis batch send failed: {e}")
+                            break  # Break on non-recoverable errors
+                            
+                    if not send_success:
+                        log.error(f"Failed to send batch after {max_retries} attempts")
+                        # Keep batch for next attempt
+                            
+        finally:
+            # Send any remaining messages on disconnect
+            if batch:
+                try:
+                    log.debug(f"Sending final batch of {len(batch)} messages")
+                    await client_redis.xadd_bulk(STREAM_NAME, batch)
+                except Exception as e:
+                    log.error(f"Failed to send final batch: {e}")
 
     async def manage_connection(
         self,
