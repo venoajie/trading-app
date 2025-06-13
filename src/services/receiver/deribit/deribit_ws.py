@@ -190,10 +190,16 @@ class StreamingAccountData:
                 try:
                     message_dict = orjson.loads(message)
 
-                    if message_dict.get("method") == "heartbeat":
-                        await self.heartbeat_response()
+                    # Handle test_request messages (the actual heartbeats)
+                    if message_dict.get("method") == "test_request":
+                        await self.test_request_response()
                         continue
-
+                    
+                    # Handle heartbeat notifications (just log, no response needed)
+                    if message_dict.get("method") == "heartbeat":
+                        log.debug("Received heartbeat notification")
+                        continue
+                                    
                     # Handle authentication responses
                     if message_dict.get("id") == 9929:
                         self.handle_auth_response(message_dict)
@@ -276,6 +282,26 @@ class StreamingAccountData:
         except KeyError as e:
             log.error(f"Missing key in auth response: {e}")
 
+    async def test_request_response(self) -> None:
+        """Respond to Deribit test_request messages"""
+        if not self.websocket_client:
+            log.error("Cannot respond to test_request - WebSocket not connected")
+            return
+
+        # Proper test_request response according to Deribit docs
+        response = {
+            "jsonrpc": "2.0",
+            "id": 8212,
+            "method": "public/test",
+            "params": {}
+        }
+
+        try:
+            await self.websocket_client.send(json.dumps(response))
+            log.debug("Responded to test_request")
+        except Exception as error:
+            log.error(f"Test request response failed: {error}")
+            
     async def heartbeat_response(self, client_redis: Any, message_dict: Dict) -> None:
         """Respond to Deribit heartbeat requests"""
         if not self.websocket_client:
@@ -414,7 +440,7 @@ class StreamingAccountData:
             "jsonrpc": "2.0",
             "id": 9098,
             "method": "public/set_heartbeat",
-            "params": {"interval": 10},
+            "params": {"interval": 30},
         }
 
         try:
