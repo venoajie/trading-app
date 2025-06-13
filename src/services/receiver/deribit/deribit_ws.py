@@ -61,6 +61,39 @@ class StreamingAccountData:
         """Initialize event loop reference"""
         self.loop = asyncio.get_event_loop()
 
+    async def ws_refresh_auth(self) -> None:
+        """Refresh authentication token periodically"""
+        while self.connection_active:
+            try:
+                if not self.refresh_token_expiry_time:
+                    await asyncio.sleep(30)
+                    continue
+
+                now_utc = datetime.now(timezone.utc)
+                if now_utc >= self.refresh_token_expiry_time:
+                    if not self.websocket_client:
+                        log.warning("Skipping refresh - WebSocket not connected")
+                        await asyncio.sleep(30)
+                        continue
+
+                    msg = {
+                        "jsonrpc": "2.0",
+                        "id": 9929,
+                        "method": "public/auth",
+                        "params": {
+                            "grant_type": "refresh_token",
+                            "refresh_token": self.refresh_token,
+                        },
+                    }
+                    await self.websocket_client.send(json.dumps(msg))
+                    log.debug("Authentication refresh sent")
+
+                # Check every 30 seconds
+                await asyncio.sleep(30)
+            except Exception as e:
+                log.error(f"Error in auth refresh: {e}")
+                await asyncio.sleep(60)
+
     async def manage_connection(
         self,
         client_redis: Any,
@@ -331,39 +364,6 @@ async def process_messages(self, client_redis, exchange):
         except Exception as error:
             log.error(f"Authentication failed: {error}")
             await error_handling.parse_error_message_with_redis(client_redis, error)
-
-    async def ws_refresh_auth(self) -> None:
-        """Refresh authentication token periodically"""
-        while self.connection_active:
-            try:
-                if not self.refresh_token_expiry_time:
-                    await asyncio.sleep(30)
-                    continue
-
-                now_utc = datetime.now(timezone.utc)
-                if now_utc >= self.refresh_token_expiry_time:
-                    if not self.websocket_client:
-                        log.warning("Skipping refresh - WebSocket not connected")
-                        await asyncio.sleep(30)
-                        continue
-
-                    msg = {
-                        "jsonrpc": "2.0",
-                        "id": 9929,
-                        "method": "public/auth",
-                        "params": {
-                            "grant_type": "refresh_token",
-                            "refresh_token": self.refresh_token,
-                        },
-                    }
-                    await self.websocket_client.send(json.dumps(msg))
-                    log.debug("Authentication refresh sent")
-
-                # Check every 30 seconds
-                await asyncio.sleep(30)
-            except Exception as e:
-                log.error(f"Error in auth refresh: {e}")
-                await asyncio.sleep(60)
 
     async def authenticate_and_setup(
         self,
