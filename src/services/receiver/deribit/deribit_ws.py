@@ -293,6 +293,13 @@ class StreamingAccountData:
                             batch = batch[-BATCH_SIZE:]
                             log.warning("Batch size capped to prevent memory growth")
 
+
+                        if len(batch) > MAX_BATCH_ITEMS:
+                            # Remove oldest 20% of messages
+                            remove_count = len(batch) // 5
+                            del batch[:remove_count]
+                            log.warning(f"Batch overflow - removed {remove_count} messages")
+
                 except Exception as e:
                     log.error(f"Message processing failed: {e}")
                 
