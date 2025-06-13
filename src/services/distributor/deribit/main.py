@@ -28,14 +28,14 @@ async def stream_consumer():
     # Ensure consumer group exists
     try:
         await redis.xgroup_create(
-            stream_name,  # Use constant from module
+            stream_name, 
             group_name,
             id="0",
             mkstream=True,
         )
         log.info(f"Created consumer group '{group_name}' for stream '{stream_name}'")
     except Exception as e:
-        if "BUSYGROUP" not in str(e):
+        if "BUSYGROUP" not in str(e):  # Group already exists is OK
             log.error(f"Error creating consumer group: {e}")
             raise
         else:

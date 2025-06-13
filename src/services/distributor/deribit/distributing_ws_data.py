@@ -17,7 +17,7 @@ from src.shared.utils import error_handling, string_modification as str_mod
 from loguru import logger as log
 
 # Constants
-STREAM_NAME = "market_data:deribit"
+STREAM_NAME = ServiceConstants.REDIS_STREAMS["MARKET_DATA"]
 GROUP_NAME = "dispatcher_group"
 CONSUMER_NAME = "dispatcher_consumer"
 BATCH_SIZE = 100

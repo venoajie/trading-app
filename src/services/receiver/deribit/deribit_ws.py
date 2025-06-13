@@ -182,10 +182,8 @@ class StreamingAccountData:
                 try:
                     message_dict = orjson.loads(message)
 
-                    if message_dict.get("method") == "public/test":
-                        await self.heartbeat_response(
-                            client_redis, message_dict
-                        )  # Pass message_dict
+                    if message_dict.get("method") == "heartbeat":
+                        await self.heartbeat_response(client_redis)
                         continue
 
                     # Only process data messages
@@ -265,17 +263,20 @@ class StreamingAccountData:
             log.error("Cannot send heartbeat - WebSocket not connected")
             return
 
-        response = {
-            "jsonrpc": "2.0",
-            "id": message_dict["id"],  # Use same ID as request
-            "result": "ok",
-        }
+    # Send the required public/test response
+    msg = {
+        "jsonrpc": "2.0",
+        "id": 8212,
+        "method": "public/test",
+        "params": {},
+    }
 
-        try:
-            await self.websocket_client.send(json.dumps(response))
-        except Exception as error:
-            log.error(f"Heartbeat response failed: {error}")
-
+    try:
+        await self.websocket_client.send(json.dumps(msg))
+    except Exception as error:
+        log.error(f"Heartbeat response failed: {error}")
+        
+        
     async def ws_auth(self, client_redis: Any) -> None:
         """Authenticate WebSocket connection"""
         if not self.websocket_client:
