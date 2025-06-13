@@ -130,6 +130,9 @@ class StreamingAccountData:
         while self.connection_active:
             await asyncio.sleep(self.heartbeat_interval)  # Use instance variable
             time_since_last = time.time() - self.last_message_time
+            
+            log.info(f"time_since_last {time_since_last} self.heartbeat_interval * 0.8 {self.heartbeat_interval * 0.8} self.maintenance_threshold {self.maintenance_threshold}")
+            log.inf(f"time_since_last > self.heartbeat_interval * 0.8 {time_since_last > self.heartbeat_interval * 0.8} time_since_last > self.maintenance_threshold {time_since_last > self.maintenance_threshold}")
 
             # If we're near the heartbeat threshold, send a test request
             if time_since_last > self.heartbeat_interval * 0.8:
@@ -192,11 +195,13 @@ class StreamingAccountData:
 
                     # Handle test_request messages (the actual heartbeats)
                     if message_dict.get("method") == "test_request":
+                        log.info(f"test_request {message_dict}")
                         await self.test_request_response()
                         continue
                     
                     # Handle heartbeat notifications (just log, no response needed)
                     if message_dict.get("method") == "heartbeat":
+                        log.info(f"heartbeat {message_dict}")
                         log.debug("Received heartbeat notification")
                         continue
                                     
@@ -233,7 +238,7 @@ class StreamingAccountData:
                             }
                         )
 
-                        log.info(f"serialized_data {serialized_data}")
+                        log.info(f"channel {channel}")
 
                         # Cap batch size to prevent unbounded growth
                         if len(batch) >= BATCH_SIZE * 2:
@@ -438,7 +443,7 @@ class StreamingAccountData:
 
         msg = {
             "jsonrpc": "2.0",
-            "id": 9098,
+            "id": 0,
             "method": "public/set_heartbeat",
             "params": {"interval": 30},
         }
