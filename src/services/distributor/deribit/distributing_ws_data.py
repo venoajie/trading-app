@@ -63,9 +63,6 @@ async def process_message(
         currency = str_mod.extract_currency_from_text(channel)
 
         # Add detailed logging
-        log.info(
-            f"Processing message {message_id} | Channel: {channel} | Currency: {currency}"
-        )
         log.debug(f"Message payload: {payload}")
 
         # Get currency-specific lock
@@ -116,20 +113,6 @@ async def stream_consumer(redis: Any, state: Dict[str, Any]) -> None:
 
     while True:
         try:
-            # Claim pending messages first
-            # pending = await redis.xpending_range(
-            #    STREAM_NAME,
-            #    GROUP_NAME
-            #    )
-            # if pending:
-            #    await redis.xclaim(
-            #        STREAM_NAME,
-            #        GROUP_NAME,
-            #        CONSUMER_NAME,
-            #        30000,
-            #        [msg.id for msg in pending]
-            #    )
-
             # Read new messages
             messages = await redis.xreadgroup(
                 groupname=GROUP_NAME,
