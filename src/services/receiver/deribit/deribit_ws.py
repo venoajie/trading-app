@@ -94,6 +94,48 @@ class StreamingAccountData:
                 log.error(f"Error in auth refresh: {e}")
                 await asyncio.sleep(60)
 
+    async def ws_auth(self, client_redis: Any) -> None:
+        """Authenticate WebSocket connection"""
+        if not self.websocket_client:
+            log.error("Cannot authenticate - WebSocket not connected")
+            return
+
+        msg = {
+            "jsonrpc": "2.0",
+            "id": 9929,
+            "method": "public/auth",
+            "params": {
+                "grant_type": "client_credentials",
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+            },
+        }
+
+        try:
+            await self.websocket_client.send(json.dumps(msg))
+        except Exception as error:
+            log.error(f"Authentication failed: {error}")
+            await error_handling.parse_error_message_with_redis(client_redis, error)
+
+    async def establish_heartbeat(self, client_redis: Any) -> None:
+        """Establish heartbeat with Deribit"""
+        if not self.websocket_client:
+            log.error("Cannot establish heartbeat - WebSocket not connected")
+            return
+
+        msg = {
+            "jsonrpc": "2.0",
+            "id": 0,
+            "method": "public/set_heartbeat",
+            "params": {"interval": 30},
+        }
+
+        try:
+            await self.websocket_client.send(json.dumps(msg))
+        except Exception as error:
+            log.error(f"Heartbeat setup failed: {error}")
+            await error_handling.parse_error_message_with_redis(client_redis, error)
+
     async def authenticate_and_setup(
         self,
         client_redis: Any,
@@ -117,54 +159,6 @@ class StreamingAccountData:
             ws_channel=ws_instruments,
             source="ws-combination",
         )
-
-    async def manage_connection(
-        self,
-        client_redis: Any,
-        exchange: str,
-        futures_instruments: Dict[str, Any],
-        resolutions: List[str],
-    ) -> None:
-        """Main connection loop with maintenance detection"""
-        while True:
-            try:
-                # Reset state for new connection
-                self.connection_active = True
-                self.reconnect_attempts = 0
-                self.maintenance_mode = False
-
-                async with websockets.connect(
-                    self.ws_connection_url,
-                    ping_interval=None,
-                    ping_timeout=None,
-                    close_timeout=60,
-                    compression=None,
-                ) as self.websocket_client:
-                    log.info("WebSocket connection established")
-                    self.last_message_time = time.time()
-
-                    # Create background tasks
-                    self.heartbeat_task = asyncio.create_task(
-                        self.monitor_heartbeat(client_redis)
-                    )
-                    self.refresh_task = asyncio.create_task(self.ws_refresh_auth())
-
-                    # Setup subscriptions
-                    await self.authenticate_and_setup(
-                        client_redis, exchange, futures_instruments, resolutions
-                    )
-
-                    # Process incoming messages
-                    await self.process_messages(client_redis, exchange)
-
-            except (websockets.ConnectionClosed, ConnectionError) as e:
-                log.warning(f"Connection closed: {e}")
-            except Exception as e:
-                log.error(f"Unexpected connection error: {e}")
-            finally:
-                self.connection_active = False
-                await self.cancel_background_tasks()
-                await self.handle_reconnect()
 
     async def cancel_background_tasks(self) -> None:
         """Safely cancel background tasks"""
@@ -332,6 +326,54 @@ async def process_messages(self, client_redis, exchange):
                 log.error(f"Failed to send final batch: {e}")
 
 
+    async def manage_connection(
+        self,
+        client_redis: Any,
+        exchange: str,
+        futures_instruments: Dict[str, Any],
+        resolutions: List[str],
+    ) -> None:
+        """Main connection loop with maintenance detection"""
+        while True:
+            try:
+                # Reset state for new connection
+                self.connection_active = True
+                self.reconnect_attempts = 0
+                self.maintenance_mode = False
+
+                async with websockets.connect(
+                    self.ws_connection_url,
+                    ping_interval=None,
+                    ping_timeout=None,
+                    close_timeout=60,
+                    compression=None,
+                ) as self.websocket_client:
+                    log.info("WebSocket connection established")
+                    self.last_message_time = time.time()
+
+                    # Create background tasks
+                    self.heartbeat_task = asyncio.create_task(
+                        self.monitor_heartbeat(client_redis)
+                    )
+                    self.refresh_task = asyncio.create_task(self.ws_refresh_auth())
+
+                    # Setup subscriptions
+                    await self.authenticate_and_setup(
+                        client_redis, exchange, futures_instruments, resolutions
+                    )
+
+                    # Process incoming messages
+                    await self.process_messages(client_redis, exchange)
+
+            except (websockets.ConnectionClosed, ConnectionError) as e:
+                log.warning(f"Connection closed: {e}")
+            except Exception as e:
+                log.error(f"Unexpected connection error: {e}")
+            finally:
+                self.connection_active = False
+                await self.cancel_background_tasks()
+                await self.handle_reconnect()
+
     def handle_auth_response(self, message: Dict) -> None:
         """Handle authentication responses"""
         try:
@@ -366,29 +408,6 @@ async def process_messages(self, client_redis, exchange):
         except Exception as error:
             log.error(f"Test request response failed: {error}")
 
-    async def ws_auth(self, client_redis: Any) -> None:
-        """Authenticate WebSocket connection"""
-        if not self.websocket_client:
-            log.error("Cannot authenticate - WebSocket not connected")
-            return
-
-        msg = {
-            "jsonrpc": "2.0",
-            "id": 9929,
-            "method": "public/auth",
-            "params": {
-                "grant_type": "client_credentials",
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-            },
-        }
-
-        try:
-            await self.websocket_client.send(json.dumps(msg))
-        except Exception as error:
-            log.error(f"Authentication failed: {error}")
-            await error_handling.parse_error_message_with_redis(client_redis, error)
-
     def generate_subscription_list(
         self, instruments_name: List[str], resolutions: List[str]
     ) -> List[str]:
@@ -416,25 +435,6 @@ async def process_messages(self, client_redis, exchange):
             ws_instruments.append(f"incremental_ticker.{instrument}")
 
         return ws_instruments
-
-    async def establish_heartbeat(self, client_redis: Any) -> None:
-        """Establish heartbeat with Deribit"""
-        if not self.websocket_client:
-            log.error("Cannot establish heartbeat - WebSocket not connected")
-            return
-
-        msg = {
-            "jsonrpc": "2.0",
-            "id": 0,
-            "method": "public/set_heartbeat",
-            "params": {"interval": 30},
-        }
-
-        try:
-            await self.websocket_client.send(json.dumps(msg))
-        except Exception as error:
-            log.error(f"Heartbeat setup failed: {error}")
-            await error_handling.parse_error_message_with_redis(client_redis, error)
 
     async def ws_operation(
         self,
