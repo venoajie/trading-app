@@ -263,18 +263,18 @@ class StreamingAccountData:
             log.error("Cannot send heartbeat - WebSocket not connected")
             return
 
-    # Send the required public/test response
-    msg = {
-        "jsonrpc": "2.0",
-        "id": 8212,
-        "method": "public/test",
-        "params": {},
-    }
+        # Send the required public/test response
+        msg = {
+            "jsonrpc": "2.0",
+            "id": 8212,
+            "method": "public/test",
+            "params": {},
+        }
 
-    try:
-        await self.websocket_client.send(json.dumps(msg))
-    except Exception as error:
-        log.error(f"Heartbeat response failed: {error}")
+        try:
+            await self.websocket_client.send(json.dumps(msg))
+        except Exception as error:
+            log.error(f"Heartbeat response failed: {error}")
         
         
     async def ws_auth(self, client_redis: Any) -> None:
