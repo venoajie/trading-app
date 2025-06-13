@@ -28,7 +28,7 @@ async def stream_consumer():
     # Ensure consumer group exists
     try:
         await redis.xgroup_create(
-            stream_name, 
+            stream_name,
             group_name,
             id="0",
             mkstream=True,

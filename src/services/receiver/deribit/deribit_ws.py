@@ -137,7 +137,7 @@ class StreamingAccountData:
                     await self.heartbeat_response()
                 except Exception as e:
                     log.warning(f"Preventive heartbeat failed: {e}")
-                    
+
             # Detect extended silence (possible maintenance)
             if time_since_last > self.maintenance_threshold:
                 alert = {
@@ -198,14 +198,13 @@ class StreamingAccountData:
                     if message_dict.get("id") == 9929:
                         self.handle_auth_response(message_dict)
                         continue
-                    
-                        
+
                     # Handle heartbeat setup responses
                     if message_dict.get("id") == 9098:
                         if message_dict.get("result") == "ok":
                             log.info("Heartbeat established successfully")
                         continue
-                    
+
                     # Only process data messages
                     if "params" in message_dict and "channel" in message_dict["params"]:
                         channel = message_dict["params"]["channel"]
@@ -283,20 +282,20 @@ class StreamingAccountData:
             log.error("Cannot send heartbeat - WebSocket not connected")
             return
 
-        # Send the required public/test response
-    response = {
-        "jsonrpc": "2.0",
-        "id": 8212,
-        "method": "public/test",
-        "params": {}
-    }
+            # Send the required public/test response
+            response = {
+                "jsonrpc": "2.0",
+                "id": 8212,
+                "method": "public/test",
+                "params": {},
+            }
 
-    try:
-        await self.websocket_client.send(json.dumps(response))
-        log.debug("Sent heartbeat response")
-    except Exception as error:
-        log.error(f"Heartbeat response failed: {error}")
-        
+            try:
+                await self.websocket_client.send(json.dumps(response))
+                log.debug("Sent heartbeat response")
+            except Exception as error:
+                log.error(f"Heartbeat response failed: {error}")
+
     async def ws_auth(self, client_redis: Any) -> None:
         """Authenticate WebSocket connection"""
         if not self.websocket_client:
