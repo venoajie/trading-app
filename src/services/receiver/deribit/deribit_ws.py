@@ -150,21 +150,23 @@ class StreamingAccountData:
 
     async def handle_reconnect(self) -> None:
         """Handle reconnection with exponential backoff
-            jitter to reconnect timing
+        jitter to reconnect timing
         """
         import random
-        
+
         self.reconnect_attempts += 1
         base_delay = min(
-            self.reconnect_base_delay * (2 ** self.reconnect_attempts),
-            self.max_reconnect_delay
-            )
-    
+            self.reconnect_base_delay * (2**self.reconnect_attempts),
+            self.max_reconnect_delay,
+        )
+
         # Add jitter (up to 50% of base delay)
         jitter = base_delay * 0.5 * random.random()
         delay = min(base_delay + jitter, self.max_reconnect_delay)
-        
-        log.info(f"Reconnecting attempt {self.reconnect_attempts} in {delay:.1f} seconds...")
+
+        log.info(
+            f"Reconnecting attempt {self.reconnect_attempts} in {delay:.1f} seconds..."
+        )
         await asyncio.sleep(delay)
 
     async def process_messages(self, client_redis, exchange):
@@ -180,8 +182,10 @@ class StreamingAccountData:
                 try:
                     message_dict = orjson.loads(message)
 
-                    if message_dict.get("method") == "heartbeat":
-                        await self.heartbeat_response(client_redis)
+                    if message_dict.get("method") == "public/test":
+                        await self.heartbeat_response(
+                            client_redis, message_dict
+                        )  # Pass message_dict
                         continue
 
                     # Only process data messages
@@ -208,7 +212,6 @@ class StreamingAccountData:
 
                         log.info(f"serialized_data {serialized_data}")
 
-
                         # Cap batch size to prevent unbounded growth
                         if len(batch) >= BATCH_SIZE * 2:
                             # Keep only the latest BATCH_SIZE messages
@@ -223,7 +226,7 @@ class StreamingAccountData:
                             except Exception as e:
                                 log.error(f"Redis batch send failed: {e}")
                                 # Still keep the batch for retry later
-                                
+
                 except Exception as e:
                     log.error(f"Message processing failed: {e}")
         finally:
@@ -256,39 +259,23 @@ class StreamingAccountData:
         except KeyError as e:
             log.error(f"Missing key in auth response: {e}")
 
-    async def heartbeat_response(self, client_redis: Any) -> None:
+    async def heartbeat_response(self, client_redis: Any, message_dict: Dict) -> None:
         """Respond to Deribit heartbeat requests"""
         if not self.websocket_client:
             log.error("Cannot send heartbeat - WebSocket not connected")
             return
 
-        msg = {
+        response = {
             "jsonrpc": "2.0",
-            "id": 8212,
-            "method": "public/test",
-            "params": {},
+            "id": message_dict["id"],  # Use same ID as request
+            "result": "ok",
         }
 
-
         try:
-            await self.websocket_client.send(json.dumps(msg))
-            
-            # Wait for and validate response
-            response = await asyncio.wait_for(
-                self.websocket_client.recv(),
-                timeout=5.0
-            )
-            response_dict = orjson.loads(response)
-            
-            if response_dict.get("result") != "ok":
-                raise ConnectionError("Invalid heartbeat response")
-                
-        except asyncio.TimeoutError:
-            raise ConnectionError("Heartbeat response timeout")
+            await self.websocket_client.send(json.dumps(response))
         except Exception as error:
-            log.error(f"Heartbeat failed: {error}")
-            raise ConnectionError("Heartbeat failure") from error
-        
+            log.error(f"Heartbeat response failed: {error}")
+
     async def ws_auth(self, client_redis: Any) -> None:
         """Authenticate WebSocket connection"""
         if not self.websocket_client:

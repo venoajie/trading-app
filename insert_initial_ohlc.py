@@ -24,20 +24,33 @@ async def insert_ohlc(
     resolution: int = 1,
     qty_candles: int = 6000,
 ) -> None:
-
     ohlc_request = await end_point.get_ohlc(
         instrument_name, resolution, qty_candles, None, True
     )
 
-    log.info(ohlc_request)
+    if not ohlc_request:
+        log.error(f"No OHLC data for {instrument_name}")
+        return
 
-    result = transform_nested_dict_to_list(ohlc_request)
+    table = f"ohlc{resolution}_{currency.lower()}_perp"
 
-    table = f"ohlc{resolution}_{currency.lower()}_perp_json"
+    # Transform array-based OHLC to dict-per-candle format
+    candles = []
+    for i in range(len(ohlc_request["t"])):
+        candle = {
+            "tick": ohlc_request["t"][i],
+            "open": ohlc_request["open"][i],
+            "high": ohlc_request["high"][i],
+            "low": ohlc_request["low"][i],
+            "close": ohlc_request["close"][i],
+            "volume": ohlc_request["volume"][i],
+        }
+        if "cost" in ohlc_request:
+            candle["cost"] = ohlc_request["cost"][i]
+        candles.append(candle)
 
-    for data in result:
-        log.debug(f"insert tables {table}")
-        await sqlite_management.insert_tables(table, data)
+    for candle in candles:
+        await postgres_client.insert_ohlc(table, candle)
 
 
 async def main():

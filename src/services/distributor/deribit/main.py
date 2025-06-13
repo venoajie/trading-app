@@ -17,6 +17,7 @@ from src.services.distributor.deribit import distributing_ws_data
 from src.shared.config.constants import ServiceConstants
 from src.shared.config.config import config
 
+
 async def stream_consumer():
     """Main stream processing loop"""
     redis = await redis_client.get_pool()
@@ -41,7 +42,7 @@ async def stream_consumer():
             log.info(f"Consumer group '{group_name}' already exists")
 
     log.info("Starting stream processing...")
-    
+
     batch_size = 10
 
     while True:

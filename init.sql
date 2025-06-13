@@ -1,98 +1,99 @@
 -- init.sql
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
--- data example for instruments table
---
---        result_example = {
---            "id": 5,
---            "result": {           
---            "price_index":"eth_usd"
-  --          "rfq":false
-    --        "kind":"future" 
-      --      "min_trade_amount":1
-        --    "instrument_name":"ETH-20JUN25"
---            "maker_commission":-0.0001
---            "taker_commission":0.0005
---            "instrument_type":"reversed"
---            "expiration_timestamp":1750406400000
---            "creation_timestamp":1749196812000
---            "is_active":true
---            "tick_size":0.25
---            "contract_size":1
---            "instrument_id":472680
---            "settlement_period":"week"
---            "future_type":"reversed"
---            "max_leverage":25
---            "max_liquidation_commission":0.009
---            "block_trade_commission":0.00025
---            "block_trade_min_trade_amount":100000
---            "block_trade_tick_size":0.01
---            "settlement_currency":"ETH"
---            "base_currency":"ETH"
---            "counter_currency":"USD"
---            "quote_currency":"USD"
---            }
+CREATE TABLE account_information (
+    id SERIAL PRIMARY KEY,
+    data JSONB NOT NULL,
+    type TEXT GENERATED ALWAYS AS (
+        CASE 
+            WHEN data ? 'orders' THEN 'user_changes'
+            WHEN data ? 'channel' THEN 'portfolio'
+        END
+    ) STORED,
+    recorded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
 
---
+-- Indexes for efficient querying
+CREATE INDEX idx_account_info_type ON account_information (type);
+CREATE INDEX idx_account_info_data ON account_information USING GIN (data);
 
 
-
+CREATE TABLE instruments (
+    id SERIAL PRIMARY KEY,
+    data JSONB NOT NULL,
+    kind TEXT GENERATED ALWAYS AS ((data->>'kind')::TEXT) STORED,
+    instrument_name TEXT GENERATED ALWAYS AS ((data->>'instrument_name')::TEXT) STORED,
+    base_currency TEXT GENERATED ALWAYS AS ((data->>'base_currency')::TEXT) STORED,
+    settlement_period TEXT GENERATED ALWAYS AS ((data->>'settlement_period')::TEXT) STORED,
+    tick_size NUMERIC GENERATED ALWAYS AS ((data->>'tick_size')::NUMERIC) STORED,
+    expiration_timestamp BIGINT GENERATED ALWAYS AS ((data->>'expiration_timestamp')::BIGINT) STORED,
+    contract_size INTEGER GENERATED ALWAYS AS ((data->>'contract_size')::INTEGER) STORED
+);
 
 CREATE TABLE ohlc60_btc_perp (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
     open_interest REAL,
-    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
+    tick BIGINT GENERATED ALWAYS AS ((data->>'tick')::INTEBIGINTGER) STORED
 );
+CREATE INDEX idx_ohlc60_btc_perp_tick ON ohlc60_btc_perp (tick);
 
 CREATE TABLE ohlc15_btc_perp (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
     open_interest REAL,
-    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
+    tick BIGINT GENERATED ALWAYS AS ((data->>'tick')::BIGINT) STORED
 );
+CREATE INDEX idx_ohlc15_btc_perp_tick ON ohlc15_btc_perp (tick);
 
 CREATE TABLE ohlc5_btc_perp (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
     open_interest REAL,
-    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
+    tick BIGINT GENERATED ALWAYS AS ((data->>'tick')::BIGINT) STORED
 );
+CREATE INDEX idx_ohlc5_btc_perp_tick ON ohlc5_btc_perp (tick);
 
 CREATE TABLE ohlc1_btc_perp (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
     open_interest REAL,
-    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
+    tick BIGINT GENERATED ALWAYS AS ((data->>'tick')::BIGINT) STORED
 );
+CREATE INDEX idx_ohlc1_btc_perp_tick ON ohlc1_btc_perp (tick);
 
 
 CREATE TABLE ohlc60_eth_perp (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
     open_interest REAL,
-    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
+    tick BIGINT GENERATED ALWAYS AS ((data->>'tick')::BIGINT) STORED
 );
+CREATE INDEX idx_ohlc60_eth_perp_tick ON ohlc60_eth_perp (tick);
+
 CREATE TABLE ohlc15_eth_perp (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
     open_interest REAL,
-    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
+    tick BIGINT GENERATED ALWAYS AS ((data->>'tick')::BIGINT) STORED
 );
+CREATE INDEX idx_ohlc15_eth_perp_tick ON ohlc15_eth_perp (tick);
 
 CREATE TABLE ohlc5_eth_perp (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
     open_interest REAL,
-    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
+    tick BIGINT GENERATED ALWAYS AS ((data->>'tick')::BIGINT) STORED
 );
+CREATE INDEX idx_ohlc5_eth_perp_tick ON ohlc5_eth_perp (tick);
 
 CREATE TABLE ohlc1_eth_perp (
     id SERIAL PRIMARY KEY,
     data JSONB NOT NULL,
     open_interest REAL,
-    tick INTEGER GENERATED ALWAYS AS ((data->>'tick')::INTEGER) STORED
+    tick BIGINT GENERATED ALWAYS AS ((data->>'tick')::BIGINT) STORED
 );
+CREATE INDEX idx_ohlc1_eth_perp_tick ON ohlc1_eth_perp (tick);
 
 CREATE OR REPLACE FUNCTION get_arithmetic_value(
     p_item TEXT,

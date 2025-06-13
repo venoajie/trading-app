@@ -61,7 +61,7 @@ class PostgresClient:
                     self._pool = await asyncpg.create_pool(
                         dsn=self.dsn,
                         min_size=5,
-                        max_size=20,
+                        max_size=50,
                         command_timeout=60,
                         server_settings={
                             "application_name": "trading-app",
@@ -74,6 +74,15 @@ class PostgresClient:
                     log.error(f"Connection failed: {e}")
                     await asyncio.sleep(2)
             raise ConnectionError("Failed to create PostgreSQL pool")
+
+    async def insert_ohlc(self, table_name: str, candle: dict):
+        query = f"""
+            INSERT INTO {table_name} (data)
+            VALUES ($1)
+        """
+        await self.start_pool()
+        async with self._pool.acquire() as conn:
+            await conn.execute(query, orjson.dumps(candle))
 
     async def insert_trade_or_order(self, data: dict):
         currency = (
