@@ -296,7 +296,7 @@ class StreamingAccountData:
         # Proper test_request response according to Deribit docs
         response = {
             "jsonrpc": "2.0",
-            "id": 8212,
+            "id": 0,
             "method": "public/test",
             "params": {}
         }
@@ -316,7 +316,7 @@ class StreamingAccountData:
         # Send the required public/test response
         response = {
             "jsonrpc": "2.0",
-            "id": 8212,
+            "id": 0,
             "method": "public/test",
             "params": {}
             }
