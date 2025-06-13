@@ -11,6 +11,7 @@ from core.db import postgres as pg
 from core.db.redis import redis_client
 from core.error_handler import error_handler
 from src.scripts.deribit import caching
+from src.shared.config.constants import ServiceConstants
 from src.shared.utils import error_handling, string_modification as str_mod
 
 # Configure logger
