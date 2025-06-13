@@ -94,6 +94,30 @@ class StreamingAccountData:
                 log.error(f"Error in auth refresh: {e}")
                 await asyncio.sleep(60)
 
+    async def authenticate_and_setup(
+        self,
+        client_redis: Any,
+        exchange: str,
+        futures_instruments: Dict[str, Any],
+        resolutions: List[str],
+    ) -> None:
+        """Authenticate and setup subscriptions"""
+        # Authenticate WebSocket Connection
+        await self.ws_auth(client_redis)
+
+        # Establish Heartbeat
+        await self.establish_heartbeat(client_redis)
+
+        # Prepare and subscribe to instruments
+        instruments_name = futures_instruments["instruments_name"]
+        ws_instruments = self.generate_subscription_list(instruments_name, resolutions)
+
+        await self.ws_operation(
+            operation="subscribe",
+            ws_channel=ws_instruments,
+            source="ws-combination",
+        )
+
     async def manage_connection(
         self,
         client_redis: Any,
@@ -364,30 +388,6 @@ async def process_messages(self, client_redis, exchange):
         except Exception as error:
             log.error(f"Authentication failed: {error}")
             await error_handling.parse_error_message_with_redis(client_redis, error)
-
-    async def authenticate_and_setup(
-        self,
-        client_redis: Any,
-        exchange: str,
-        futures_instruments: Dict[str, Any],
-        resolutions: List[str],
-    ) -> None:
-        """Authenticate and setup subscriptions"""
-        # Authenticate WebSocket Connection
-        await self.ws_auth(client_redis)
-
-        # Establish Heartbeat
-        await self.establish_heartbeat(client_redis)
-
-        # Prepare and subscribe to instruments
-        instruments_name = futures_instruments["instruments_name"]
-        ws_instruments = self.generate_subscription_list(instruments_name, resolutions)
-
-        await self.ws_operation(
-            operation="subscribe",
-            ws_channel=ws_instruments,
-            source="ws-combination",
-        )
 
     def generate_subscription_list(
         self, instruments_name: List[str], resolutions: List[str]
