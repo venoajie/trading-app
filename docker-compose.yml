@@ -48,6 +48,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    limits:
+      cpus: '1.0'
+      memory: 1G
 
   distributor:
     profiles: ["full", "distributor"]
@@ -68,7 +71,6 @@ services:
       - ERROR_NOTIFY_REDIS=true
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
-
     secrets: 
       - db_password 
       - telegram_bot_token  
@@ -83,6 +85,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    limits:
+      cpus: '1.0'
+      memory: 1G
 
   postgres:
     image: postgres:17
