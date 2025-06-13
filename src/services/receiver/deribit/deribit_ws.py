@@ -132,7 +132,7 @@ class StreamingAccountData:
             time_since_last = time.time() - self.last_message_time
             
             log.info(f"time_since_last {time_since_last} self.heartbeat_interval * 0.8 {self.heartbeat_interval * 0.8} self.maintenance_threshold {self.maintenance_threshold}")
-            log.inf(f"time_since_last > self.heartbeat_interval * 0.8 {time_since_last > self.heartbeat_interval * 0.8} time_since_last > self.maintenance_threshold {time_since_last > self.maintenance_threshold}")
+            log.info(f"time_since_last > self.heartbeat_interval * 0.8 {time_since_last > self.heartbeat_interval * 0.8} time_since_last > self.maintenance_threshold {time_since_last > self.maintenance_threshold}")
 
             # If we're near the heartbeat threshold, send a test request
             if time_since_last > self.heartbeat_interval * 0.8:
@@ -238,7 +238,7 @@ class StreamingAccountData:
                             }
                         )
 
-                        log.info(f"channel {channel}")
+                        #log.info(f"channel {channel}")
 
                         # Cap batch size to prevent unbounded growth
                         if len(batch) >= BATCH_SIZE * 2:
