@@ -223,10 +223,8 @@ class CustomRedisClient:
         if self._circuit_open and time.time() - self._last_failure < 5:
             raise ConnectionError("Redis circuit breaker open")
 
-        if self.pool is None:
-
-            redis_url = config["redis"]["url"]
-            redis_db = config["redis"]["db"]
+        redis_url = config["redis"]["url"]
+        redis_db = config["redis"]["db"]
 
         try:
 
