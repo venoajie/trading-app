@@ -4,9 +4,7 @@
 name = "distributor"
 version = "1.0.0"
 dependencies = [
-    "uvloop>=0.21.0",
-    "cachetools==6.0.0"
-]
+    "uvloop>=0.21.0"]
 
 
 

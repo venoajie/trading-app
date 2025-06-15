@@ -225,6 +225,7 @@ class StreamingAccountData:
         last_flush_time = time.time()  # Initialize flush timer
         MAX_BATCH_ITEMS = 5000  # Hard limit of 5000 messages
         BATCH_SIZE = 50
+        batch = []
         
         try:
             async for message in self.websocket_client:
