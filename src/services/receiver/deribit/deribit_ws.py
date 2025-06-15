@@ -261,6 +261,8 @@ class StreamingAccountData:
                 self.last_message_time = current_time
 
                 try:
+                    
+                    log.info(f" message {message}")
                     message_dict = message
 
                     # Handle heartbeat notifications
