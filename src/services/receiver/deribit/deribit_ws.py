@@ -308,7 +308,11 @@ class StreamingAccountData:
                             log.warning(f"Redis error ({attempt+1}/{max_retries}): {e}")
                             await asyncio.sleep(min(2**attempt, 10))
                         except Exception as e:
-                            log.error(f"Redis batch send failed: {e}")
+                            
+                            import traceback
+                            info = f"{error} \n \n {traceback.format_exc()}"
+
+                            log.error(f"Redis batch send failed: {info}")
                             break
 
                     if not send_success:
