@@ -160,6 +160,12 @@ async def stream_consumer(redis: Any, state: Dict[str, Any]) -> None:
             await asyncio.sleep(min(2**RETRY_COUNT, 30))
             RETRY_COUNT += 1
         except Exception as error:
+            
+            
+            import traceback
+
+            info = f"{error} \n \n {traceback.format_exc()}"
+            
             log.error(f"Unexpected error in consumer: {error}")
             await asyncio.sleep(5)
 
