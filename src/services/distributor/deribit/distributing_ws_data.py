@@ -66,7 +66,8 @@ async def process_message(
             elif "incremental_ticker" in channel:
                 await handle_ticker(currency, data, state)
             elif "chart.trades" in channel:
-                await handle_chart(currency, data, state)
+                pass
+                #await handle_chart(currency, data, state)
             # Add other handlers as needed
 
         return True
