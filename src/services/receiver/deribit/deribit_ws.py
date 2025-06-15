@@ -222,14 +222,17 @@ class StreamingAccountData:
         """Process incoming messages with state recovery"""
 
         STREAM_NAME = ServiceConstants.REDIS_STREAM_MARKET
-        last_flush_time = time.time()  # Initialize flush timer
         MAX_BATCH_ITEMS = 5000  # Hard limit of 5000 messages
         BATCH_SIZE = 50
         batch = []
 
         try:
+            
+            current_time = time.time()
+            last_flush_time = current_time  # Initialize flush timer
+            
             async for message in self.websocket_client:
-                current_time = time.time()
+                
                 self.last_message_time = current_time
 
                 try:
@@ -305,7 +308,9 @@ class StreamingAccountData:
                             log.warning(f"Redis error ({attempt+1}/{max_retries}): {e}")
                             await asyncio.sleep(min(2**attempt, 10))
                         except Exception as e:
-                            log.error(f"Redis batch send failed: {e}")
+                            import traceback
+                            info = f"{error} \n \n {traceback.format_exc()}"
+                            log.error(f"Redis batch send failed: {info}")
                             break
 
                     if not send_success:
