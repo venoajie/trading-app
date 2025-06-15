@@ -308,9 +308,7 @@ class StreamingAccountData:
                             log.warning(f"Redis error ({attempt+1}/{max_retries}): {e}")
                             await asyncio.sleep(min(2**attempt, 10))
                         except Exception as e:
-                            import traceback
-                            info = f"{error} \n \n {traceback.format_exc()}"
-                            log.error(f"Redis batch send failed: {info}")
+                            log.error(f"Redis batch send failed: {e}")
                             break
 
                     if not send_success:
@@ -322,7 +320,11 @@ class StreamingAccountData:
                     log.debug(f"Sending final batch of {len(batch)} messages")
                     await client_redis.xadd_bulk(STREAM_NAME, batch)
                 except Exception as e:
-                    log.error(f"Failed to send final batch: {e}")
+            
+                    import traceback
+                    info = f"{error} \n \n {traceback.format_exc()}"
+
+                    log.error(f"Failed to send final batch: {info}")
 
     async def manage_connection(
         self,
