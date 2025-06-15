@@ -230,25 +230,33 @@ class CustomRedisClient:
 
             if self.pool is None or not await self.is_pool_connected():
 
-                self.pool = aioredis.from_url(
-                    redis_url,
-                    db=redis_db,
-                    encoding="utf-8",
-                    decode_responses=False,  # Keep binary for performance
-                    socket_connect_timeout=5,
-                    socket_keepalive=True,
-                    max_connections=50,
-                )
-                log.info(f"Created Redis pool for {redis_url}")
+                for attempt in range(3):
+                    try:
+                        self.pool = aioredis.from_url(
+                            redis_url,
+                            db=redis_db,
+                            encoding="utf-8",
+                            decode_responses=False,
+                            socket_connect_timeout=5,
+                            socket_keepalive=True,
+                            max_connections=50,
+                        )
+                        log.info(f"Created Redis pool for {redis_url}")
+                        break  # Success, exit retry loop
+                    except socket.gaierror:
+                        if attempt < 2:
+                            log.warning(f"DNS resolution failed (attempt {attempt+1}/3), retrying...")
+                            await asyncio.sleep(0.5 * (attempt + 1))
+                        else:
+                            raise
 
             return self.pool
-
         except Exception as e:
             self._circuit_open = True
             self._last_failure = time.time()
-            self.pool = None  # Reset pool on error
+            self.pool = None
             raise
-
+        
     async def is_pool_connected(self) -> bool:
         """Check if the connection pool is still valid"""
         if self.pool is None:

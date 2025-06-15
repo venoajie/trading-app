@@ -166,7 +166,7 @@ async def stream_consumer(redis: Any, state: Dict[str, Any]) -> None:
 
             info = f"{error} \n \n {traceback.format_exc()}"
             
-            log.error(f"Unexpected error in consumer: {error}")
+            log.error(f"Unexpected error in consumer: {info}")
             await asyncio.sleep(5)
 
 
