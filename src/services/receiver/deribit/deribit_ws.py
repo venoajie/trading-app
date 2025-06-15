@@ -4,16 +4,17 @@
 WebSocket client for Deribit exchange with enhanced maintenance handling
 """
 
-import sys
 import asyncio
-import json
-import time
+from collections import deque
 from datetime import datetime, timedelta, timezone
+import json
+import sys
+import time
 
 # Third-party imports
 import orjson
-import websockets
 from dataclassy import dataclass
+import websockets
 from websockets import WebSocketClientProtocol
 from typing import Any, Dict, List, Optional, Union, cast
 from loguru import logger as log
@@ -27,12 +28,6 @@ from src.shared.config.constants import (
     WebsocketParameters,
     AddressUrl,
 )
-
-MAX_BATCH_MEMORY_MB = 100  # Max memory for batch in MB
-BATCH_SIZE = 50
-STREAM_NAME = ServiceConstants.REDIS_STREAM_MARKET
-batch = []
-
 
 @dataclass(unsafe_hash=True, slots=True)
 class StreamingAccountData:
@@ -224,16 +219,45 @@ class StreamingAccountData:
 
     async def process_messages(self, client_redis, exchange):
         """Process incoming messages with state recovery"""
-        batch = []  # Local batch per connection
+        
+        
+        STREAM_NAME = ServiceConstants.REDIS_STREAM_MARKET
         last_flush_time = time.time()  # Initialize flush timer
         retry_count = 0
         max_retries = 5
         MAX_BATCH_ITEMS = 5000  # Hard limit of 5000 messages
-        MAX_BATCH_MEMORY_MB = 50  # 50MB maximum
+        MAX_BATCH_MEMORY_MB = 50  # Max memory for batch in MB        
+        BATCH_SIZE = 50
+        MAX_BATCH_BYTES = 50 * 1024 * 1024  # 50MB                
+        current_batch_size = 0
+        batch = deque(maxlen=MAX_BATCH_ITEMS)
         
         try:
             async for message in self.websocket_client:
                 current_time = time.time()
+                # Calculate message size (accurate for strings/bytes)
+                msg_size = sys.getsizeof(message['channel']) + \
+                        sys.getsizeof(message['data']) + \
+                        sys.getsizeof(message['timestamp']) + \
+                        sys.getsizeof(message['exchange'])
+                    
+                            
+                # Check memory limits
+                if current_batch_size + msg_size > MAX_BATCH_BYTES:
+                    # Send partial batch if over limit
+                    await send_batch(list(batch))
+                    batch.clear()
+                    current_batch_size = 0
+
+                batch.append(message)
+                current_batch_size += msg_size
+
+                # Check item count limit
+                if len(batch) >= MAX_BATCH_ITEMS:
+                    await send_batch(list(batch))
+                    batch.clear()
+                    current_batch_size = 0
+                
                 self.last_message_time = current_time
 
                 try:

@@ -55,7 +55,7 @@ class PostgresClient:
         self._pool = None  #  explicit initialization
 
     async def start_pool(self):
-        if not self._pool:
+        if not self._pool or self._pool._closed:  # Check if closed
             for _ in range(3):
                 try:
                     self._pool = await asyncpg.create_pool(

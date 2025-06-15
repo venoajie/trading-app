@@ -211,27 +211,45 @@ class CustomRedisClient:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.pool = None
+            # Initialize circuit breaker state
+            cls._instance._circuit_open = False
+            cls._instance._last_failure = 0
         return cls._instance
 
     async def get_pool(self) -> aioredis.Redis:
         """Get or create Redis connection pool"""
+
+        # Circuit breaker logic (5-second cooldown)
+        if self._circuit_open and time.time() - self._last_failure < 5:
+            raise ConnectionError("Redis circuit breaker open")
+                
         if self.pool is None:
 
             redis_url = config["redis"]["url"]
             redis_db = config["redis"]["db"]
 
-            self.pool = aioredis.from_url(
-                redis_url,
-                db=redis_db,
-                encoding="utf-8",
-                decode_responses=False,  # Keep binary for performance
-                socket_connect_timeout=5,
-                socket_keepalive=True,
-                max_connections=50,
-            )
-            log.info(f"Created Redis pool for {redis_url}")
-        return self.pool
+        try:
+            
+            if self.pool is None or self.pool._closed:
 
+                self.pool = aioredis.from_url(
+                    redis_url,
+                    db=redis_db,
+                    encoding="utf-8",
+                    decode_responses=False,  # Keep binary for performance
+                    socket_connect_timeout=5,
+                    socket_keepalive=True,
+                    max_connections=50,
+                )
+                log.info(f"Created Redis pool for {redis_url}")
+                
+            return self.pool
+
+        except Exception as e:
+            self._circuit_open = True
+            self._last_failure = time.time()
+            raise
+        
     async def publish(self, channel: str, message: Union[Dict, str]) -> None:
         """Publish message to Redis channel"""
         pool = await self.get_pool()
@@ -337,10 +355,13 @@ class CustomRedisClient:
         self,
         stream_name: str,
         messages: List[dict],
-        maxlen: int = 1000,
+        maxlen: int = 500,
     ) -> None:
 
         pool = await self.get_pool()
+        
+        # pre-trim
+        await self.trim_stream(stream_name, maxlen)
 
         try:
             async with pool.pipeline(transaction=False) as pipe:

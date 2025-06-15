@@ -89,7 +89,10 @@ services:
     restart: unless-stopped
     networks: [trading-net]
     healthcheck:
-      test: ["CMD", "python", "-c", "from core.db.postgres import check_postgres; check_postgres()"]
+      test: [
+        "CMD", "python", "-c",
+        "import os, psutil; p=psutil.Process(); exit(1 if p.memory_full_info().uss > 600*1024*1024 else 0)"
+      ]
       interval: 30s
       timeout: 10s
       retries: 3

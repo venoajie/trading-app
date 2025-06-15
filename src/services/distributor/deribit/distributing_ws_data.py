@@ -17,13 +17,6 @@ from src.shared.utils import error_handling, string_modification as str_mod
 # Configure logger
 from loguru import logger as log
 
-# Constants
-STREAM_NAME = ServiceConstants.REDIS_STREAMS["MARKET_DATA"]
-GROUP_NAME = "dispatcher_group"
-CONSUMER_NAME = "dispatcher_consumer"
-BATCH_SIZE = 100
-MAX_RETRIES = 3
-
 
 def parse_redis_message(message_data: dict) -> dict:
     """Efficient parser for Redis stream messages"""
@@ -108,10 +101,18 @@ async def handle_chart(currency: str, data: Dict, state: Dict[str, Any]) -> None
 
 async def stream_consumer(redis: Any, state: Dict[str, Any]) -> None:
     """Main stream consumption loop with error handling"""
-    retry_count = 0
+
+    # Constants
+    BATCH_SIZE = 100
+    CONSUMER_NAME = "dispatcher_consumer"
+    GROUP_NAME = "dispatcher_group"
+    RETRY_COUNT = 0
     dead_letter_queue = []
 
     while True:
+        
+        STREAM_NAME = ServiceConstants.REDIS_STREAMS["MARKET_DATA"]
+        
         try:
             # Read new messages
             messages = await redis.xreadgroup(
@@ -150,13 +151,13 @@ async def stream_consumer(redis: Any, state: Dict[str, Any]) -> None:
                             dead_letter_queue = []
 
             # Reset retry count on successful cycle
-            retry_count = 0
+            RETRY_COUNT = 0
             await asyncio.sleep(0.01)
 
         except (ConnectionError, TimeoutError):
             log.warning("Redis connection error, retrying...")
-            await asyncio.sleep(min(2**retry_count, 30))
-            retry_count += 1
+            await asyncio.sleep(min(2**RETRY_COUNT, 30))
+            RETRY_COUNT += 1
         except Exception as error:
             log.error(f"Unexpected error in consumer: {error}")
             await asyncio.sleep(5)

@@ -7,6 +7,7 @@ import logging
 from collections import defaultdict
 
 from loguru import logger as log
+from cachetools import TTLCache
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
@@ -77,7 +78,10 @@ async def stream_consumer():
                     redis,
                     {
                         "locks": defaultdict(asyncio.Lock),
-                        "caches": {"portfolio": {}, "ticker": {}},
+                        "caches": {
+                "portfolio": TTLCache(maxsize=1000, ttl=300),
+                "ticker": TTLCache(maxsize=1000, ttl=300)
+            },
                     },
                 )
 
@@ -95,12 +99,8 @@ async def main():
 
     try:
         await stream_consumer()
-    except (KeyboardInterrupt, SystemExit):
-        log.info("Distributor service shutdown requested")
-    except Exception as error:
-        log.exception(f"Fatal error in distributor: {error}")
-        raise SystemExit(1)
-
+    finally:
+        await pg.shutdown() # Close all connections
 
 if __name__ == "__main__":
     uvloop.run(main())
