@@ -225,16 +225,15 @@ class StreamingAccountData:
         MAX_BATCH_ITEMS = 5000  # Hard limit of 5000 messages
         BATCH_SIZE = 50
         batch = []
+        last_flush_time = time.time()   # Initialize flush timer
 
         try:
             
             current_time = time.time()
-            last_flush_time = current_time  # Initialize flush timer
+            self.last_message_time = current_time
             
             async for message in self.websocket_client:
                 
-                self.last_message_time = current_time
-
                 try:
                     message_dict = orjson.loads(message)
 
@@ -276,47 +275,23 @@ class StreamingAccountData:
                 except Exception as e:
                     log.error(f"Message processing failed: {e}")
 
-                # Check if we should send batch (size or time-based)
-                max_batch_age = 10  # Max seconds to hold batch
+            
                 delta_flush_time = current_time - last_flush_time
-
-                # Cap batch size
-                if len(batch) > MAX_BATCH_ITEMS:
-                    keep_count = len(batch) // 2
-                    batch = batch[-keep_count:]
-                    log.warning(f"Batch overflow - trimmed to {keep_count} messages")
 
                 # Check if we should send batch
                 should_send = (
                     len(batch) >= BATCH_SIZE
                     or (batch and delta_flush_time > 5)
-                    or (batch and delta_flush_time > max_batch_age)
                 )
 
                 if should_send:
-                    send_success = False
-                    max_retries = 5
-
-                    for attempt in range(max_retries):
-                        try:
-                            await client_redis.xadd_bulk(STREAM_NAME, batch)
-                            batch = []
-                            last_flush_time = current_time
-                            send_success = True
-                            break
-                        except (ConnectionError, TimeoutError) as e:
-                            log.warning(f"Redis error ({attempt+1}/{max_retries}): {e}")
-                            await asyncio.sleep(min(2**attempt, 10))
-                        except Exception as e:
-                            
-                            import traceback
-                            info = f"{e} \n \n {traceback.format_exc()}"
-
-                            log.error(f"Redis batch send failed: {info}")
-                            break
-
-                    if not send_success:
-                        log.error(f"Failed to send batch after {max_retries} attempts")
+                    try:
+                        await client_redis.xadd_bulk(STREAM_NAME, batch)
+                        batch = []
+                        last_flush_time = current_time
+                    except Exception as e:
+                        log.error(f"Failed to send batch to Redis: {e}")
+                        # Consider implementing fallback storage here
         finally:
             # Send any remaining messages on disconnect
             if batch:

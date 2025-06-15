@@ -369,24 +369,41 @@ class CustomRedisClient:
         maxlen: int = 500,
     ) -> None:
 
-        pool = await self.get_pool()
-
         # pre-trim
         await self.trim_stream(stream_name, maxlen)
 
-        try:
-            async with pool.pipeline(transaction=False) as pipe:
-                for message in messages:
-                    # Encode all values to string/bytes
-                    encoded_msg = self.encode_stream_message(message)
-                    pipe.xadd(stream_name, encoded_msg, maxlen=maxlen, approximate=True)
-                await pipe.execute()
-            log.debug(f"Sent {len(messages)} messages to {stream_name}")
-
-        except Exception as e:
-            log.error(f"Bulk xadd failed: {e}")
-            # Implement retry logic or dead-letter queue here
-
+        max_retries = 3
+        retry_delays = [0.1, 0.5, 2.0]  # Seconds to wait between retries
+        
+        for attempt in range(max_retries + 1):
+            try:
+                pool = await self.get_pool()
+                async with pool.pipeline(transaction=False) as pipe:
+                    for message in messages:
+                        encoded_msg = self.encode_stream_message(message)
+                        pipe.xadd(stream_name, encoded_msg, maxlen=maxlen, approximate=True)
+                    await pipe.execute()
+                log.debug(f"Sent {len(messages)} messages to {stream_name}")
+                return  # Success, exit the method
+            except (redis.exceptions.ConnectionError, 
+                    redis.exceptions.TimeoutError,
+                    ConnectionRefusedError,
+                    OSError) as e:
+                # Reset pool on connection errors
+                self.pool = None
+                
+                if attempt < max_retries:
+                    delay = retry_delays[attempt]
+                    log.warning(f"Redis connection error (attempt {attempt+1}/{max_retries}), "
+                                f"retrying in {delay}s: {str(e)}")
+                    await asyncio.sleep(delay)
+                else:
+                    log.error(f"Redis connection failed after {max_retries} attempts: {str(e)}")
+                    # Implement dead-letter queue or persistent storage here
+            except Exception as e:
+                log.error(f"Unexpected error in xadd_bulk: {str(e)}")
+                break
+            
     async def xack(self, stream_name: str, group_name: str, message_id: str) -> None:
         pool = await self.get_pool()
         await pool.xack(stream_name, group_name, message_id)
