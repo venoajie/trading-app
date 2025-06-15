@@ -89,9 +89,11 @@ async def handle_ticker(currency: str, data: Dict, state: Dict[str, Any]) -> Non
     """Handle ticker updates"""
     # Update in-memory cache
     state["caches"]["ticker"][currency] = data
+    
+    log.info(f"data {data}")
 
     # Update OHLC data
-    await pg.update_ohlc(currency, data)
+    #await pg.update_ohlc(currency, data)
 
 
 async def handle_chart(currency: str, data: Dict, state: Dict[str, Any]) -> None:
