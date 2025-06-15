@@ -310,7 +310,7 @@ class StreamingAccountData:
                         except Exception as e:
                             
                             import traceback
-                            info = f"{error} \n \n {traceback.format_exc()}"
+                            info = f"{e} \n \n {traceback.format_exc()}"
 
                             log.error(f"Redis batch send failed: {info}")
                             break
@@ -326,7 +326,7 @@ class StreamingAccountData:
                 except Exception as e:
             
                     import traceback
-                    info = f"{error} \n \n {traceback.format_exc()}"
+                    info = f"{e} \n \n {traceback.format_exc()}"
 
                     log.error(f"Failed to send final batch: {info}")
 
