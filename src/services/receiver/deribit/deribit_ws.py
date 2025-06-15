@@ -261,7 +261,7 @@ class StreamingAccountData:
                 self.last_message_time = current_time
 
                 try:
-                    message_dict = orjson.loads(message)
+                    message_dict = message
 
                     # Handle heartbeat notifications
                     if message_dict.get("method") == "heartbeat":
