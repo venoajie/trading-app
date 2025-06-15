@@ -110,9 +110,9 @@ async def stream_consumer(redis: Any, state: Dict[str, Any]) -> None:
     dead_letter_queue = []
 
     while True:
-        
+
         STREAM_NAME = ServiceConstants.REDIS_STREAMS["MARKET_DATA"]
-        
+
         try:
             # Read new messages
             messages = await redis.xreadgroup(

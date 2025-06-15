@@ -222,14 +222,14 @@ class CustomRedisClient:
         # Circuit breaker logic (5-second cooldown)
         if self._circuit_open and time.time() - self._last_failure < 5:
             raise ConnectionError("Redis circuit breaker open")
-                
+
         if self.pool is None:
 
             redis_url = config["redis"]["url"]
             redis_db = config["redis"]["db"]
 
         try:
-            
+
             if self.pool is None or self.pool._closed:
 
                 self.pool = aioredis.from_url(
@@ -242,14 +242,14 @@ class CustomRedisClient:
                     max_connections=50,
                 )
                 log.info(f"Created Redis pool for {redis_url}")
-                
+
             return self.pool
 
         except Exception as e:
             self._circuit_open = True
             self._last_failure = time.time()
             raise
-        
+
     async def publish(self, channel: str, message: Union[Dict, str]) -> None:
         """Publish message to Redis channel"""
         pool = await self.get_pool()
@@ -359,7 +359,7 @@ class CustomRedisClient:
     ) -> None:
 
         pool = await self.get_pool()
-        
+
         # pre-trim
         await self.trim_stream(stream_name, maxlen)
 

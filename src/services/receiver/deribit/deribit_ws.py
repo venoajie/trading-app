@@ -29,6 +29,7 @@ from src.shared.config.constants import (
     AddressUrl,
 )
 
+
 @dataclass(unsafe_hash=True, slots=True)
 class StreamingAccountData:
     """Enhanced WebSocket manager with maintenance detection and recovery"""
@@ -219,20 +220,16 @@ class StreamingAccountData:
 
     async def process_messages(self, client_redis, exchange):
         """Process incoming messages with state recovery"""
-        
-        
+
         STREAM_NAME = ServiceConstants.REDIS_STREAM_MARKET
         last_flush_time = time.time()  # Initialize flush timer
         MAX_BATCH_ITEMS = 5000  # Hard limit of 5000 messages
         BATCH_SIZE = 50
         batch = []
-        
+
         try:
             async for message in self.websocket_client:
                 current_time = time.time()
-                # Calculate message size (accurate for strings/bytes)
-
-                current_batch_size += msg_size                
                 self.last_message_time = current_time
 
                 try:
@@ -264,38 +261,39 @@ class StreamingAccountData:
                         timestamp = str(int(current_time * 1000))
 
                         # Add to batch
-                        batch.append({
-                            "channel": channel,
-                            "data": serialized_data,
-                            "timestamp": timestamp,
-                            "exchange": exchange,
-                        })
-                        
+                        batch.append(
+                            {
+                                "channel": channel,
+                                "data": serialized_data,
+                                "timestamp": timestamp,
+                                "exchange": exchange,
+                            }
+                        )
+
                 except Exception as e:
                     log.error(f"Message processing failed: {e}")
-                
+
                 # Check if we should send batch (size or time-based)
                 max_batch_age = 10  # Max seconds to hold batch
                 delta_flush_time = current_time - last_flush_time
-                
 
                 # Cap batch size
                 if len(batch) > MAX_BATCH_ITEMS:
                     keep_count = len(batch) // 2
                     batch = batch[-keep_count:]
                     log.warning(f"Batch overflow - trimmed to {keep_count} messages")
-                
+
                 # Check if we should send batch
                 should_send = (
-                    len(batch) >= BATCH_SIZE or 
-                    (batch and delta_flush_time > 5) or
-                    (batch and delta_flush_time > max_batch_age)
+                    len(batch) >= BATCH_SIZE
+                    or (batch and delta_flush_time > 5)
+                    or (batch and delta_flush_time > max_batch_age)
                 )
-                
+
                 if should_send:
                     send_success = False
                     max_retries = 5
-                    
+
                     for attempt in range(max_retries):
                         try:
                             await client_redis.xadd_bulk(STREAM_NAME, batch)
@@ -305,13 +303,13 @@ class StreamingAccountData:
                             break
                         except (ConnectionError, TimeoutError) as e:
                             log.warning(f"Redis error ({attempt+1}/{max_retries}): {e}")
-                            await asyncio.sleep(min(2 ** attempt, 10))
+                            await asyncio.sleep(min(2**attempt, 10))
                         except Exception as e:
                             log.error(f"Redis batch send failed: {e}")
                             break
-                            
+
                     if not send_success:
-                        log.error(f"Failed to send batch after {max_retries} attempts")                            
+                        log.error(f"Failed to send batch after {max_retries} attempts")
         finally:
             # Send any remaining messages on disconnect
             if batch:

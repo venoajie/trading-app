@@ -79,9 +79,9 @@ async def stream_consumer():
                     {
                         "locks": defaultdict(asyncio.Lock),
                         "caches": {
-                "portfolio": TTLCache(maxsize=1000, ttl=300),
-                "ticker": TTLCache(maxsize=1000, ttl=300)
-            },
+                            "portfolio": TTLCache(maxsize=1000, ttl=300),
+                            "ticker": TTLCache(maxsize=1000, ttl=300),
+                        },
                     },
                 )
 
@@ -100,7 +100,8 @@ async def main():
     try:
         await stream_consumer()
     finally:
-        await pg.shutdown() # Close all connections
+        await pg.shutdown()  # Close all connections
+
 
 if __name__ == "__main__":
     uvloop.run(main())
