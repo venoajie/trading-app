@@ -223,47 +223,19 @@ class StreamingAccountData:
         
         STREAM_NAME = ServiceConstants.REDIS_STREAM_MARKET
         last_flush_time = time.time()  # Initialize flush timer
-        retry_count = 0
-        max_retries = 5
         MAX_BATCH_ITEMS = 5000  # Hard limit of 5000 messages
-        MAX_BATCH_MEMORY_MB = 50  # Max memory for batch in MB        
         BATCH_SIZE = 50
-        MAX_BATCH_BYTES = 50 * 1024 * 1024  # 50MB                
-        current_batch_size = 0
-        batch = deque(maxlen=MAX_BATCH_ITEMS)
         
         try:
             async for message in self.websocket_client:
                 current_time = time.time()
                 # Calculate message size (accurate for strings/bytes)
-                msg_size = sys.getsizeof(message['channel']) + \
-                        sys.getsizeof(message['data']) + \
-                        sys.getsizeof(message['timestamp']) + \
-                        sys.getsizeof(message['exchange'])
-                    
-                            
-                # Check memory limits
-                if current_batch_size + msg_size > MAX_BATCH_BYTES:
-                    # Send partial batch if over limit
-                    await send_batch(list(batch))
-                    batch.clear()
-                    current_batch_size = 0
 
-                batch.append(message)
-                current_batch_size += msg_size
-
-                # Check item count limit
-                if len(batch) >= MAX_BATCH_ITEMS:
-                    await send_batch(list(batch))
-                    batch.clear()
-                    current_batch_size = 0
-                
+                current_batch_size += msg_size                
                 self.last_message_time = current_time
 
                 try:
-                    
-                    log.info(f" message {message}")
-                    message_dict = message
+                    message_dict = orjson.loads(message)
 
                     # Handle heartbeat notifications
                     if message_dict.get("method") == "heartbeat":
@@ -298,82 +270,47 @@ class StreamingAccountData:
                             "exchange": exchange,
                         })
                         
-                        
-                        
-                        # Memory safeguard - prevent batch from growing too large
-                        batch_size_bytes = 0
-                        for item in batch:
-                            batch_size_bytes += sys.getsizeof(item["channel"])
-                            batch_size_bytes += sys.getsizeof(item["data"])
-                            batch_size_bytes += sys.getsizeof(item["timestamp"])
-                            batch_size_bytes += sys.getsizeof(item["exchange"])
-
-                        if batch_size_bytes > MAX_BATCH_MEMORY_MB * 1024 * 1024:
-                            # Calculate how many messages to keep (newest 50%)
-                            keep_count = len(batch) // 2
-                            batch = batch[-keep_count:]
-                            log.warning(f"Batch memory exceeded {MAX_BATCH_MEMORY_MB}MB, truncated to {keep_count} messages")
-
-                        # Cap batch size to prevent unbounded growth
-                        if len(batch) >= BATCH_SIZE * 2:
-                            batch = batch[-BATCH_SIZE:]
-                            log.warning("Batch size capped to prevent memory growth")
-
-
-                        if len(batch) > MAX_BATCH_ITEMS:
-                            # Remove oldest 20% of messages
-                            remove_count = len(batch) // 5
-                            del batch[:remove_count]
-                            log.warning(f"Batch overflow - removed {remove_count} messages")
-
                 except Exception as e:
                     log.error(f"Message processing failed: {e}")
                 
                 # Check if we should send batch (size or time-based)
-                should_send = False
                 max_batch_age = 10  # Max seconds to hold batch
                 delta_flush_time = current_time - last_flush_time
                 
+
+                # Cap batch size
                 if len(batch) > MAX_BATCH_ITEMS:
-                    remove_count = len(batch) - MAX_BATCH_ITEMS
-                    del batch[:remove_count]
-                    log.warning(f"Batch overflow - removed {remove_count} messages")
+                    keep_count = len(batch) // 2
+                    batch = batch[-keep_count:]
+                    log.warning(f"Batch overflow - trimmed to {keep_count} messages")
                 
-                if len(batch) >= BATCH_SIZE:
-                    should_send = True
-                    log.debug("Batch full - sending")
-                elif batch and delta_flush_time > 5:
-                    should_send = True
-                    log.debug("Periodic flush - sending")
-                elif batch and delta_flush_time > max_batch_age:
-                    should_send = True
-                    log.debug(f"Batch age {delta_flush_time:.1f}s > {max_batch_age}s - forcing send")
+                # Check if we should send batch
+                should_send = (
+                    len(batch) >= BATCH_SIZE or 
+                    (batch and delta_flush_time > 5) or
+                    (batch and delta_flush_time > max_batch_age)
+                )
                 
                 if should_send:
                     send_success = False
-                    attempt = 0
+                    max_retries = 5
                     
-                    while attempt < max_retries and not send_success:
+                    for attempt in range(max_retries):
                         try:
                             await client_redis.xadd_bulk(STREAM_NAME, batch)
-                            batch = []  # Clear only on success
+                            batch = []
                             last_flush_time = current_time
                             send_success = True
-                            retry_count = 0  # Reset retry counter on success
+                            break
                         except (ConnectionError, TimeoutError) as e:
-                            attempt += 1
-                            retry_count += 1
-                            delay = min(2 ** attempt, 10)
-                            log.warning(f"Redis error ({attempt}/{max_retries}): {e}")
-                            await asyncio.sleep(delay)
+                            log.warning(f"Redis error ({attempt+1}/{max_retries}): {e}")
+                            await asyncio.sleep(min(2 ** attempt, 10))
                         except Exception as e:
                             log.error(f"Redis batch send failed: {e}")
-                            break  # Break on non-recoverable errors
+                            break
                             
                     if not send_success:
-                        log.error(f"Failed to send batch after {max_retries} attempts")
-                        # Keep batch for next attempt
-                            
+                        log.error(f"Failed to send batch after {max_retries} attempts")                            
         finally:
             # Send any remaining messages on disconnect
             if batch:
