@@ -230,7 +230,7 @@ class CustomRedisClient:
 
         try:
 
-            if self.pool is None or self.pool._closed:
+            if self.pool is None or not await self.is_pool_connected():
 
                 self.pool = aioredis.from_url(
                     redis_url,
@@ -248,8 +248,21 @@ class CustomRedisClient:
         except Exception as e:
             self._circuit_open = True
             self._last_failure = time.time()
+            self.pool = None  # Reset pool on error
             raise
 
+    async def is_pool_connected(self) -> bool:
+        """Check if the connection pool is still valid"""
+        if self.pool is None:
+            return False
+        
+        try:
+            # Test connection with a simple command
+            await self.pool.ping()
+            return True
+        except Exception:
+            return False
+        
     async def publish(self, channel: str, message: Union[Dict, str]) -> None:
         """Publish message to Redis channel"""
         pool = await self.get_pool()
