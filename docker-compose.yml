@@ -16,9 +16,9 @@ services:
       - redis-server
       - "--maxmemory 900mb"
       - "--maxmemory-policy allkeys-lru"  # Changed from volatile-lfu
-      - "--activedefrag yes"  # Enable active defrag
-      - "--active-defrag-ignore-bytes 500mb"  # Start defrag when fragmentation >500MB
-      - "--active-defrag-threshold-lower 30"  # Aggressive defrag
+      - "--activedefrag no"  # Enable active defrag
+      - "--stream-node-max-entries 500"  # implement stream trimming:
+      - "--stream-node-max-bytes 1mb"
       - "--save ''"
       - "--bind 0.0.0.0"
       - "--protected-mode no"
@@ -39,6 +39,8 @@ services:
       - ERROR_NOTIFY_REDIS=true
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - PYTHONTRACEMALLOC=5  # Track allocator traces
+      - PYTHONASYNCIODEBUG=1  # Identify hung tasks
     volumes: [./data:/app/data]
     depends_on: {redis: {condition: service_healthy}}
     secrets: 
@@ -75,6 +77,8 @@ services:
       - ERROR_NOTIFY_REDIS=true
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - PYTHONTRACEMALLOC=5  # Track allocator traces
+      - PYTHONASYNCIODEBUG=1  # Identify hung tasks
     secrets: 
       - db_password 
       - telegram_bot_token  

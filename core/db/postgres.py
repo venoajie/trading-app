@@ -74,7 +74,12 @@ class PostgresClient:
                     log.error(f"Connection failed: {e}")
                     await asyncio.sleep(2)
             raise ConnectionError("Failed to create PostgreSQL pool")
-
+        
+    async def close_pool(self):
+        if self._pool:
+            await self._pool.close()
+            self._pool = None
+            
     async def insert_ohlc(self, table_name: str, candle: dict):
         query = f"""
             INSERT INTO {table_name} (data)
@@ -205,6 +210,9 @@ class PostgresClient:
         query = f"SELECT * FROM {table_name} LIMIT $1"
         return await self.fetch_active_trades(query)
 
+async def shutdown():
+    if postgres_client._pool:
+        await postgres_client._pool.close()
 
 # Singleton instance
 postgres_client = PostgresClient()
